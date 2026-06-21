@@ -26,11 +26,10 @@ async def process_ingest(session_id: str, payload: dict):
     try:
         # Fetch the session record from DB
         session_record = db.query(SessionRecord).filter(SessionRecord.id == session_id).first()
-    
-    if not session_record:
-        return
         
-    try:
+        if not session_record:
+            return
+            
         session_record.status = "processing"
         db.commit()
 
@@ -44,8 +43,9 @@ async def process_ingest(session_id: str, payload: dict):
         contextualized_text = f"Project: {project}\nBranch: {branch}\nLog Content:\n{cleaned_text}"
         
         # Cognee is async, so we await it
-        # Actually according to docs `cognee.remember` doesn't always need dataset naming, but we will pass it simply as text.
-        await cognee.remember(contextualized_text)
+        dataset_name = f"{project}_{branch}".replace("/", "_").replace("-", "_")
+        await cognee.add(contextualized_text, dataset_name=dataset_name)
+        await cognee.cognify()
         
         session_record.status = "completed"
         # we could also store the cognee response ID if returned
