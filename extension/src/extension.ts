@@ -32,7 +32,8 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage('Sending selection to Cognee...');
 
         // Execute the python CLI script, passing text via stdin
-        const child = cp.spawn('python', [cliScript], { cwd: workspacePath });
+        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+        const child = cp.spawn(pythonCmd, [cliScript], { cwd: workspacePath });
 
         child.stdin.write(text);
         child.stdin.end();
