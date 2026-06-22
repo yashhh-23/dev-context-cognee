@@ -1,60 +1,52 @@
 'use client';
+import { useState, useEffect } from 'react';
 
 export default function TopBar() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const [branch, setBranch] = useState('main');
+  const [syncing, setSyncing] = useState(false);
 
-  const handleSync = async () => {
+  useEffect(() => {
+    fetch('http://localhost:8000/api/context/current')
+      .then(r => r.json())
+      .then(d => { if (d.branch) setBranch(d.branch); })
+      .catch(() => {});
+  }, []);
+
+  const sync = async () => {
+    setSyncing(true);
     try {
-      await fetch(`${apiUrl}/health`);
+      await fetch('http://localhost:8000/api/memory/sync', { method: 'POST' });
     } catch {}
+    finally { setSyncing(false); }
   };
 
   return (
-    <div className="topbar">
-      <div className="topbar-breadcrumb">
-        <strong>pocketmind</strong>
+    <header className="topbar">
+      <div className="topbar-crumb">
+        <strong>DevContext</strong>
         <span className="topbar-sep">/</span>
-        <span>dev-context-cognee</span>
+        <span>workspace</span>
       </div>
+
       <div className="topbar-branch">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="6" y1="3" x2="6" y2="15"/>
-          <circle cx="18" cy="6" r="3"/>
-          <circle cx="6" cy="18" r="3"/>
-          <path d="M18 9a9 9 0 0 1-9 9"/>
+        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.4">
+          <circle cx="2" cy="2" r="1.2"/>
+          <circle cx="2" cy="8" r="1.2"/>
+          <circle cx="8" cy="4" r="1.2"/>
+          <path d="M2 3.2v3.6M2 3.2C2 4 5 4 8 4"/>
         </svg>
-        main
+        {branch}
       </div>
+
       <div className="topbar-actions">
-        <button className="btn btn-ghost" onClick={handleSync}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21.5 2v6h-6"/>
-            <path d="M2.5 22v-6h6"/>
-            <path d="M22 11.5A10 10 0 0 0 3.2 7.2M2 12.5a10 10 0 0 0 18.8 4.2"/>
+        <button className="btn btn-ghost" onClick={sync} disabled={syncing}>
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M10 6A4 4 0 1 1 6 2"/>
+            <path d="M6 1l2 1-2 1"/>
           </svg>
-          Sync
-        </button>
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            const msg = prompt('Paste terminal output to ingest:');
-            if (!msg) return;
-            const proj = prompt('Project name:') || 'unnamed';
-            const branch = prompt('Branch name:') || 'main';
-            fetch(`${apiUrl}/ingest/`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ project: proj, branch, terminal_output: msg }),
-            }).catch(() => {});
-          }}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Log Bug
+          {syncing ? 'Syncing…' : 'Sync'}
         </button>
       </div>
-    </div>
+    </header>
   );
 }
