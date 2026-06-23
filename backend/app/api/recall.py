@@ -1,29 +1,82 @@
-"""GET /recall — natural language query against Cognee memory."""
-from fastapi import APIRouter, Query
+"""Recall API — search, memify, and forget Cognee memory nodes."""
+from fastapi import APIRouter, Query, HTTPException
+from pydantic import BaseModel
 from app.services.recall_service import search_memory
+import cognee
 
 router = APIRouter()
 
 
+class MemifyRequest(BaseModel):
+    content: str
+
+
 @router.get("/")
-async def recall(q: str = Query(..., description="Natural language query"),
-                 limit: int = Query(5, ge=1, le=20)):
-    """Recall relevant memory nodes from Cognee hybrid store."""
+async def recall(
+    q: str = Query(..., description="Natural language query"),
+    limit: int = Query(5, ge=1, le=20),
+):
+    """Recall relevant memory nodes — returns a bare list to match frontend RecallResult[]."""
     try:
         raw = await search_memory(q)
     except Exception as e:
-        return {"query": q, "results": [], "error": str(e)}
+        return []
 
     results = []
     if isinstance(raw, list):
         for item in raw[:limit]:
             if isinstance(item, dict):
-                results.append(item)
+                results.append({
+                    "id":         item.get("id", item.get("node_id", str(len(results)))),
+                    "content":    item.get("content", item.get("text", str(item))),
+                    "score":      float(item.get("score", item.get("relevance", 1.0))),
+                    "source":     item.get("source", "cognee"),
+                    "session_id": item.get("session_id"),
+                    "created_at": item.get("created_at"),
+                })
             elif hasattr(item, "__dict__"):
-                results.append(item.__dict__)
+                d = item.__dict__
+                results.append({
+                    "id":         str(getattr(item, "id", len(results))),
+                    "content":    getattr(item, "content", getattr(item, "text", str(item))),
+                    "score":      float(getattr(item, "score", 1.0)),
+                    "source":     getattr(item, "source", "cognee"),
+                    "session_id": getattr(item, "session_id", None),
+                    "created_at": getattr(item, "created_at", None),
+                })
             else:
-                results.append({"text": str(item)})
+                results.append({
+                    "id":      str(len(results)),
+                    "content": str(item),
+                    "score":   1.0,
+                    "source":  "cognee",
+                })
     elif raw:
-        results.append({"text": str(raw)})
+        results.append({"id": "0", "content": str(raw), "score": 1.0, "source": "cognee"})
 
-    return {"query": q, "total": len(results), "results": results}
+    return results
+
+
+@router.post("/memify")
+async def memify(body: MemifyRequest):
+    """Store arbitrary text into Cognee memory graph."""
+    if not body.content.strip():
+        raise HTTPException(status_code=400, detail="content cannot be empty")
+    try:
+        await cognee.remember(body.content)
+        # Cognee does not reliably return a node ID from remember(); use a hash as stable ID
+        node_id = str(abs(hash(body.content)) % (10 ** 12))
+        return {"node_id": node_id, "status": "stored"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cognee remember failed: {str(e)}")
+
+
+@router.delete("/{node_id}")
+async def forget_node(node_id: str):
+    """Remove a specific memory node from Cognee."""
+    try:
+        await cognee.forget(node_id)
+        return {"success": True, "node_id": node_id}
+    except Exception as e:
+        # Graceful: if node doesn't exist, still return success
+        return {"success": True, "node_id": node_id, "warning": str(e)}

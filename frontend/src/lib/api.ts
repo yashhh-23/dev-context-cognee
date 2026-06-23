@@ -109,6 +109,7 @@ export const api = {
   getGraph: ()                       => req<GraphData>('/api/graph'),
 
   // Recall / Memory
+  // Backend returns bare RecallResult[] array
   recall: (query: string, limit = 10) =>
     req<RecallResult[]>(`/api/recall?q=${encodeURIComponent(query)}&limit=${limit}`),
   forget: (nodeId: string)            => req<{ success: boolean }>(`/api/recall/${nodeId}`, { method: 'DELETE' }),
@@ -118,18 +119,7 @@ export const api = {
       body: JSON.stringify({ content }),
     }),
 
-  // Sessions
-  getSessions: async (limit = 10) => {
-    const raw = await req<any[]>(`/api/sessions?limit=${limit}`);
-    return raw.map(s => ({
-      id: s.id,
-      repo: s.project || 'unknown',
-      branch: s.branch || 'main',
-      started_at: s.timestamp,
-      last_active: s.timestamp,
-      context_size: s.tags ? s.tags.length : 0,
-      summary: s.status
-    })) as Session[];
-  },
+  // Sessions — backend now returns correct shape directly
+  getSessions: (limit = 10)          => req<Session[]>(`/api/sessions?limit=${limit}`),
   getSession:  (id: string)          => req<Session>(`/api/sessions/${id}`),
 }
