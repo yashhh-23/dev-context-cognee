@@ -5,3 +5,5 @@ pydantic-settings
 sqlalchemy
 cognee
 python-dotenv==1.0.1
+httpx
+websockets
