@@ -1,52 +1,55 @@
-"""GET /contribute/search — similar GitHub issues + contribution opportunities."""
+"""GET /contribute — list good-first-issues and help-wanted from GITHUB_REPO."""
 from fastapi import APIRouter, Query, HTTPException
 from app.api.bugs import (
     extract_error_keyword,
     search_github_issues,
     search_github_contributions,
+    GITHUB_TOKEN,
+    GITHUB_REPO,
 )
 from app.core.database import get_db
 from app.services.recall_service import get_session
 from fastapi import Depends
 from sqlalchemy.orm import Session
+import httpx
 
 router = APIRouter()
 
 
 @router.get("")
 async def list_contribute():
-    """Return good-first-issues and help-wanted from the configured repo."""
-    from app.api.bugs import GITHUB_TOKEN
-    import httpx, os
-
-    repo = os.getenv("GITHUB_REPO", "")
-    if not repo:
+    """Return good-first-issues and help-wanted from the configured GITHUB_REPO."""
+    if not GITHUB_REPO:
         return []
 
     headers = {"Accept": "application/vnd.github+json"}
     if GITHUB_TOKEN:
         headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
 
-    results = []
+    results, seen = [], set()
     for label in ["good first issue", "help wanted"]:
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get(
-                f"https://api.github.com/repos/{repo}/issues",
-                params={"state": "open", "labels": label, "per_page": 10},
+                f"https://api.github.com/repos/{GITHUB_REPO}/issues",
+                params={"state": "open", "labels": label, "per_page": 15},
                 headers=headers,
             )
         if resp.status_code == 200:
             for item in resp.json():
-                if "pull_request" not in item:
+                if "pull_request" not in item and item["number"] not in seen:
+                    seen.add(item["number"])
                     results.append({
+                        "id":         item["number"],
                         "title":      item["title"],
-                        "html_url":   item["html_url"],
-                        "repository": repo,
+                        "url":        item["html_url"],
+                        "repo":       GITHUB_REPO,
+                        "type":       "good-first-issue" if "good first issue" in label else "help-wanted",
+                        "difficulty": "easy" if "good first issue" in label else "medium",
+                        "suggestion": "",
                         "labels":     [l["name"] for l in item.get("labels", [])],
-                        "difficulty": "beginner" if "good first issue" in label else "intermediate",
-                        "number":     item["number"],
                     })
     return results
+
 
 @router.get("/search")
 async def contribute_search(

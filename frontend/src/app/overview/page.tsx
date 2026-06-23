@@ -7,30 +7,34 @@ import LiveFeed from '@/components/ui/LiveFeed'
 
 const BugTrendChart = dynamic(() => import('@/components/ui/BugTrendChart'), { ssr: false })
 
-// Generate last-7-day labels
-function last7Days(): string[] {
-  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() - (6 - i))
-    return days[d.getDay()]
-  })
-}
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
 export default function OverviewPage() {
-  const [stats,    setStats]    = useState<OverviewStats | null>(null)
-  const [sessions, setSessions] = useState<Session[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [error,    setError]    = useState<string | null>(null)
-
-  // Placeholder sparkline data (replaced by real API when backend exposes it)
-  const trendLabels = last7Days()
-  const [trendOpened] = useState([2, 4, 1, 5, 3, 2, 4])
-  const [trendClosed] = useState([1, 3, 2, 4, 2, 3, 1])
+  const [stats,        setStats]        = useState<OverviewStats | null>(null)
+  const [sessions,     setSessions]     = useState<Session[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState<string | null>(null)
+  const [trendLabels,  setTrendLabels]  = useState<string[]>([])
+  const [trendOpened,  setTrendOpened]  = useState<number[]>([])
+  const [trendClosed,  setTrendClosed]  = useState<number[]>([])
 
   useEffect(() => {
-    Promise.all([api.getStats(), api.getSessions(5)])
-      .then(([s, sess]) => { setStats(s); setSessions(sess) })
+    Promise.all([
+      api.getStats(),
+      api.getSessions(5),
+      fetch(`${BASE}/api/overview/bug-trend`)
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null),
+    ])
+      .then(([s, sess, trend]) => {
+        setStats(s)
+        setSessions(sess)
+        if (trend && trend.labels) {
+          setTrendLabels(trend.labels)
+          setTrendOpened(trend.opened)
+          setTrendClosed(trend.closed)
+        }
+      })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
@@ -55,10 +59,10 @@ export default function OverviewPage() {
           <ErrorBanner message={error} />
         ) : stats ? (
           <>
-            <StatCard label="Sessions"      value={stats.total_sessions} color={undefined} />
-            <StatCard label="Open Bugs"     value={stats.open_bugs}      color="error" />
-            <StatCard label="Memory Nodes"  value={stats.memory_nodes}   color="primary" />
-            <StatCard label="Recalled Today" value={stats.recalled_today} color={undefined} />
+            <StatCard label="Sessions"       value={stats.total_sessions} />
+            <StatCard label="Open Bugs"      value={stats.open_bugs}      color="error" />
+            <StatCard label="Memory Nodes"   value={stats.memory_nodes}   color="primary" />
+            <StatCard label="Recalled Today" value={stats.recalled_today} />
             <StatCard
               label="Health Score"
               value={`${stats.health_score}%`}
@@ -79,7 +83,17 @@ export default function OverviewPage() {
               <LegendDot color="var(--color-success)" label="closed" />
             </div>
           </div>
-          <BugTrendChart labels={trendLabels} opened={trendOpened} closed={trendClosed} />
+          {trendLabels.length > 0 ? (
+            <BugTrendChart labels={trendLabels} opened={trendOpened} closed={trendClosed} />
+          ) : loading ? (
+            <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="skeleton" style={{ width: '90%', height: 100, borderRadius: 'var(--radius-md)' }} />
+            </div>
+          ) : (
+            <div className="empty-state" style={{ padding: 'var(--space-8)' }}>
+              <p>No issue data yet — set GITHUB_REPO in your .env</p>
+            </div>
+          )}
         </div>
 
         {/* Recent sessions */}
@@ -96,7 +110,7 @@ export default function OverviewPage() {
               <div key={s.id} className="item-row">
                 <div>
                   <div className="item-title"><span className="mono">{s.repo}</span></div>
-                  <div className="item-meta">{s.branch} · {formatRelative(s.last_active)}</div>
+                  <div className="item-meta">{s.branch} · {formatRelative(s.last_active || s.started_at)}</div>
                 </div>
                 <span className="badge badge-default" style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {s.context_size} nodes
@@ -113,15 +127,13 @@ export default function OverviewPage() {
           <div className="card-header"><span className="card-title">dependency health</span></div>
           {loading ? <SkeletonRows n={4} /> : stats ? (
             <>
-              <HealthRow label="Memory graph"      status={stats.memory_nodes > 0 ? 'ok' : 'warn'} />
-              <HealthRow label="Open bugs"         status={stats.open_bugs === 0 ? 'ok' : stats.open_bugs < 5 ? 'warn' : 'error'} />
+              <HealthRow label="Memory graph"       status={stats.memory_nodes > 0 ? 'ok' : 'warn'} />
+              <HealthRow label="Open bugs"          status={stats.open_bugs === 0 ? 'ok' : stats.open_bugs < 5 ? 'warn' : 'error'} />
               <HealthRow label="Session continuity" status="ok" />
-              <HealthRow label="Recall latency"    status="ok" />
+              <HealthRow label="Recall latency"     status="ok" />
             </>
           ) : null}
         </div>
-
-        {/* Live WebSocket memory event feed */}
         <LiveFeed />
       </div>
     </div>
@@ -192,7 +204,8 @@ function ErrorBanner({ message }: { message: string }) {
   return (
     <div style={{
       gridColumn: '1 / -1', padding: 'var(--space-3) var(--space-4)',
-      background: 'var(--color-error-dim)', border: '1px solid var(--color-error)',
+      background: 'color-mix(in oklab, var(--color-error) 10%, transparent)',
+      border: '1px solid var(--color-error)',
       borderRadius: 'var(--radius-md)', color: 'var(--color-error)',
       fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)',
     }}>
@@ -202,7 +215,9 @@ function ErrorBanner({ message }: { message: string }) {
 }
 
 function formatRelative(iso: string): string {
+  if (!iso) return '—'
   const diff = Date.now() - new Date(iso).getTime()
+  if (isNaN(diff)) return '—'
   const m = Math.floor(diff / 60000)
   if (m < 1)  return 'just now'
   if (m < 60) return `${m}m ago`
