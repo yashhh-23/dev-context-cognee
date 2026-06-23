@@ -1,77 +1,121 @@
-import axios from 'axios';
+/**
+ * Dev·Context — Typed API client
+ * All backend routes wrapped with typed response interfaces.
+ */
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
-export const api = axios.create({
-  baseURL: BASE,
-  timeout: 15000,
-});
-
-// ── types ────────────────────────────────────────────────────────────
-export interface Session {
-  id: string;
-  project: string;
-  branch?: string;
-  tags?: string[];
-  timestamp: string;
-  status: string;
-  error_message?: string;
+async function req<T>(path: string, opts?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`API ${res.status}: ${body}`)
+  }
+  return res.json() as Promise<T>
 }
 
-export interface StatsResponse {
-  total_sessions: number;
-  completed: number;
-  failed: number;
-  projects: string[];
-  bug_frequency: { day: string; count: number }[];
+/* ---- Types ---- */
+
+export interface Bug {
+  id:       number
+  title:    string
+  url:      string
+  severity: 'critical' | 'high' | 'medium' | 'low'
+  labels:   string[]
+  created:  string
+  author:   string
+  recalled_context?: string
 }
 
-export interface RecallResult {
-  text?: string;
-  [key: string]: unknown;
+export interface ContributeIssue {
+  id:         number
+  title:      string
+  url:        string
+  type:       'good-first-issue' | 'stale-pr' | 'help-wanted'
+  repo:       string
+  difficulty: 'easy' | 'medium' | 'hard'
+  suggestion: string
 }
 
 export interface GraphNode {
-  id: string;
-  type: string;
-  label: string;
-  color: string;
-  data: Record<string, unknown>;
+  id:    string
+  label: string
+  type:  'file' | 'function' | 'bug' | 'session' | 'concept'
+  size?: number
 }
 
 export interface GraphEdge {
-  source: string;
-  target: string;
-  label: string;
+  source: string
+  target: string
+  weight?: number
 }
 
-export interface GitHubIssue {
-  title: string;
-  html_url: string;
-  repository: string;
-  state: string;
-  labels: string[];
+export interface GraphData {
+  nodes: GraphNode[]
+  edges: GraphEdge[]
 }
 
-export interface ContributeOpportunity {
-  title: string;
-  html_url: string;
-  repository: string;
-  labels: string[];
-  stars: number;
+export interface RecallResult {
+  id:         string
+  content:    string
+  score:      number
+  source:     string
+  session_id?: string
+  created_at?: string
 }
 
-// ── calls ────────────────────────────────────────────────────────────
-export const getStats        = ()                        => api.get<StatsResponse>('/stats/');
-export const getSessions     = (skip = 0, limit = 50)   => api.get<Session[]>(`/sessions/?skip=${skip}&limit=${limit}`);
-export const recallMemory    = (q: string, limit = 5)   => api.get<{ results: RecallResult[]; total: number; query: string }>(`/recall/?q=${encodeURIComponent(q)}&limit=${limit}`);
-export const getGraph        = (project?: string)       => api.get<{ nodes: GraphNode[]; edges: GraphEdge[] }>(`/graph/${project ? `?project=${encodeURIComponent(project)}` : ''}`);
-export const contributeSearch = (sessionId?: string, q?: string) => {
-  const params = new URLSearchParams();
-  if (sessionId) params.set('session_id', sessionId);
-  if (q) params.set('q', q);
-  return api.get<{ keyword: string; similar_bugs: GitHubIssue[]; opportunities: ContributeOpportunity[] }>(`/contribute/search?${params}`);
-};
-export const improveSession  = (id: string, fixText?: string) => api.post(`/improve/${id}`, { fix_text: fixText ?? '' });
-export const forgetSession   = (id: string)                   => api.delete(`/forget/${id}`);
-export const ingestLog       = (payload: { project: string; branch?: string; terminal_output: string; tags?: string[] }) => api.post('/ingest/', payload);
+export interface Session {
+  id:           string
+  repo:         string
+  branch:       string
+  started_at:   string
+  last_active:  string
+  context_size: number
+  summary?:     string
+}
+
+export interface OverviewStats {
+  total_sessions:   number
+  open_bugs:        number
+  memory_nodes:     number
+  recalled_today:   number
+  last_session:     string
+  health_score:     number
+}
+
+/* ---- API methods ---- */
+
+export const api = {
+  // Overview
+  getStats: ()                       => req<OverviewStats>('/api/overview/stats'),
+  getContextSummary: ()              => req<{ repo: string; branch: string; summary: string }>('/api/context/summary'),
+
+  // Bugs
+  getBugs: (limit = 20)              => req<Bug[]>(`/api/bugs?limit=${limit}`),
+  recallBugContext: (bugId: number)  => req<{ context: string }>(`/api/bugs/${bugId}/recall`),
+
+  // Contribute
+  getContributions: ()               => req<ContributeIssue[]>('/api/contribute'),
+  suggestContribution: (id: number)  => req<{ suggestion: string }>(`/api/contribute/${id}/suggest`),
+
+  // Graph
+  buildGraph: ()                     => req<{ message: string; node_count: number }>('/api/graph/build', { method: 'POST' }),
+  getGraph: ()                       => req<GraphData>('/api/graph/query'),
+
+  // Recall / Memory
+  recall: (query: string, limit = 10) =>
+    req<RecallResult[]>(`/api/recall?q=${encodeURIComponent(query)}&limit=${limit}`),
+  forget: (nodeId: string)            => req<{ success: boolean }>(`/api/recall/${nodeId}`, { method: 'DELETE' }),
+  memify: (content: string)           =>
+    req<{ node_id: string }>('/api/recall/memify', {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    }),
+
+  // Sessions
+  getSessions: (limit = 10)          => req<Session[]>(`/api/sessions?limit=${limit}`),
+  getSession:  (id: string)          => req<Session>(`/api/sessions/${id}`),
+}
