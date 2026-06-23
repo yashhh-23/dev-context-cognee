@@ -4,6 +4,9 @@
  */
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
+if (!process.env.NEXT_PUBLIC_API_URL && typeof window !== 'undefined') {
+  console.warn('NEXT_PUBLIC_API_URL not set, using localhost fallback')
+}
 
 async function req<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
@@ -116,6 +119,17 @@ export const api = {
     }),
 
   // Sessions
-  getSessions: (limit = 10)          => req<Session[]>(`/api/sessions?limit=${limit}`),
+  getSessions: async (limit = 10) => {
+    const raw = await req<any[]>(`/api/sessions?limit=${limit}`);
+    return raw.map(s => ({
+      id: s.id,
+      repo: s.project || 'unknown',
+      branch: s.branch || 'main',
+      started_at: s.timestamp,
+      last_active: s.timestamp,
+      context_size: s.tags ? s.tags.length : 0,
+      summary: s.status
+    })) as Session[];
+  },
   getSession:  (id: string)          => req<Session>(`/api/sessions/${id}`),
 }
