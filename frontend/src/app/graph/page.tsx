@@ -3,6 +3,31 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, type GraphData } from '@/lib/api'
 
+// Must match graph_builder.py NODE_COLORS keys exactly
+const NODE_COLORS: Record<string, string> = {
+  project:      '#58a6ff',  // blue
+  bug:          '#f85149',  // red
+  dependency:   '#d29922',  // yellow
+  fix:          '#3fb950',  // green
+  github_issue: '#bc8cff',  // purple
+}
+
+const NODE_SHAPES: Record<string, string> = {
+  project:      'dot',
+  bug:          'diamond',
+  dependency:   'triangle',
+  fix:          'square',
+  github_issue: 'star',
+}
+
+const LEGEND: [string, string][] = [
+  ['project',      '#58a6ff'],
+  ['bug',          '#f85149'],
+  ['dependency',   '#d29922'],
+  ['fix',          '#3fb950'],
+  ['github_issue', '#bc8cff'],
+]
+
 export default function GraphPage() {
   const [graphData, setGraphData] = useState<GraphData | null>(null)
   const [loading,   setLoading]   = useState(true)
@@ -47,7 +72,6 @@ export default function GraphPage() {
     if (!graphData || !containerRef.current) return
     if (graphData.nodes.length === 0) return
 
-    // Dynamically load vis-network from CDN
     const script = document.createElement('script')
     script.src = 'https://unpkg.com/vis-network/standalone/umd/vis-network.min.js'
     script.onload = () => {
@@ -55,19 +79,11 @@ export default function GraphPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const vis = (window as any).vis
 
-      const NODE_COLORS: Record<string, string> = {
-        file:     '#2dd4bf',
-        function: '#60a5fa',
-        bug:      '#f87171',
-        session:  '#fb923c',
-        concept:  '#a78bfa',
-      }
-
       const nodes = new vis.DataSet(
         graphData.nodes.map(n => ({
           id:    n.id,
-          label: n.label.length > 20 ? n.label.slice(0, 18) + '…' : n.label,
-          title: n.label,
+          label: n.label.length > 20 ? n.label.slice(0, 18) + '\u2026' : n.label,
+          title: n.label,   // full tooltip on hover
           color: {
             background: NODE_COLORS[n.type] ?? '#7a7874',
             border:     'transparent',
@@ -75,7 +91,7 @@ export default function GraphPage() {
           },
           font:  { color: '#e2e0db', size: 11, face: 'Geist Mono, monospace' },
           size:  (n.size ?? 10) + 8,
-          shape: n.type === 'bug' ? 'diamond' : n.type === 'session' ? 'square' : 'dot',
+          shape: NODE_SHAPES[n.type] ?? 'dot',
         }))
       )
 
@@ -84,8 +100,10 @@ export default function GraphPage() {
           id:     i,
           from:   e.source,
           to:     e.target,
+          label:  e.label ?? '',
           width:  (e.weight ?? 1) * 1.5,
-          color:  { color: '#2a2a28', highlight: '#2dd4bf' },
+          color:  { color: '#3a3a38', highlight: '#2dd4bf' },
+          font:   { size: 9, color: '#6b6966', face: 'Geist Mono, monospace', align: 'middle' },
           smooth: { type: 'curvedCW', roundness: 0.2 },
         }))
       )
@@ -132,7 +150,7 @@ export default function GraphPage() {
             disabled={building}
             style={{ marginBottom: 'var(--space-1)', fontFamily: 'var(--font-mono)' }}
           >
-            {building ? 'building…' : '⟳ rebuild graph'}
+            {building ? 'building\u2026' : '\u27f3 rebuild graph'}
           </button>
         </div>
       </div>
@@ -140,7 +158,7 @@ export default function GraphPage() {
       {/* Legend + stats */}
       {graphData && (
         <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
-          {[['file','#2dd4bf'],['function','#60a5fa'],['bug','#f87171'],['session','#fb923c'],['concept','#a78bfa']].map(([type, color]) => (
+          {LEGEND.map(([type, color]) => (
             <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
               <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)' }}>
@@ -165,7 +183,7 @@ export default function GraphPage() {
             alignItems: 'center', justifyContent: 'center',
             color: 'var(--color-text-faint)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)',
           }}>
-            loading graph…
+            loading graph\u2026
           </div>
         ) : error ? (
           <div style={{
@@ -178,9 +196,9 @@ export default function GraphPage() {
           </div>
         ) : !graphData || graphData.nodes.length === 0 ? (
           <div className="empty-state">
-            <div style={{ fontSize: '1.5rem', opacity: 0.3 }}>⬡</div>
+            <div style={{ fontSize: '1.5rem', opacity: 0.3 }}>\u2b21</div>
             <h3>No graph data</h3>
-            <p>Click &ldquo;rebuild graph&rdquo; to process your codebase into Cognee memory.</p>
+            <p>Click &ldquo;rebuild graph&rdquo; to process your sessions into Cognee memory.</p>
           </div>
         ) : (
           <div
