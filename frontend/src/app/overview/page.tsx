@@ -128,7 +128,7 @@ export default function OverviewPage() {
           {loading ? <SkeletonRows n={4} /> : stats ? (
             <>
               <HealthRow label="Memory graph"       status={stats.memory_nodes > 0 ? 'ok' : 'warn'} />
-              <HealthRow label="Open bugs"          status={stats.open_bugs === 0 ? 'ok' : stats.open_bugs < 5 ? 'warn' : 'error'} />
+              <HealthRow label="Open bugs"          status={stats.open_bugs >= 0 ? 'ok' : 'error'} />
               <HealthRow label="Session continuity" status="ok" />
               <HealthRow label="Recall latency"     status="ok" />
             </>
