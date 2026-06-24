@@ -13,10 +13,6 @@ from app.core.github_utils import _gh_headers
 router = APIRouter()
 
 
-def _get_repo() -> str:
-    return settings.GITHUB_REPO or ""
-
-
 class AnalyzeRequest(BaseModel):
     session_id: str
 
@@ -105,7 +101,7 @@ async def search_github_contributions(keyword: str) -> list:
 @router.get("")
 async def list_bugs(limit: int = 30):
     """Return open issues from the configured GITHUB_REPO."""
-    repo = _get_repo()
+    repo = settings.GITHUB_REPO or ""
     if not repo:
         print("[bugs] GITHUB_REPO not set — returning empty list")
         return []
@@ -148,9 +144,8 @@ async def list_bugs(limit: int = 30):
 @router.get("/{bug_id}/recall")
 async def recall_bug_context(bug_id: int):
     """Use Cognee memory to recall context relevant to a specific GitHub issue."""
-    # Try to fetch the issue title from GitHub for a richer query
     issue_title = ""
-    repo = _get_repo()
+    repo = settings.GITHUB_REPO or ""
     if repo:
         try:
             async with httpx.AsyncClient(timeout=6) as client:
@@ -169,7 +164,6 @@ async def recall_bug_context(bug_id: int):
     texts = await recall_text(query, limit=5)
 
     if texts:
-        # Join multiple results into a readable block
         context = "\n\n".join(f"— {t}" for t in texts)
     else:
         context = (
