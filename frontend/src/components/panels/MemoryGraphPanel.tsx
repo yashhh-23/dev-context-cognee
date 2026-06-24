@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { getGraph, GraphNode, GraphEdge } from '@/lib/api';
-import { useWebSocket } from '@/lib/useWebSocket';
+import { useWebSocket } from '@/lib/ws';
 import Topbar from '@/components/layout/Topbar';
 import EmptyState from '@/components/shared/EmptyState';
 
@@ -81,9 +81,16 @@ export default function MemoryGraphPanel() {
     finally { setLoading(false); }
   }, []);
 
-  useWebSocket(useCallback((msg) => {
-    if (msg.type === 'bug_ingested' || msg.type === 'session_resolved' || msg.type === 'session_forgotten') load();
-  }, [load]));
+  const { subscribe } = useWebSocket();
+
+  useEffect(() => {
+    const unsub = subscribe((msg) => {
+      if (msg.type === 'bug_ingested' || msg.type === 'session_resolved' || msg.type === 'session_forgotten') {
+        load();
+      }
+    });
+    return unsub;
+  }, [subscribe, load]);
 
   useEffect(() => { load(); }, [load]);
 

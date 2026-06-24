@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { getStats, StatsResponse } from '@/lib/api';
-import { useWebSocket } from '@/lib/useWebSocket';
+import { useWebSocket } from '@/lib/ws';
 import StatCard from '@/components/shared/StatCard';
 import Topbar from '@/components/layout/Topbar';
 
@@ -20,9 +20,14 @@ export default function OverviewPanel() {
     }
   }, []);
 
-  useWebSocket(useCallback((msg) => {
-    if (msg.type === 'bug_ingested') load();
-  }, [load]));
+  const { subscribe } = useWebSocket();
+
+  useEffect(() => {
+    const unsub = subscribe((msg) => {
+      if (msg.type === 'bug_ingested') load();
+    });
+    return unsub;
+  }, [subscribe, load]);
 
   useEffect(() => { load(); }, [load]);
 
