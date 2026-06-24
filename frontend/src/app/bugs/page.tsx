@@ -68,7 +68,6 @@ export default function BugsPage() {
             active={filter === s}
             onClick={() => setFilter(s)}
             label={`${s} (${counts[s] ?? 0})`}
-            severity={s}
           />
         ))}
       </div>
@@ -206,12 +205,11 @@ function SeverityBadge({ severity }: { severity: Bug['severity'] }) {
 }
 
 function FilterTab({
-  active, onClick, label, severity,
+  active, onClick, label,
 }: {
   active: boolean
   onClick: () => void
   label: string
-  severity?: string
 }) {
   return (
     <button

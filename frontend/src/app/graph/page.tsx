@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type GraphData } from '@/lib/api'
 
 // Must match graph_builder.py NODE_COLORS keys exactly
@@ -36,11 +36,7 @@ export default function GraphPage() {
   const containerRef              = useRef<HTMLDivElement>(null)
   const networkRef                = useRef<unknown>(null)
 
-  useEffect(() => {
-    loadGraph()
-  }, [])
-
-  async function loadGraph() {
+  const loadGraph = useCallback(async () => {
     setLoading(true)
     try {
       const data = await api.getGraph()
@@ -51,7 +47,12 @@ export default function GraphPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial graph fetch updates loading/data state asynchronously.
+    loadGraph()
+  }, [loadGraph])
 
   async function handleBuild() {
     setBuilding(true)
