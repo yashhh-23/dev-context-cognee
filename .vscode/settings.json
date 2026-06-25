@@ -1,7 +1,7 @@
 {
-  "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
-  "python.interpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+  "python.defaultInterpreterPath": "c:\\Users\\sanke\\Desktop\\New folder\\cognee hackathon\\dev-context-cognee\\backend\\venv\\Scripts\\python.exe",
+  "python.interpreterPath": "c:\\Users\\sanke\\Desktop\\New folder\\cognee hackathon\\dev-context-cognee\\backend\\venv\\Scripts\\python.exe",
   "python.analysis.extraPaths": [
-    "${workspaceFolder}/.venv/Lib/site-packages"
+    "c:\\Users\\sanke\\Desktop\\New folder\\cognee hackathon\\dev-context-cognee\\backend\\venv\\Lib\\site-packages"
   ]
 }

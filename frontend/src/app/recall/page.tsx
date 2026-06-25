@@ -158,6 +158,15 @@ export default function RecallPage() {
                   >
                     score: {r.score.toFixed(3)}
                   </span>
+                  {r.conflicts && r.conflicts.length > 0 && (
+                    <span
+                      className="badge badge-warning"
+                      title={`Potential conflicts:\n${r.conflicts.join('\n')}`}
+                      style={{ cursor: 'help' }}
+                    >
+                      ⚠️ conflict
+                    </span>
+                  )}
                 </div>
                 <button
                   className="btn btn-ghost btn-sm"
