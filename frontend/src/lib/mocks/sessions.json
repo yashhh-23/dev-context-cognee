@@ -1,0 +1,32 @@
+[
+  {
+    "id": "sess-01",
+    "repo": "yashhh-23/dev-context-cognee",
+    "branch": "main",
+    "started_at": "2026-06-26T15:30:00Z",
+    "last_active": "2026-06-26T17:38:13Z",
+    "context_size": 42,
+    "status": "completed",
+    "summary": "Ingested file app/main.py and built initial dependency mapping graph."
+  },
+  {
+    "id": "sess-02",
+    "repo": "yashhh-23/dev-context-cognee",
+    "branch": "feat/frontend-prd",
+    "started_at": "2026-06-26T16:00:00Z",
+    "last_active": "2026-06-26T16:45:00Z",
+    "context_size": 28,
+    "status": "completed",
+    "summary": "Traced and recalled memory context for the auth routing exception."
+  },
+  {
+    "id": "sess-03",
+    "repo": "yashhh-23/dev-context-cognee",
+    "branch": "main",
+    "started_at": "2026-06-26T14:15:00Z",
+    "last_active": "2026-06-26T14:30:00Z",
+    "context_size": 15,
+    "status": "failed",
+    "summary": "Failed to ingest large binary assets from docs directory."
+  }
+]
