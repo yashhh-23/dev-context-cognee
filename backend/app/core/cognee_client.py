@@ -1,3 +1,6 @@
+import os
+os.environ["COGNEE_SYSTEM_PATH"] = os.path.expanduser("~/.cognee_system")
+
 import cognee
 from app.core.config import settings
 
@@ -6,6 +9,10 @@ def init_cognee():
     import os
     try:
         os.environ["COGNEE_SKIP_CONNECTION_TEST"] = "true"
+
+        # Explicitly set shorter root directories to prevent Windows MAX_PATH issues
+        cognee.config.system_root_directory(os.path.expanduser("~/.cognee_system"))
+        cognee.config.data_root_directory(os.path.expanduser("~/.cognee_system/data"))
 
         # ── Fix LanceDB Windows spill bug (LanceError IO: Spill has sent an error) ──
         # Disable disk-spill by setting a very high memory budget so it never spills

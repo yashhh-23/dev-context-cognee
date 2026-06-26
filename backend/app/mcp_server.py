@@ -8,6 +8,8 @@ if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
 import os
+os.environ["COGNEE_SYSTEM_PATH"] = os.path.expanduser("~/.cognee_system")
+
 import tempfile
 import filelock
 import cognee
@@ -28,22 +30,46 @@ mcp = FastMCP("dev-context-cognee")
 async def remember_context(text: str) -> str:
     """Store text, notes, or terminal logs into Cognee's persistent memory."""
     try:
+        # Check for duplicates first to save database space
+        from app.cognee_utils import is_duplicate
+        dup = False
+        existing = ""
+        try:
+            # Use 0.85 threshold to match duplicate criteria
+            dup, existing = await is_duplicate(text, threshold=0.85)
+        except Exception as e:
+            print("[DEBUG] is_duplicate exception:", e)
+
+        if dup or (existing and text.strip().lower() == existing.strip().lower()):
+            return f"[DEDUP] Skipped - near-identical memory already exists. Existing: {existing[:100]}..."
+
         # Search for potentially contradicting existing memories
-        results = await cognee.search(text, query_type="SUMMARIES")
         contradictions = []
-        if results:
-            for item in results:
-                score = item.score if hasattr(item, "score") else item.get("score", 0)
-                existing = item.text if hasattr(item, "text") else item.get("text", "")
-                if score > 0.75:  # high similarity = possible contradiction
-                    contradictions.append(existing[:100])
+        try:
+            results = await cognee.recall(text)
+            if results:
+                from app.services.recall_service import extract_text
+                import difflib
+                items = results if isinstance(results, list) else [results]
+                for item in items:
+                    existing_text = extract_text(item)
+                    if not existing_text:
+                        continue
+                    similarity = difflib.SequenceMatcher(None, text.strip().lower(), existing_text.strip().lower()).ratio()
+                    # High structural similarity but different semantic value represents a conflict
+                    if 0.30 <= similarity < 0.85 and existing_text.strip().lower() != text.strip().lower():
+                        contradictions.append(existing_text[:100])
+        except Exception as e:
+            print("[DEBUG] search exception:", e)
 
         await cognee.remember(text)
 
         if contradictions:
-            return f"Stored. ⚠️ Potential conflict with: {contradictions[0]}"
+            return f"Stored. [WARNING] Potential conflict with: {contradictions[0]}"
         return "Successfully stored text in Cognee memory."
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return f"Error storing memory: {str(e)}"
 
 @mcp.tool()
@@ -84,7 +110,7 @@ async def cognify_source_code(file_path: str, content: str) -> str:
         from app.cognee_utils import is_duplicate
         dup, existing = await is_duplicate(formatted_content)
         if dup:
-            return f"[DEDUP] Skipped — near-identical content already in graph. Existing: {existing[:100]}..."
+            return f"[DEDUP] Skipped - near-identical content already in graph. Existing: {existing[:100]}..."
 
         # Add the code content to the workspace dataset
         clean_dataset_name = "workspacedata"

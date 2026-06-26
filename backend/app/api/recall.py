@@ -43,12 +43,17 @@ async def recall(
         conflicts = []
         try:
             # Check for conflicts / contradictions
-            dup_results = await cognee.search(text, query_type="SUMMARIES")
+            dup_results = await cognee.recall(text)
             if dup_results:
-                for dup_item in dup_results:
-                    score = dup_item.score if hasattr(dup_item, "score") else dup_item.get("score", 0)
-                    existing = dup_item.text if hasattr(dup_item, "text") else dup_item.get("text", "")
-                    if 0.75 < score < 0.98 and existing.strip() != text.strip():
+                from app.services.recall_service import extract_text
+                import difflib
+                items = dup_results if isinstance(dup_results, list) else [dup_results]
+                for item in items:
+                    existing = extract_text(item)
+                    if not existing:
+                        continue
+                    similarity = difflib.SequenceMatcher(None, text.strip().lower(), existing.strip().lower()).ratio()
+                    if 0.30 <= similarity < 0.85 and existing.strip().lower() != text.strip().lower():
                         conflicts.append(existing[:100])
         except Exception:
             pass
