@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { api, type RecallResult, type AutoCleanResult } from '@/lib/api'
+import { useState } from 'react'
+import { api, type RecallResult } from '@/lib/api'
 
 export default function RecallPage() {
   const [query,   setQuery]   = useState('')
@@ -13,24 +13,6 @@ export default function RecallPage() {
   const [memifying,    setMemifying]    = useState(false)
   const [memifyStatus, setMemifyStatus] = useState<string | null>(null)
   const [forgetting,   setForgetting]   = useState<string | null>(null)
-
-  // Auto-clean state
-  const [cleanBanner, setCleanBanner] = useState<AutoCleanResult | null>(null)
-  const [cleaning,    setCleaning]    = useState(false)
-  const cleanRanRef = useRef(false)
-
-  // Run auto-clean once on page load (background, non-blocking)
-  useEffect(() => {
-    if (cleanRanRef.current) return
-    cleanRanRef.current = true
-    setCleaning(true)
-    api.autoClean()
-      .then((res) => {
-        if (res.removed > 0) setCleanBanner(res)
-      })
-      .catch(() => { /* silent fail — never block the page */ })
-      .finally(() => setCleaning(false))
-  }, [])
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -85,53 +67,6 @@ export default function RecallPage() {
         <p className="page-subtitle">search, remember, and forget across Cognee memory</p>
       </div>
 
-      {/* Auto-clean banner — only shown when duplicates were removed */}
-      {cleanBanner && cleanBanner.removed > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-success)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-2) var(--space-4)',
-            marginBottom: 'var(--space-4)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: 'var(--text-xs)',
-            color: 'var(--color-success)',
-            gap: 'var(--space-3)',
-          }}
-        >
-          <span>
-            ✨ auto-clean: removed <strong>{cleanBanner.removed}</strong> duplicate{cleanBanner.removed !== 1 ? 's' : ''} across{' '}
-            <strong>{cleanBanner.clusters}</strong> cluster{cleanBanner.clusters !== 1 ? 's' : ''},{' '}
-            <strong>{cleanBanner.kept}</strong> memories kept
-          </span>
-          <button
-            onClick={() => setCleanBanner(null)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-faint)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      {/* Subtle cleaning indicator (top-right, non-blocking) */}
-      {cleaning && (
-        <div
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 'var(--text-xs)',
-            color: 'var(--color-text-faint)',
-            marginBottom: 'var(--space-2)',
-            opacity: 0.6,
-          }}
-        >
-          ⧗ scanning memory for duplicates…
-        </div>
-      )}
-
       <div className="grid-2" style={{ alignItems: 'start', gap: 'var(--space-5)' }}>
         {/* Left: search + results */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
@@ -184,7 +119,7 @@ export default function RecallPage() {
 
           {!searched && !loading && (
             <div className="empty-state" style={{ padding: 'var(--space-10) var(--space-4)' }}>
-              <div style={{ fontSize: '1.25rem', opacity: 0.3 }}>⌽</div>
+              <div style={{ fontSize: '1.25rem', opacity: 0.3 }}>⌕</div>
               <h3>Search Cognee memory</h3>
               <p>Query sessions, bugs, file context, and concepts stored in memory.</p>
             </div>
@@ -324,11 +259,10 @@ export default function RecallPage() {
               <span className="card-title">memory actions</span>
             </div>
             {([
-              ['recall',     'Vector search over all stored context'],
-              ['forget',     'Remove a specific node from memory'],
-              ['memify',     'Store new context into Cognee graph'],
-              ['auto-clean', 'Runs on page load — deduplicates memory'],
-              ['improve',    'Triggered automatically on session end'],
+              ['recall',  'Vector search over all stored context'],
+              ['forget',  'Remove a specific node from memory'],
+              ['memify',  'Store new context into Cognee graph'],
+              ['improve', 'Triggered automatically on session end'],
             ] as const).map(([action, desc]) => (
               <div key={action} className="item-row">
                 <div>
