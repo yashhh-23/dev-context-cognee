@@ -80,6 +80,10 @@ export default function GraphPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const vis = (window as any).vis
 
+      const rootStyle = getComputedStyle(document.documentElement)
+      const textColor = rootStyle.getPropertyValue('--color-text').trim() || '#1c1b1a'
+      const textFaint = rootStyle.getPropertyValue('--color-text-faint').trim() || '#6b6966'
+
       const nodes = new vis.DataSet(
         graphData.nodes.map(n => ({
           id:    n.id,
@@ -90,7 +94,7 @@ export default function GraphPage() {
             border:     'transparent',
             highlight:  { background: '#fff', border: '#2dd4bf' },
           },
-          font:  { color: '#e2e0db', size: 11, face: 'Geist Mono, monospace' },
+          font:  { color: textColor, size: 11, face: 'Geist Mono, monospace' },
           size:  (n.size ?? 10) + 8,
           shape: NODE_SHAPES[n.type] ?? 'dot',
         }))
@@ -103,8 +107,8 @@ export default function GraphPage() {
           to:     e.target,
           label:  e.label ?? '',
           width:  (e.weight ?? 1) * 1.5,
-          color:  { color: '#3a3a38', highlight: '#2dd4bf' },
-          font:   { size: 9, color: '#6b6966', face: 'Geist Mono, monospace', align: 'middle' },
+          color:  { color: textFaint, highlight: '#2dd4bf' },
+          font:   { size: 9, color: textFaint, face: 'Geist Mono, monospace', align: 'middle' },
           smooth: { type: 'curvedCW', roundness: 0.2 },
         }))
       )
