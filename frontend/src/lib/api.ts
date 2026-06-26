@@ -93,6 +93,13 @@ export interface OverviewStats {
   health_score:     number
 }
 
+export interface AutoCleanResult {
+  removed:   number
+  kept:      number
+  clusters:  number
+  error?:    string
+}
+
 /* ---- API methods ---- */
 
 export const api = {
@@ -121,6 +128,9 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ content }),
     }),
+
+  // Memory auto-clean
+  autoClean: ()                      => req<AutoCleanResult>('/api/memories/auto-clean', { method: 'POST' }),
 
   // Sessions — backend returns correct shape directly
   getSessions: (limit = 10)          => req<Session[]>(`/api/sessions?limit=${limit}`),
