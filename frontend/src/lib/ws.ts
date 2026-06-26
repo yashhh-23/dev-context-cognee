@@ -9,7 +9,7 @@ export interface WsMessage {
   payload: unknown
 }
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000/ws/notifications'
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000'
 const MAX_RETRIES    = 5
 const BASE_DELAY_MS  = 1000
 
@@ -28,7 +28,7 @@ export function useWebSocket() {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
 
     setStatus('connecting')
-    const ws = new WebSocket(WS_URL)
+    const ws = new WebSocket(`${WS_URL}/ws/notifications`)
     wsRef.current = ws
 
     ws.onopen = () => {
