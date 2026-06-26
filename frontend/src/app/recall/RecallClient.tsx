@@ -890,9 +890,9 @@ function ThumbsDownIcon({ className }: { className?: string }) {
   )
 }
 
-function ChatBubbleIcon({ className, size = 12 }: { className?: string; size?: number }) {
+function ChatBubbleIcon({ className, size = 12, style }: { className?: string; size?: number; style?: React.CSSProperties }) {
   return (
-    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
   )
