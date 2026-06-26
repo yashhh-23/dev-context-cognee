@@ -1,6 +1,9 @@
 """Recall API — search, memify, and forget Cognee memory nodes."""
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from app.core.database import get_db
+from app.models.session import PinnedNode
 from app.services.recall_service import search_memory, extract_text
 import cognee
 
@@ -15,8 +18,9 @@ class MemifyRequest(BaseModel):
 async def recall(
     q: str = Query(..., description="Natural language query"),
     limit: int = Query(5, ge=1, le=20),
+    db: Session = Depends(get_db),
 ):
-    """Recall relevant memory nodes — returns a bare list to match frontend RecallResult[]."""
+    """Recall relevant memory nodes — returns a list with pinned status."""
     try:
         raw = await search_memory(q)
     except Exception as e:
@@ -56,6 +60,10 @@ async def recall(
         except Exception:
             pass
 
+        # Check if pinned in database
+        pinned_record = db.query(PinnedNode).filter(PinnedNode.node_id == item_id).first()
+        is_pinned = pinned_record.pinned if pinned_record else False
+
         return {
             "id":         item_id,
             "content":    text,
@@ -64,6 +72,7 @@ async def recall(
             "session_id": session_id,
             "created_at": created_at,
             "conflicts":  conflicts,
+            "pinned":     is_pinned,
         }
 
     import asyncio
@@ -92,10 +101,37 @@ async def memify(body: MemifyRequest):
 
 
 @router.delete("/{node_id}")
-async def forget_node(node_id: str):
-    """Remove a specific memory node from Cognee."""
+async def forget_node(node_id: str, db: Session = Depends(get_db)):
+    """Remove a specific memory node from Cognee (blocks pinned nodes)."""
+    pinned_record = db.query(PinnedNode).filter(PinnedNode.node_id == node_id).first()
+    if pinned_record and pinned_record.pinned:
+        raise HTTPException(status_code=400, detail="Cannot forget a pinned memory node. Unpin it first.")
+
     try:
         await cognee.forget(node_id)
         return {"success": True, "node_id": node_id}
     except Exception as e:
         return {"success": True, "node_id": node_id, "warning": str(e)}
+
+
+@router.post("/{node_id}/pin")
+async def pin_node(node_id: str, db: Session = Depends(get_db)):
+    """Pin a memory node to prevent forgetting."""
+    record = db.query(PinnedNode).filter(PinnedNode.node_id == node_id).first()
+    if not record:
+        record = PinnedNode(node_id=node_id, pinned=True)
+        db.add(record)
+    else:
+        record.pinned = True
+    db.commit()
+    return {"success": True, "node_id": node_id, "pinned": True}
+
+
+@router.post("/{node_id}/unpin")
+async def unpin_node(node_id: str, db: Session = Depends(get_db)):
+    """Unpin a memory node."""
+    record = db.query(PinnedNode).filter(PinnedNode.node_id == node_id).first()
+    if record:
+        record.pinned = False
+        db.commit()
+    return {"success": True, "node_id": node_id, "pinned": False}

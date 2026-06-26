@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Text, JSON
+from sqlalchemy import Column, String, DateTime, Text, JSON, Boolean
 from app.core.database import Base
 import datetime
 import uuid
@@ -21,3 +21,9 @@ class SessionRecord(Base):
     status = Column(String, default="queued") # queued, processing, completed, failed
     error_message = Column(Text, nullable=True)
     cognee_response_id = Column(String, nullable=True)
+
+class PinnedNode(Base):
+    __tablename__ = "pinned_nodes"
+
+    node_id = Column(String, primary_key=True, index=True)
+    pinned = Column(Boolean, default=True)
