@@ -1,7 +1,7 @@
 {
   "name": "dev-context-cognee",
   "displayName": "Dev-Context Assistant",
-  "description": "Cognee-powered developer context assistant with persistent memory across sessions",
+  "description": "Cognee-powered developer context assistant with persistent memory across sessions. API keys are stored securely via VS Code SecretStorage.",
   "version": "0.1.0",
   "publisher": "yashhh-23",
   "icon": "icon.png",
@@ -21,6 +21,7 @@
     "vscode": "^1.80.0"
   },
   "activationEvents": [
+    "onStartupFinished",
     "onView:devContextSidebar",
     "onLanguage"
   ],
@@ -62,6 +63,12 @@
         "title": "Draft GitHub Issue from Bug",
         "category": "Dev-Context",
         "icon": "$(issues)"
+      },
+      {
+        "command": "devContext.setApiKey",
+        "title": "Set Cognee API Key (stored in SecretStorage)",
+        "category": "Dev-Context",
+        "icon": "$(key)"
       }
     ],
     "keybindings": [
@@ -89,26 +96,32 @@
       "properties": {
         "devContext.backendUrl": {
           "type": "string",
-          "default": "https://your-backend.onrender.com",
-          "description": "URL of your deployed Dev-Context backend (FastAPI on Render)"
+          "default": "http://localhost:8000",
+          "description": "URL of your Dev-Context backend (FastAPI). Use http://localhost:8000 for local dev, or your deployed Render/Railway URL for production."
         },
         "devContext.enableCogneeCloud": {
           "type": "boolean",
           "default": true,
-          "description": "Use Cognee Cloud for persistent memory storage across sessions"
+          "description": "Use Cognee Cloud for persistent memory storage across sessions."
         },
-
         "devContext.similarityThreshold": {
           "type": "number",
           "default": 0.75,
           "minimum": 0.5,
           "maximum": 1.0,
-          "description": "Minimum similarity score (0.5–1.0) for recalling similar bugs from Cognee memory"
+          "description": "Minimum similarity score (0.5–1.0) for recalling similar bugs from Cognee memory."
+        },
+        "devContext.maxRecallResults": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Maximum number of similar bugs to recall from Cognee memory per query."
         },
         "devContext.watcherEnabled": {
           "type": "boolean",
           "default": true,
-          "description": "Auto-update context summary when active file changes"
+          "description": "Auto-update context summary when active file changes."
         }
       }
     }
