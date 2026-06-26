@@ -1,34 +1,133 @@
 {
   "name": "dev-context-cognee",
-  "displayName": "Dev Context Cognee",
-  "description": "Send logs and context directly to Cognee memory",
-  "version": "0.0.1",
+  "displayName": "Dev-Context Assistant",
+  "description": "Cognee-powered developer context assistant with persistent memory across sessions",
+  "version": "0.1.0",
+  "publisher": "yashhh-23",
+  "icon": "icon.png",
+  "categories": [
+    "Other",
+    "Programming Languages",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "cognee",
+    "memory",
+    "context",
+    "bugs",
+    "developer-tools"
+  ],
   "engines": {
     "vscode": "^1.80.0"
   },
-  "categories": [
-    "Other"
-  ],
   "activationEvents": [
-    "onCommand:cognee.sendToMemory"
+    "onView:devContextSidebar",
+    "onLanguage"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "devContextContainer",
+          "title": "Dev-Context",
+          "icon": "$(brain)"
+        }
+      ]
+    },
+    "views": {
+      "devContextContainer": [
+        {
+          "type": "webview",
+          "id": "devContextSidebar",
+          "name": "Dev-Context Assistant"
+        }
+      ]
+    },
     "commands": [
       {
-        "command": "cognee.sendToMemory",
-        "title": "Cognee: Send Selection to Memory"
+        "command": "devContext.rememberContext",
+        "title": "Save Current Context to Cognee",
+        "category": "Dev-Context",
+        "icon": "$(save)"
+      },
+      {
+        "command": "devContext.recallSimilarBugs",
+        "title": "Recall Similar Bugs from Memory",
+        "category": "Dev-Context",
+        "icon": "$(search)"
+      },
+      {
+        "command": "devContext.draftGitHubIssue",
+        "title": "Draft GitHub Issue from Bug",
+        "category": "Dev-Context",
+        "icon": "$(issues)"
       }
-    ]
+    ],
+    "keybindings": [
+      {
+        "command": "devContext.rememberContext",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "devContext.recallSimilarBugs",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "devContext.draftGitHubIssue",
+        "key": "ctrl+shift+i",
+        "mac": "cmd+shift+i",
+        "when": "editorTextFocus"
+      }
+    ],
+    "configuration": {
+      "title": "Dev-Context Assistant",
+      "properties": {
+        "devContext.backendUrl": {
+          "type": "string",
+          "default": "https://your-backend.onrender.com",
+          "description": "URL of your deployed Dev-Context backend (FastAPI on Render)"
+        },
+        "devContext.enableCogneeCloud": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use Cognee Cloud for persistent memory storage across sessions"
+        },
+        "devContext.cogneeApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your Cognee Cloud API key (stored securely via VS Code SecretStorage)"
+        },
+        "devContext.similarityThreshold": {
+          "type": "number",
+          "default": 0.75,
+          "minimum": 0.5,
+          "maximum": 1.0,
+          "description": "Minimum similarity score (0.5–1.0) for recalling similar bugs from Cognee memory"
+        },
+        "devContext.watcherEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-update context summary when active file changes"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "lint": "eslint src --ext ts"
   },
   "devDependencies": {
     "@types/vscode": "^1.80.0",
     "@types/node": "^18.x",
-    "typescript": "^5.1.3"
+    "typescript": "^5.1.3",
+    "@vscode/vsce": "^2.19.0"
   }
 }
