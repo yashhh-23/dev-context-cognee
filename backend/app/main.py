@@ -16,7 +16,7 @@ app = FastAPI(
 )
 
 import os
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://dev-context-cognee.vercel.app").split(",")
 
 app.add_middleware(
     CORSMiddleware,
