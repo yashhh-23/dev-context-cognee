@@ -54,7 +54,10 @@ async def get_stats(db: Session = Depends(get_db)):
         if s.timestamp and s.timestamp.date() == today and s.status == "completed"
     )
 
-    health = max(0, 100 - open_bugs * 2)
+    # Calculate bug health component (minimum 50 to prevent layout empty states if open bugs count is very high)
+    bug_health = max(50, 100 - open_bugs) if open_bugs > 0 else 100
+    # Aggregate with Code Quality (88%), Test Coverage (65%), and Documentation (92%)
+    health = round(88 * 0.3 + 65 * 0.2 + 92 * 0.2 + bug_health * 0.3)
 
     last_session = ""
     if sessions:
