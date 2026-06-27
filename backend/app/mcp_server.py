@@ -16,7 +16,6 @@ if str(backend_dir) not in sys.path:
 os.environ["COGNEE_SYSTEM_PATH"] = os.path.expanduser("~/.cognee_system")
 
 from app.core.cognee_client import init_cognee
-from app.cognee_utils import is_duplicate
 from app.services.recall_service import extract_text
 
 # Use a cross-platform temp file lock to protect Cognee initialization
@@ -33,17 +32,6 @@ mcp = FastMCP("dev-context-cognee")
 async def remember_context(text: str) -> str:
     """Store text, notes, or terminal logs into Cognee's persistent memory."""
     try:
-        # Check for duplicates first to save database space
-        dup = False
-        existing = ""
-        try:
-            # Use 0.85 threshold to match duplicate criteria
-            dup, existing = await is_duplicate(text, threshold=0.85)
-        except Exception as e:
-            print("[DEBUG] is_duplicate exception:", e)
-
-        if dup or (existing and text.strip().lower() == existing.strip().lower()):
-            return f"[DEDUP] Skipped - near-identical memory already exists. Existing: {existing[:100]}..."
 
         # Search for potentially contradicting existing memories
         contradictions = []
@@ -104,10 +92,7 @@ async def cognify_source_code(file_path: str, content: str) -> str:
         safe_file_id = file_path.replace(".", "_").replace(" ", "_")
         formatted_content = f"File Path: {safe_file_id}\nContent:\n{content}"
 
-        # Dedup check before ingestion
-        dup, existing = await is_duplicate(formatted_content)
-        if dup:
-            return f"[DEDUP] Skipped - near-identical content already in graph. Existing: {existing[:100]}..."
+
 
         # Add the code content to the workspace dataset
         clean_dataset_name = "workspacedata"

@@ -26,7 +26,7 @@ def _decrypt_session(s, byok_key: Optional[str]) -> dict:
     }
 
 
-@router.get("/")
+@router.get("")
 def list_sessions(
     skip: int = 0,
     limit: int = 100,
