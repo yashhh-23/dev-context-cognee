@@ -5,7 +5,7 @@
   "recalled_today": 12,
   "last_session": "2026-06-26T17:38:13Z",
   "health_score": 85,
-  "code_quality": 68,
-  "test_coverage": 62,
-  "documentation": 80
+  "code_quality": 88,
+  "test_coverage": 65,
+  "documentation": 92
 }

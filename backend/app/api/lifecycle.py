@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
+import numpy as np
+from cognee.infrastructure.databases.vector.embeddings.get_embedding_engine import get_embedding_engine
 from app.core.database import get_db
 from app.services.recall_service import get_session
 from app.core.ws_manager import manager
@@ -14,6 +16,35 @@ import difflib
 import httpx
 
 router = APIRouter()
+
+# In-memory cache for text embeddings during deduplication runs
+_embedding_cache: dict[str, list[float]] = {}
+
+async def _get_text_embedding(text: str) -> Optional[list[float]]:
+    val = text.strip()
+    if not val:
+        return None
+    if val in _embedding_cache:
+        return _embedding_cache[val]
+    try:
+        engine = get_embedding_engine()
+        res = await engine.embed_text([val])
+        if res and len(res) > 0:
+            emb = res[0]
+            _embedding_cache[val] = emb
+            return emb
+    except Exception as e:
+        print("[DEBUG] Failed to get embedding:", e)
+    return None
+
+def _calculate_cosine_similarity(v1: list[float], v2: list[float]) -> float:
+    arr1 = np.array(v1)
+    arr2 = np.array(v2)
+    norm1 = np.linalg.norm(arr1)
+    norm2 = np.linalg.norm(arr2)
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+    return float(np.dot(arr1, arr2) / (norm1 * norm2))
 
 # ---------------------------------------------------------------------------
 # LLM helper — Gemini 1.5 Flash → Groq llama-3.1-8b fallback
@@ -256,29 +287,34 @@ async def auto_clean_memories(db: Session = Depends(get_db)):
                 if not kept_text:
                     continue
 
-                # Optimize: quick check on length ratio first
-                len_ratio = min(len(text), len(kept_text)) / max(len(text), len(kept_text)) if max(len(text), len(kept_text)) > 0 else 0
-                if len_ratio < 0.55:
-                    continue
+                # ── Step 1: Try high-precision semantic embedding similarity ──
+                emb1 = await _get_text_embedding(text)
+                emb2 = await _get_text_embedding(kept_text)
 
-                # Check quick matches before calculating exact SequenceMatcher ratio
-                matcher = difflib.SequenceMatcher(None, text.lower(), kept_text.lower())
-                if matcher.real_quick_ratio() < 0.55:
-                    continue
-                if matcher.quick_ratio() < 0.55:
-                    continue
-
-                sim = matcher.ratio()
+                if emb1 is not None and emb2 is not None:
+                    sim = _calculate_cosine_similarity(emb1, emb2)
+                else:
+                    # Fallback to difflib SequenceMatcher if embedding fails
+                    # Optimize: quick check on length ratio first
+                    len_ratio = min(len(text), len(kept_text)) / max(len(text), len(kept_text)) if max(len(text), len(kept_text)) > 0 else 0
+                    if len_ratio < 0.55:
+                        continue
+                    matcher = difflib.SequenceMatcher(None, text.lower(), kept_text.lower())
+                    if matcher.real_quick_ratio() < 0.55:
+                        continue
+                    if matcher.quick_ratio() < 0.55:
+                        continue
+                    sim = matcher.ratio()
 
                 # ── Phase 1: exact-ish duplicate ──────────────────────────────
-                if sim >= 0.85 or text.lower() in kept_text.lower() or kept_text.lower() in text.lower():
+                if sim >= 0.94 or text.lower() in kept_text.lower() or kept_text.lower() in text.lower():
                     if await _forget_session_helper(session, pinned_ids):
                         cleaned_exact += 1
                         removed = True
                         break
 
                 # ── Phase 2: similar but not identical → ask LLM ─────────────
-                elif 0.55 <= sim < 0.85 and llm_calls < MAX_LLM_CALLS:
+                elif 0.70 <= sim < 0.94 and llm_calls < MAX_LLM_CALLS:
                     llm_calls += 1
                     # session is NEWER (sorted asc), kept_session is OLDER
                     superseded = await _is_superseded_by_llm(
