@@ -7,8 +7,9 @@ from __future__ import annotations
 
 import textwrap
 from typing import Optional
-
+import json
 import cognee
+from app.services.recall_service import extract_text
 
 
 async def draft_github_issue(
@@ -30,15 +31,12 @@ async def draft_github_issue(
     # 2. Recall similar bugs from Cognee memory
     similar_memories: list[str] = []
     try:
-        results = await cognee.search(
-            query_text=recall_query,
-            query_type="SIMILARITY",
-            top_k=3,
-        )
-        for r in results:
-            node_data = getattr(r, "node_data", None) or {}
-            text = node_data.get("text") or str(r)
-            similar_memories.append(text[:400])
+        results = await cognee.recall(recall_query)
+        items = results if isinstance(results, list) else [results] if results else []
+        for r in items[:3]:
+            text = extract_text(r)
+            if text:
+                similar_memories.append(text[:400])
     except Exception:
         pass  # memory may be empty on first run
 
@@ -75,7 +73,6 @@ async def draft_github_issue(
     # 4. Call Cognee's LLM layer
     try:
         raw = await cognee.llm_query(prompt)
-        import json
         # strip any accidental code fences
         clean = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
         result = json.loads(clean)
@@ -110,3 +107,4 @@ async def draft_github_issue(
             "labels": ["bug", "needs-triage"],
             "similar_count": len(similar_memories),
         }
+

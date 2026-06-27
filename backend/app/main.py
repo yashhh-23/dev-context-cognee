@@ -5,6 +5,7 @@ import os
 import asyncio
 import subprocess
 import sys
+import json
 
 from app.core.database import init_db
 from app.api import ingest, sessions, context, bugs, recall, graph, stats, lifecycle, contribute, ws, memory_health
@@ -55,7 +56,6 @@ app.include_router(sessions.router,   prefix="/api/sessions",  tags=["sessions"]
 app.include_router(context.router,    prefix="/api/context",   tags=["context"])
 app.include_router(bugs.router,       prefix="/api/bugs",      tags=["bugs"])
 app.include_router(recall.router,     prefix="/api/recall",    tags=["recall"])
-app.include_router(recall.router,     prefix="/api/memory",    tags=["recall"])
 app.include_router(graph.router,      prefix="/api/graph",     tags=["graph"])
 app.include_router(stats.router,      prefix="/api/overview",  tags=["stats"])
 app.include_router(lifecycle.router,  prefix="/api",           tags=["lifecycle"])
@@ -83,7 +83,6 @@ async def dependencies_health():
             stderr=asyncio.subprocess.DEVNULL,
         )
         stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=30)
-        import json
         outdated_packages = json.loads(stdout.decode()) if stdout else []
     except Exception:
         outdated_packages = []
@@ -96,8 +95,7 @@ async def dependencies_health():
             stderr=asyncio.subprocess.DEVNULL,
         )
         stdout2, _ = await asyncio.wait_for(proc2.communicate(), timeout=30)
-        import json as _json
-        all_packages = _json.loads(stdout2.decode()) if stdout2 else []
+        all_packages = json.loads(stdout2.decode()) if stdout2 else []
     except Exception:
         all_packages = []
 
@@ -114,3 +112,4 @@ async def dependencies_health():
             for pkg in outdated_packages
         ],
     }
+

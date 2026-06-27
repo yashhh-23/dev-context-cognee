@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.services.recall_service import get_session
 from app.core.ws_manager import manager
 from app.core.config import settings
+from app.models.session import SessionRecord, PinnedNode
 import cognee
 import asyncio
 import difflib
@@ -119,6 +120,24 @@ async def _is_superseded_by_llm(mem_a: str, mem_b: str) -> bool:
     return result is True  # None or False both mean "don't delete"
 
 
+async def _forget_session_helper(s: SessionRecord, pinned_ids: set[str]) -> bool:
+    """Call cognee.forget + mark DB. Returns True on success."""
+    if str(s.id) in pinned_ids:
+        return False  # safety guard
+    try:
+        dataset_name = (
+            f"{s.project}_{s.branch}"
+            .replace("/", "_")
+            .replace("-", "_")
+        )
+        await cognee.forget(dataset_name=dataset_name)
+        s.status = "forgotten"
+        return True
+    except Exception as exc:
+        print(f"[auto-clean] cognee.forget failed for {s.id}: {exc}")
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -199,8 +218,6 @@ async def auto_clean_memories(db: Session = Depends(get_db)):
                  Safety: pinned sessions are NEVER touched.
                  Bound: max 20 LLM calls per run to stay free-tier safe.
     """
-    from app.models.session import SessionRecord, PinnedNode
-
     sessions = (
         db.query(SessionRecord)
         .filter(SessionRecord.status.in_(["completed", "resolved"]))
@@ -219,67 +236,66 @@ async def auto_clean_memories(db: Session = Depends(get_db)):
     llm_calls = 0
     MAX_LLM_CALLS = 20
 
-    kept: list[SessionRecord] = []
+    # Group sessions by (project, branch) to avoid cross-project O(N2) comparisons
+    from collections import defaultdict
+    grouped = defaultdict(list)
+    for s in sessions:
+        grouped[(s.project, s.branch)].append(s)
 
-    async def _forget_session(s: SessionRecord) -> bool:
-        """Call cognee.forget + mark DB. Returns True on success."""
-        if str(s.id) in pinned_ids:
-            return False  # safety guard
-        try:
-            dataset_name = (
-                f"{s.project}_{s.branch}"
-                .replace("/", "_")
-                .replace("-", "_")
-            )
-            await cognee.forget(dataset_name=dataset_name)
-            s.status = "forgotten"
-            return True
-        except Exception as exc:
-            print(f"[auto-clean] cognee.forget failed for {s.id}: {exc}")
-            return False
-
-    for session in sessions:
-        text = (session.terminal_output or "").strip()
-        if not text or str(session.id) in pinned_ids:
-            kept.append(session)
-            continue
-
-        removed = False
-        for kept_session in kept:
-            kept_text = (kept_session.terminal_output or "").strip()
-            if not kept_text:
+    for (proj, branch), s_list in grouped.items():
+        kept: list[SessionRecord] = []
+        for session in s_list:
+            text = (session.terminal_output or "").strip()
+            if not text or str(session.id) in pinned_ids:
+                kept.append(session)
                 continue
 
-            sim = difflib.SequenceMatcher(
-                None, text.lower(), kept_text.lower()
-            ).ratio()
+            removed = False
+            for kept_session in kept:
+                kept_text = (kept_session.terminal_output or "").strip()
+                if not kept_text:
+                    continue
 
-            # ── Phase 1: exact-ish duplicate ──────────────────────────────
-            if sim >= 0.85 or text.lower() in kept_text.lower() or kept_text.lower() in text.lower():
-                if await _forget_session(session):
-                    cleaned_exact += 1
-                    removed = True
-                    break
+                # Optimize: quick check on length ratio first
+                len_ratio = min(len(text), len(kept_text)) / max(len(text), len(kept_text)) if max(len(text), len(kept_text)) > 0 else 0
+                if len_ratio < 0.55:
+                    continue
 
-            # ── Phase 2: similar but not identical → ask LLM ─────────────
-            elif 0.55 <= sim < 0.85 and llm_calls < MAX_LLM_CALLS:
-                llm_calls += 1
-                # session is NEWER (sorted asc), kept_session is OLDER
-                superseded = await _is_superseded_by_llm(
-                    mem_a=kept_text,
-                    mem_b=text,
-                )
-                if superseded:
-                    # Newer (session) supersedes older (kept_session): drop the older one
-                    if await _forget_session(kept_session):
-                        kept.remove(kept_session)
-                        cleaned_supersede += 1
-                    kept.append(session)
-                    removed = True
-                    break
+                # Check quick matches before calculating exact SequenceMatcher ratio
+                matcher = difflib.SequenceMatcher(None, text.lower(), kept_text.lower())
+                if matcher.real_quick_ratio() < 0.55:
+                    continue
+                if matcher.quick_ratio() < 0.55:
+                    continue
 
-        if not removed:
-            kept.append(session)
+                sim = matcher.ratio()
+
+                # ── Phase 1: exact-ish duplicate ──────────────────────────────
+                if sim >= 0.85 or text.lower() in kept_text.lower() or kept_text.lower() in text.lower():
+                    if await _forget_session_helper(session, pinned_ids):
+                        cleaned_exact += 1
+                        removed = True
+                        break
+
+                # ── Phase 2: similar but not identical → ask LLM ─────────────
+                elif 0.55 <= sim < 0.85 and llm_calls < MAX_LLM_CALLS:
+                    llm_calls += 1
+                    # session is NEWER (sorted asc), kept_session is OLDER
+                    superseded = await _is_superseded_by_llm(
+                        mem_a=kept_text,
+                        mem_b=text,
+                    )
+                    if superseded:
+                        # Newer (session) supersedes older (kept_session): drop the older one
+                        if await _forget_session_helper(kept_session, pinned_ids):
+                            kept.remove(kept_session)
+                            cleaned_supersede += 1
+                        kept.append(session)
+                        removed = True
+                        break
+
+            if not removed:
+                kept.append(session)
 
     total_cleaned = cleaned_exact + cleaned_supersede
     if total_cleaned > 0:
