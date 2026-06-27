@@ -96,9 +96,9 @@ async def bug_trend():
     opened_map: dict[str, int] = {d: 0 for d in day_strs}
     closed_map: dict[str, int] = {d: 0 for d in day_strs}
 
+    import asyncio
     async with httpx.AsyncClient(timeout=20) as client:
-        # Single query for all opened issues in the 7-day range
-        r_opened = await client.get(
+        req_opened = client.get(
             "https://api.github.com/search/issues",
             params={
                 "q": f"repo:{repo} is:issue created:{start_date}..{end_date}",
@@ -108,14 +108,7 @@ async def bug_trend():
             },
             headers=headers,
         )
-        if r_opened.status_code == 200:
-            for item in r_opened.json().get("items", []):
-                created_date = item["created_at"][:10]
-                if created_date in opened_map:
-                    opened_map[created_date] += 1
-
-        # Single query for all closed issues in the 7-day range
-        r_closed = await client.get(
+        req_closed = client.get(
             "https://api.github.com/search/issues",
             params={
                 "q": f"repo:{repo} is:issue closed:{start_date}..{end_date}",
@@ -125,6 +118,12 @@ async def bug_trend():
             },
             headers=headers,
         )
+        r_opened, r_closed = await asyncio.gather(req_opened, req_closed)
+        if r_opened.status_code == 200:
+            for item in r_opened.json().get("items", []):
+                created_date = item["created_at"][:10]
+                if created_date in opened_map:
+                    opened_map[created_date] += 1
         if r_closed.status_code == 200:
             for item in r_closed.json().get("items", []):
                 closed_date = (item.get("closed_at") or "")[:10]
