@@ -1,23 +1,44 @@
-from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.ingest import IngestRequest, IngestResponse
 from app.models.session import SessionRecord
 from app.services.ingest_service import process_ingest
+from app.core.security import verify_safe_input
+from app.core.byok import encrypt_data
+from typing import Optional
 import datetime
 
 router = APIRouter()
 
 
 @router.post("/", response_model=IngestResponse)
-def ingest_log(req: IngestRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def ingest_log(
+    req: IngestRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    x_byok_key: Optional[str] = Header(None),
+):
+    # Guard: verify inputs are safe from prompt injection
+    verify_safe_input(req.project, "project")
+    if req.branch:
+        verify_safe_input(req.branch, "branch")
+    if req.tags:
+        for tag in req.tags:
+            verify_safe_input(tag, "tag")
+
     # Guard: never pass None as timestamp — SQLAlchemy default only fires when field is omitted
     ts = req.timestamp if req.timestamp is not None else datetime.datetime.utcnow()
+
+    # Encrypt terminal output if BYOK key is provided
+    encrypted_output = req.terminal_output
+    if x_byok_key:
+        encrypted_output = encrypt_data(req.terminal_output, x_byok_key)
 
     new_session = SessionRecord(
         project=req.project,
         branch=req.branch,
-        terminal_output=req.terminal_output,
+        terminal_output=encrypted_output,
         tags=req.tags,
         github_url=req.github_url,
         timestamp=ts,
@@ -27,7 +48,7 @@ def ingest_log(req: IngestRequest, background_tasks: BackgroundTasks, db: Sessio
     db.commit()
     db.refresh(new_session)
 
-    background_tasks.add_task(process_ingest, new_session.id, req.model_dump())
+    background_tasks.add_task(process_ingest, new_session.id, req.model_dump(), x_byok_key)
 
     return {"session_id": new_session.id, "status": "queued"}
 
