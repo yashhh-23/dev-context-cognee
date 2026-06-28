@@ -69,6 +69,12 @@
         "title": "Set Cognee API Key (stored in SecretStorage)",
         "category": "Dev-Context",
         "icon": "$(key)"
+      },
+      {
+        "command": "devContext.rememberChangedFiles",
+        "title": "Save All Changed Files to Cognee",
+        "category": "Dev-Context",
+        "icon": "$(save-all)"
       }
     ],
     "keybindings": [
@@ -89,6 +95,11 @@
         "key": "ctrl+shift+i",
         "mac": "cmd+shift+i",
         "when": "editorTextFocus"
+      },
+      {
+        "command": "devContext.rememberChangedFiles",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g"
       }
     ],
     "configuration": {
@@ -122,6 +133,16 @@
           "type": "boolean",
           "default": true,
           "description": "Auto-update context summary when active file changes."
+        },
+        "devContext.autoSaveOnFileSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically save context to Cognee on every file save"
+        },
+        "devContext.feedDiagnosticsToCognee": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically feed code/compilation errors to Cognee context"
         }
       }
     }

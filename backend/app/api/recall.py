@@ -3,6 +3,7 @@ import asyncio
 import difflib
 from fastapi import APIRouter, Query, HTTPException, Depends
 import numpy as np
+from typing import Optional
 from cognee.infrastructure.databases.vector.embeddings.get_embedding_engine import get_embedding_engine
 
 # Cache embeddings in-memory during a single recall search
@@ -147,6 +148,18 @@ async def recall(
     return results
 
 
+class RecallRequestModel(BaseModel):
+    query: str
+    languageId: Optional[str] = None
+    similarityThreshold: Optional[float] = 0.75
+
+@router.post("")
+async def recall_post(body: RecallRequestModel, db: Session = Depends(get_db)):
+    results = await recall(q=body.query, limit=50, db=db)
+    return {"bugs": results}
+
+
+
 @router.get("/search")
 async def search_memory_api(
     q: str = Query("", description="Natural language query"),
@@ -205,3 +218,23 @@ async def unpin_node(node_id: str, db: Session = Depends(get_db)):
         record.pinned = False
         db.commit()
     return {"success": True, "node_id": node_id, "pinned": False}
+
+
+class FeedbackRequest(BaseModel):
+    sessionId: str
+    qaId: str
+    score: int
+
+@router.post("/feedback")
+async def submit_feedback(body: FeedbackRequest):
+    try:
+        await cognee.session.add_feedback(
+            session_id=body.sessionId,
+            qa_id=body.qaId,
+            feedback_score=body.score
+        )
+        if body.score == 1:
+            await cognee.improve(node_name=[body.qaId])
+        return {"status": "ok"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to submit feedback: {str(e)}")

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { ApiClient } from './utils/apiClient';
 
 export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'devContextSidebar';
@@ -6,7 +7,10 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     public isOpen = false;
     private _disposables: vscode.Disposable[] = [];
 
-    constructor(private readonly _extensionUri: vscode.Uri) {}
+    constructor(
+        private readonly _extensionUri: vscode.Uri,
+        private readonly _context: vscode.ExtensionContext
+    ) {}
 
     resolveWebviewView(
         webviewView: vscode.WebviewView,
@@ -24,8 +28,9 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.html = this._getHtml();
 
         // Handle messages from webview
+        const api = new ApiClient({ context: this._context });
         webviewView.webview.onDidReceiveMessage(
-            (message: { type: string; payload?: unknown }) => {
+            (message: { type: string; payload?: any }) => {
                 switch (message.type) {
                     case 'copyToClipboard':
                         vscode.env.clipboard.writeText(String(message.payload ?? ''))
@@ -42,6 +47,42 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
                         break;
                     case 'runDraft':
                         vscode.commands.executeCommand('devContext.draftGitHubIssue');
+                        break;
+                    case 'submitFeedback':
+                        const currentSession = this._context.globalState.get<string>('currentSessionId') || '';
+                        api.submitFeedback({
+                            qaId: message.payload.qaId,
+                            score: message.payload.score,
+                            sessionId: currentSession
+                        }).then(() => {
+                            this.postMessageToWebview({
+                                type: 'feedbackSuccess',
+                                payload: { btnId: message.payload.btnId, score: message.payload.score }
+                            });
+                        }).catch(err => {
+                            vscode.window.showErrorMessage(`Dev-Context: Failed to submit feedback — ${err.message}`);
+                        });
+                        break;
+                    case 'endSession':
+                        vscode.window.withProgress({
+                            location: vscode.ProgressLocation.Notification,
+                            title: "Dev-Context: Distilling session memories...",
+                            cancellable: false
+                        }, async (progress) => {
+                            try {
+                                const curSession = this._context.globalState.get<string>('currentSessionId') || '';
+                                await api.endSession({ sessionId: curSession, triggerDistillation: true });
+                                
+                                // Restart new session
+                                const newSessionId = `session_${Date.now()}_${vscode.env.machineId.slice(0, 8)}`;
+                                this._context.globalState.update('currentSessionId', newSessionId);
+                                await api.startSession({ sessionId: newSessionId, workspaceName: vscode.workspace.name || 'unnamed-workspace' });
+                                
+                                vscode.window.showInformationMessage('Dev-Context: Session distilled and restarted successfully!');
+                            } catch (err: any) {
+                                vscode.window.showErrorMessage(`Dev-Context: Distill failed — ${err.message}`);
+                            }
+                        });
                         break;
                 }
             },
@@ -340,7 +381,10 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
         <div class="logo-sub">Cognee memory assistant</div>
       </div>
     </div>
-    <button class="icon-btn" title="Open Settings" onclick="post('openSettings')">⚙</button>
+    <div>
+      <button class="icon-btn" title="End Session & Distill" onclick="post('endSession')">⏹</button>
+      <button class="icon-btn" title="Open Settings" onclick="post('openSettings')">⚙</button>
+    </div>
   </div>
 
   <!-- Active file context bar -->
@@ -511,30 +555,37 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     empty.style.display = 'none';
     list.innerHTML = '';
 
-    bugs.forEach((bug, i) => {
-      const b = typeof bug === 'object' && bug !== null ? bug : {};
-      const title   = b.title   || b.name    || b.summary || ('Bug #' + (i + 1));
-      const file    = b.file    || b.fileName || '';
-      const lang    = b.language || b.languageId || '';
-      const summary = b.summary || b.description || b.body || '';
-      const score   = b.score   !== undefined ? (Math.round(b.score * 100) + '%') : '';
-      const snippet = b.snippet || b.code || b.codeSnippet || '';
+      bugs.forEach((bug, i) => {
+        const b = typeof bug === 'object' && bug !== null ? bug : {};
+        const title   = b.title   || b.name    || b.summary || ('Bug #' + (i + 1));
+        const file    = b.file    || b.fileName || '';
+        const lang    = b.language || b.languageId || '';
+        const summary = b.summary || b.description || b.body || '';
+        const score   = b.score   !== undefined ? (Math.round(b.score * 100) + '%') : '';
+        const snippet = b.snippet || b.code || b.codeSnippet || '';
+        const id      = b.id      || '';
 
-      const card = document.createElement('div');
-      card.className = 'bug-card';
-      card.innerHTML = [
-        score ? '<div class="bug-score">' + score + '</div>' : '',
-        '<div class="bug-title">' + esc(title) + '</div>',
-        '<div class="bug-meta">',
-          file ? '<span>' + esc(file) + '</span>' : '',
-          lang ? '<span>' + esc(lang) + '</span>' : '',
-        '</div>',
-        summary ? '<div class="bug-summary">' + esc(summary.slice(0, 180)) + (summary.length > 180 ? '\u2026' : '') + '</div>' : '',
-        '<div class="bug-actions">',
-          snippet ? '<button class="pill-btn" onclick="post(\'copyToClipboard\', \'' + esc(snippet.replace(/'/g,'\\x27')) + '\')" >Copy snippet</button>' : '',
-          '<button class="pill-btn" onclick="post(\'runDraft\')">Draft issue</button>',
-        '</div>'
-      ].join('');
+        const card = document.createElement('div');
+        card.className = 'bug-card';
+        card.innerHTML = [
+          score ? '<div class="bug-score">' + score + '</div>' : '',
+          '<div class="bug-title">' + esc(title) + '</div>',
+          '<div class="bug-meta">',
+            file ? '<span>' + esc(file) + '</span>' : '',
+            lang ? '<span>' + esc(lang) + '</span>' : '',
+          '</div>',
+          summary ? '<div class="bug-summary">' + esc(summary.slice(0, 180)) + (summary.length > 180 ? '\u2026' : '') + '</div>' : '',
+          '<div class="bug-actions">',
+            snippet ? '<button class="pill-btn" onclick="post(\'copyToClipboard\', \'' + esc(snippet.replace(/'/g,'\\x27')) + '\')" >Copy snippet</button>' : '',
+            '<button class="pill-btn" onclick="post(\'runDraft\')">Draft issue</button>',
+          '</div>',
+          id ? [
+            '<div class="feedback-row" style="margin-top: 6px; display: flex; gap: 8px;">',
+              '<button class="pill-btn feedback-btn up" onclick="post(\'submitFeedback\', { qaId: \'' + id + '\', score: 1, btnId: \'fb-up-' + id + '\' })" id="fb-up-' + id + '">👍 Helpful</button>',
+              '<button class="pill-btn feedback-btn down" onclick="post(\'submitFeedback\', { qaId: \'' + id + '\', score: -1, btnId: \'fb-down-' + id + '\' })" id="fb-down-' + id + '">👎 Not relevant</button>',
+            '</div>'
+          ].join('') : ''
+        ].join('');
 
       list.appendChild(card);
     });
@@ -568,6 +619,19 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     switch (msg.type) {
       case 'contextUpdate':
         updateContext(msg.context);
+        break;
+
+      case 'feedbackSuccess':
+        const btn = document.getElementById(msg.payload.btnId);
+        if (btn) {
+          btn.textContent = msg.payload.score === 1 ? '✓ Helpful' : '✓ Noted';
+          btn.disabled = true;
+          const otherId = msg.payload.score === 1 
+            ? msg.payload.btnId.replace('fb-up-', 'fb-down-') 
+            : msg.payload.btnId.replace('fb-down-', 'fb-up-');
+          const otherBtn = document.getElementById(otherId);
+          if (otherBtn) { otherBtn.style.display = 'none'; }
+        }
         break;
 
       case 'rememberSuccess':

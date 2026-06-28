@@ -3,6 +3,9 @@ import { DevContextWebViewProvider } from './provider';
 import { registerRememberContextCommand, ProviderBridge, StatusSetter } from './commands/rememberContext';
 import { registerRecallBugsCommand } from './commands/recallBugs';
 import { registerDraftIssueCommand } from './commands/draftIssue';
+import { registerRememberChangedFilesCommand } from './commands/rememberChangedFiles';
+import { ApiClient } from './utils/apiClient';
+import { isSupportedLanguage } from './utils/languageDetector';
 
 // ─── Status Bar ────────────────────────────────────────────────────────────────
 let statusBarItem: vscode.StatusBarItem;
@@ -49,7 +52,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(statusBarItem);
 
     // 2. Sidebar WebView provider (full UI from provider.ts)
-    const provider = new DevContextWebViewProvider(context.extensionUri);
+    const provider = new DevContextWebViewProvider(context.extensionUri, context);
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(
             DevContextWebViewProvider.viewType,
@@ -70,14 +73,35 @@ export function activate(context: vscode.ExtensionContext): void {
         postMessageToWebview: (msg) => provider.postMessageToWebview(msg)
     };
 
-    // 4. Commands
+    // 4. API Client
+    const api = new ApiClient({ context });
+
+    // ─── Session Lifecycle ─────────────────────────────────────────────────────────
+    const sessionId = `session_${Date.now()}_${vscode.env.machineId.slice(0, 8)}`;
+    context.globalState.update('currentSessionId', sessionId);
+    api.startSession({ sessionId, workspaceName: vscode.workspace.name || 'unnamed-workspace' })
+        .then(() => console.log(`Dev-Context: Started session ${sessionId}`))
+        .catch(err => console.error('Failed to start session:', err));
+
+    // End session on deactivate
+    context.subscriptions.push(
+        new vscode.Disposable(() => {
+            const currentSession = context.globalState.get<string>('currentSessionId') || sessionId;
+            api.endSession({ sessionId: currentSession, triggerDistillation: true })
+                .then(() => console.log(`Dev-Context: Ended session ${currentSession}`))
+                .catch(err => console.error('Failed to end session:', err));
+        })
+    );
+
+    // 5. Commands
     context.subscriptions.push(
         registerRememberContextCommand(context, bridge, status),
         registerRecallBugsCommand(context, bridge, status),
-        registerDraftIssueCommand(context, bridge, status)
+        registerDraftIssueCommand(context, bridge, status),
+        registerRememberChangedFilesCommand(context, bridge, status)
     );
 
-    // 5. File watcher: auto-refresh context bar on text change
+    // 6. File watcher: auto-refresh context bar on text change
     context.subscriptions.push(
         vscode.workspace.onDidChangeTextDocument(async (event) => {
             const watcherEnabled = vscode.workspace
@@ -91,7 +115,7 @@ export function activate(context: vscode.ExtensionContext): void {
         })
     );
 
-    // 6. Tab switch: refresh context bar when active editor changes
+    // 7. Tab switch: refresh context bar when active editor changes
     context.subscriptions.push(
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {
             if (editor && provider.isOpen) {
@@ -100,7 +124,55 @@ export function activate(context: vscode.ExtensionContext): void {
         })
     );
 
-    // 7. Set extension context flag
+    // ─── Passive Auto-Save ─────────────────────────────────────────────────────────
+    const autoSaveDisposable = vscode.workspace.onDidSaveTextDocument(async (document) => {
+        const config = vscode.workspace.getConfiguration('devContext');
+        if (!config.get<boolean>('autoSaveOnFileSave', true)) { return; }
+        if (!isSupportedLanguage(document.languageId)) { return; }
+
+        try {
+            await api.ingestContext({
+                content: document.getText(),
+                fileName: vscode.workspace.asRelativePath(document.fileName),
+                languageId: document.languageId,
+                source: 'auto-save'
+            });
+            setStatusBarDone('Saved ✓');
+        } catch (err) {
+            console.error('Auto-save failed:', err);
+        }
+    });
+    context.subscriptions.push(autoSaveDisposable);
+
+    // ─── Diagnostic Integration ────────────────────────────────────────────────────
+    const diagnosticsDisposable = vscode.languages.onDidChangeDiagnostics(async (event) => {
+        const config = vscode.workspace.getConfiguration('devContext');
+        if (!config.get<boolean>('feedDiagnosticsToCognee', true)) { return; }
+
+        for (const uri of event.uris) {
+            if (uri.scheme !== 'file') { continue; }
+            const diagnostics = vscode.languages.getDiagnostics(uri);
+            const errors = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error);
+            if (errors.length === 0) { continue; }
+
+            const editor = vscode.window.visibleTextEditors.find(e => e.document.uri.toString() === uri.toString());
+            const fileName = vscode.workspace.asRelativePath(uri.fsPath);
+
+            try {
+                await api.ingestContext({
+                    content: errors.map(e => `[${e.source || 'Diagnostic'}] Line ${e.range.start.line + 1}: ${e.message}`).join('\n'),
+                    fileName: fileName,
+                    languageId: editor?.document.languageId ?? 'unknown',
+                    source: 'diagnostics'
+                });
+            } catch (err) {
+                console.error('Ingesting diagnostics failed:', err);
+            }
+        }
+    });
+    context.subscriptions.push(diagnosticsDisposable);
+
+    // 8. Set extension context flag
     vscode.commands.executeCommand('setContext', 'devContext.enabled', true);
 
     console.log('Dev-Context Assistant: activated successfully');

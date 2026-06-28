@@ -61,3 +61,43 @@ async def process_ingest(session_id: str, payload: dict, byok_key: str = None):
         db.commit()
     finally:
         db.close()
+
+
+async def process_file_ingest(session_id: str, payload: dict):
+    db = SessionLocal()
+    try:
+        record = db.query(SessionRecord).filter(SessionRecord.id == session_id).first()
+        if not record:
+            return
+
+        record.status = "processing"
+        db.commit()
+
+        content = payload.get("content", "")
+        file_name = payload.get("fileName", "")
+        lang = payload.get("languageId", "")
+        source = payload.get("source", "vscode-extension")
+        symbols = payload.get("symbols", [])
+
+        symbols_str = f"Symbols: {', '.join(symbols)}" if symbols else ""
+        formatted_content = f"File: {file_name}\nLanguage: {lang}\nSource: {source}\n{symbols_str}\nContent:\n{content}"
+
+        await cognee.add(formatted_content, dataset_name="main_dataset")
+        await cognee.cognify()
+
+        record.status = "completed"
+        db.commit()
+
+        # Notify dashboard via WebSocket
+        await manager.broadcast({
+            "type": "bug_ingested",
+            "session_id": session_id,
+            "project": file_name,
+        })
+
+    except Exception as e:
+        record.status = "failed"
+        record.error_message = str(e)[:500]
+        db.commit()
+    finally:
+        db.close()

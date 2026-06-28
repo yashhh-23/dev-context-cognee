@@ -5,10 +5,27 @@ import os
 import asyncio
 import sys
 import json
+import uuid
+import sqlite3
+from dotenv import load_dotenv
+
+sqlite3.register_adapter(uuid.UUID, lambda u: u.hex)
+sqlite3.register_converter('UUID', lambda b: uuid.UUID(b.decode('utf-8')))
+
+# Load env very early so Cognee gets the API keys
+load_dotenv()
+if os.getenv("GEMINI_API_KEY"):
+    os.environ["LLM_API_KEY"] = os.getenv("GEMINI_API_KEY").strip()
+    os.environ["LLM_PROVIDER"] = "gemini"
+    os.environ["LLM_MODEL"] = "gemini/gemini-2.5-flash"
+    if "OPENAI_API_KEY" in os.environ:
+        del os.environ["OPENAI_API_KEY"]
+
 
 from app.core.database import init_db
 from app.api import ingest, sessions, context, bugs, recall, graph, stats, lifecycle, contribute, ws, memory_health
 from app.core.byok import byok_key_var
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
