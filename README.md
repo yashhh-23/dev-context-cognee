@@ -142,10 +142,25 @@ docker-compose up --build
 ```bash
 git clone https://github.com/yashhh-23/dev-context-cognee.git
 cd dev-context-cognee
+```
 
+**For macOS / Linux:**
+```bash
+cp backend/.env.example backend/.env
+python3 -m venv venv
+source venv/bin/activate
+```
+
+**For Windows (CMD/PowerShell):**
+```cmd
+copy backend\.env.example backend\.env
+python -m venv venv
+venv\Scripts\activate
+```
+
+```bash
 # 1. Backend
 cd backend
-cp .env.example .env        # fill in your keys
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 
