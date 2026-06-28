@@ -1,0 +1,2 @@
+[console_scripts]
+dev-context = cli.cognee_cli:app
