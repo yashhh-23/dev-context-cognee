@@ -162,6 +162,10 @@ venv\Scripts\activate
 # 1. Backend
 cd backend
 pip install -r requirements.txt
+cd ..
+# Install the CLI client globally (editable mode)
+pip install -e .
+cd backend
 uvicorn app.main:app --reload --port 8000
 
 # 2. Frontend (separate terminal)
@@ -181,6 +185,15 @@ npm run compile
 ```
 
 On first use, run **Dev-Context: Set Cognee API Key** from the Command Palette (`Cmd/Ctrl+Shift+P`). The key is stored in VS Code SecretStorage — never in plain settings.
+
+### MCP (Model Context Protocol) Server
+
+To register Cognee memory tools with Claude Desktop, Cursor, or Cline:
+```bash
+# Run the auto-installer to register the MCP server with Claude Desktop
+python mcp/install.py
+```
+For detailed configurations, see the [mcp/README.md](file:///c:/Users/Win10/Desktop/cognee/mcp/README.md) guide.
 
 ---
 
