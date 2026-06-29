@@ -202,3 +202,5 @@ This project was built to demonstrate deep Cognee integration. Meaningful PR opp
 ---
 
 *Built with [Cognee](https://github.com/topoteretes/cognee) — memory infrastructure for AI.*
+
+
