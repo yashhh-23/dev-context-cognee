@@ -39,16 +39,10 @@ async def get_stats(db: Session = Depends(get_db)):
     sessions = get_all_sessions(db, skip=0, limit=500)
     total    = len(sessions)
 
-    # Real open bug count from GitHub
     open_bugs = await _get_open_bug_count()
-
-    # Memory nodes = total sessions as proxy
     memory_nodes = total
-
-    # Health score — degrades with open bugs
     health = max(0, 100 - open_bugs * 2)
 
-    # Last session timestamp
     last_session = ""
     if sessions:
         try:
