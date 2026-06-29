@@ -9,6 +9,7 @@ import LiveFeed from '@/components/ui/LiveFeed'
 import { DashboardSkeleton } from '@/components/skeletons/Skeletons'
 import MemoryHealthModal from '@/components/ui/MemoryHealthModal'
 import { useHealth } from '@/hooks/useHealth'
+import { formatRelative } from '@/lib/dateUtils'
 
 const BugTrendChart = dynamic(() => import('@/components/ui/BugTrendChart'), { ssr: false })
 
@@ -98,6 +99,7 @@ export default function OverviewClient() {
   const [trendData, setTrendData] = useState<{ labels: string[]; opened: number[]; closed: number[] } | null>(null)
   const [depHealth, setDepHealth] = useState<{ total_dependencies: number; outdated_count: number; vulnerable_count: number; packages: any[] } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [healthOpen, setHealthOpen] = useState(false)
   const [autoCleanEnabled, setAutoCleanEnabled] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true
@@ -111,6 +113,7 @@ export default function OverviewClient() {
   }
 
   const loadData = useCallback(async () => {
+    setError(null)
     try {
       const [s, sess, trend, dep] = await Promise.all([
         api.getStats(),
@@ -124,6 +127,7 @@ export default function OverviewClient() {
       setDepHealth(dep)
     } catch (err: any) {
       console.error('[Overview] Failed to load dashboard data:', err)
+      setError(err.message || 'Failed to load')
     } finally {
       setLoading(false)
     }
@@ -254,7 +258,7 @@ export default function OverviewClient() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                       <span className="item-title" style={{ fontFamily: 'var(--font-mono)' }}>
-                        {s.repo.split('/')[1] || s.repo}
+                        {s.repo?.includes('/') ? s.repo.split('/')[1] : s.repo}
                       </span>
                       <span className="badge badge-default" style={{ fontSize: '10px' }}>{s.branch}</span>
                     </div>
@@ -379,15 +383,14 @@ export default function OverviewClient() {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                         <span className="mono" style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold' }}>{p.name}</span>
-                        <span style={{ fontSize: '10px', color: 'var(--color-text-faint)' }}>v{p.current}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--color-text-faint)' }}>v{p.current_version}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                        <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>latest: v{p.latest}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>latest: v{p.latest_version}</span>
                         <span className={`badge ${
-                          p.status === 'vulnerable' ? 'badge-error'
-                          : p.status === 'outdated' ? 'badge-warning'
+                          p.current_version !== p.latest_version ? 'badge-warning'
                           : 'badge-success'
-                        }`} style={{ fontSize: '9px' }}>{p.status}</span>
+                        }`} style={{ fontSize: '9px' }}>{p.current_version !== p.latest_version ? 'outdated' : 'ok'}</span>
                       </div>
                     </div>
                   ))}
@@ -516,16 +519,4 @@ function LegendDot({ color, label }: { color: string; label: string }) {
       <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)' }}>{label}</span>
     </div>
   )
-}
-
-function formatRelative(iso: string): string {
-  if (!iso) return '—'
-  const diff = Date.now() - new Date(iso).getTime()
-  if (isNaN(diff)) return '—'
-  const m = Math.floor(diff / 60000)
-  if (m < 1) return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
 }

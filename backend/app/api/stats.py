@@ -11,6 +11,7 @@ import os
 import math
 
 from app.core.config import settings
+from app.utils.github_utils import get_github_headers
 
 router = APIRouter()
 
@@ -20,10 +21,7 @@ async def _get_open_bug_count() -> int:
     repo = settings.GITHUB_REPO or ""
     if not repo:
         return 0
-    headers = {"Accept": "application/vnd.github+json"}
-    token = settings.GITHUB_TOKEN or ""
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+    headers = get_github_headers(settings.GITHUB_TOKEN)
     try:
         async with httpx.AsyncClient(timeout=8) as client:
             resp = await client.get(
@@ -93,6 +91,7 @@ def _compute_health_score(
 @router.get("/stats")
 async def get_stats(db: Session = Depends(get_db)):
     sessions     = get_all_sessions(db, skip=0, limit=500)
+    sessions.sort(key=lambda s: s.timestamp or datetime.datetime.min, reverse=True)
     total        = len(sessions)
     open_bugs    = await _get_open_bug_count()
 
@@ -110,20 +109,20 @@ async def get_stats(db: Session = Depends(get_db)):
     health = _compute_health_score(sessions, open_bugs, memory_nodes)
 
     # Compute dynamic metrics based on live data
-    # Code Quality: penalize based on open bugs (starts at 100, drops by 4 per open bug, minimum 40)
-    code_quality = max(40, 100 - (open_bugs * 4 if open_bugs >= 0 else 0))
+    # Code Quality: penalize based on open bugs
+    code_quality = max(0, min(100, 100 - int(math.log1p(max(0, open_bugs)) * 20)))
 
     # Test Coverage: ratio of completed/resolved sessions to total sessions, baseline 70
     if total > 0:
         resolved = sum(1 for s in sessions if s.status in ("resolved", "completed"))
-        test_coverage = round(50 + 50 * (resolved / total))
+        test_coverage = min(100, int(50 + 50 * (resolved / total)))
     else:
         test_coverage = 75  # default baseline
 
     # Documentation: ratio of memory nodes relative to sessions, mapped to 70-100%
     if total > 0:
         doc_ratio = min(memory_nodes / total, 1.0)
-        documentation = round(70 + 30 * doc_ratio)
+        documentation = min(100, int(70 + 30 * doc_ratio))
     else:
         documentation = 80
 
@@ -156,10 +155,7 @@ async def bug_trend():
     if not repo:
         return {"labels": [], "opened": [], "closed": []}
 
-    headers = {"Accept": "application/vnd.github+json"}
-    token = settings.GITHUB_TOKEN or ""
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+    headers = get_github_headers(settings.GITHUB_TOKEN)
 
     today      = datetime.date.today()
     days       = [(today - datetime.timedelta(days=i)) for i in range(6, -1, -1)]

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { api, type Bug } from '@/lib/api'
+import { formatRelative } from '@/lib/dateUtils'
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'] as const
 
@@ -233,14 +234,4 @@ function FilterTab({
       {label}
     </button>
   )
-}
-
-function formatRelative(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1)  return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
 }

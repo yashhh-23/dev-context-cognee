@@ -21,14 +21,18 @@ class SessionRecord(Base):
     context_size = Column(Integer, default=1, nullable=True)
     
     # Tracking Cognee ingestion status
-    status = Column(String, default="queued") # queued, processing, completed, failed
+    status = Column(String, index=True, default="queued") # queued, processing, completed, failed
     error_message = Column(Text, nullable=True)
-    cognee_response_id = Column(String, nullable=True)
 
     @property
     def terminal_output(self) -> str:
+        if not self._terminal_output:
+            return ""
         key = byok_key_var.get()
-        return decrypt_data(self._terminal_output, key)
+        try:
+            return decrypt_data(self._terminal_output, key)
+        except Exception:
+            return self._terminal_output
 
     @terminal_output.setter
     def terminal_output(self, value: str):

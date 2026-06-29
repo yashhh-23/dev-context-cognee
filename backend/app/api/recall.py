@@ -6,9 +6,10 @@ import numpy as np
 from typing import Optional
 from cognee.infrastructure.databases.vector.embeddings.get_embedding_engine import get_embedding_engine
 
-from app.utils.embeddings import (
-    _get_text_embedding,
-    _calculate_cosine_similarity,
+import hashlib
+from app.utils.embedding_utils import (
+    get_text_embedding,
+    cosine_similarity,
     CONFLICT_MIN_THRESHOLD,
     CONFLICT_MAX_THRESHOLD,
     DIFFLIB_CONFLICT_MIN,
@@ -21,7 +22,7 @@ from app.models.session import PinnedNode, SessionRecord, MemoryFeedback
 from app.services.recall_service import search_memory, extract_text
 from app.core.security import verify_safe_input
 import cognee
-from app.utils.embeddings import sanitize_dataset_name
+from app.utils.embedding_utils import sanitize_dataset_name
 import httpx
 from typing import Optional
 
@@ -98,7 +99,7 @@ async def recall(
     feedback_map = {f.node_id: (f.thumbs, f.confidence_score) for f in feedback_records}
 
     # Compute conflicts in-memory across result set (no extra Cognee calls)
-    texts = [extract_text(item) for item in items_to_process]
+    texts = [extract_text(item) for item in items_to_process][:20]
     conflict_map: dict[int, list[str]] = {i: [] for i in range(len(texts))}
     for i in range(len(texts)):
         for j in range(len(texts)):
@@ -107,11 +108,11 @@ async def recall(
             if not texts[i] or not texts[j]:
                 continue
             
-            emb1 = await _get_text_embedding(texts[i])
-            emb2 = await _get_text_embedding(texts[j])
+            emb1 = await get_text_embedding(texts[i])
+            emb2 = await get_text_embedding(texts[j])
             
             if emb1 is not None and emb2 is not None:
-                sim = _calculate_cosine_similarity(emb1, emb2)
+                sim = cosine_similarity(emb1, emb2)
                 # Moderate similarity represents a potential semantic overlap/conflict
                 if CONFLICT_MIN_THRESHOLD <= sim < CONFLICT_MAX_THRESHOLD:
                     conflict_map[i].append(texts[j][:100])
@@ -167,7 +168,7 @@ async def memify(body: MemifyRequest):
         raise HTTPException(status_code=400, detail="content cannot be empty")
     try:
         await cognee.remember(body.content)
-        node_id = str(abs(hash(body.content)) % (10 ** 12))
+        node_id = hashlib.sha256(body.content.encode()).hexdigest()[:24]
         return {"node_id": node_id, "status": "stored"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cognee remember failed: {str(e)}")
@@ -183,7 +184,7 @@ async def forget_node(node_id: str, db: Session = Depends(get_db)):
         await cognee.forget(node_id)
         return {"success": True, "node_id": node_id}
     except Exception as e:
-        return {"success": True, "node_id": node_id, "warning": str(e)}
+        raise HTTPException(status_code=500, detail="Forget failed")
 
 
 @router.post("/{node_id}/pin")
@@ -225,7 +226,7 @@ async def submit_feedback(body: FeedbackRequest, db: Session = Depends(get_db)):
             qa_id=body.qaId,
             feedback_score=body.score
         )
-        if body.score == 1:
+        if body.score >= 4:
             await cognee.improve(node_name=[body.qaId])
         return {"status": "ok"}
     except Exception as e:

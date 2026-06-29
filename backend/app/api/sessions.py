@@ -11,16 +11,17 @@ router = APIRouter()
 def _decrypt_session(s, byok_key: Optional[str]) -> dict:
     """Serialize a SessionRecord, decrypting terminal_output if a BYOK key is present."""
     raw_output = s.terminal_output or ""
-    terminal_output = decrypt_data(raw_output, byok_key) if byok_key else raw_output
+    try:
+        terminal_output = decrypt_data(raw_output, byok_key) if byok_key else raw_output
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Decryption failed — check BYOK key")
 
     return {
         "id":              s.id,
         "repo":            s.project,
         "branch":          s.branch or "main",
         "started_at":      s.timestamp.isoformat() if s.timestamp else "",
-        "last_active":     s.timestamp.isoformat() if s.timestamp else "",
-        "context_size":    s.context_size if getattr(s, "context_size", None) is not None else 1,
-        "summary":         None,
+        "context_size":    s.context_size or 0,
         "terminal_output": terminal_output,
         "status":          getattr(s, "status", None),
     }

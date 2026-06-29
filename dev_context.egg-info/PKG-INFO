@@ -1,7 +1,0 @@
-Metadata-Version: 2.4
-Name: dev-context
-Version: 0.1.0
-Summary: CLI for dev-context-cognee memory management
-Requires-Dist: requests
-Requires-Dist: typer
-Requires-Dist: rich
