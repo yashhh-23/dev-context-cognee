@@ -4,7 +4,7 @@ import requests
 import os
 from datetime import datetime
 
-API_URL = "http://localhost:8000/ingest"
+API_URL = "http://localhost:8000/ingest/"
 
 def get_git_branch():
     try:

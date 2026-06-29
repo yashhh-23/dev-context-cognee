@@ -30,7 +30,10 @@ export default function SessionList() {
         setLoading(false);
       }
     };
+
     fetchSessions();
+    const intervalId = setInterval(fetchSessions, 5000); // Auto-refresh every 5s
+    return () => clearInterval(intervalId);
   }, []);
 
   return (
