@@ -35,13 +35,28 @@ def get_stats(db: Session = Depends(get_db)):
         for i in range(6, -1, -1)
     ]
 
+    open_bugs_count = 0
+    import os, httpx
+    repo = os.getenv("GITHUB_REPO", "")
+    token = os.getenv("GITHUB_TOKEN", "")
+    if repo:
+        try:
+            with httpx.Client(timeout=3) as client:
+                headers = {"Accept": "application/vnd.github+json"}
+                if token: headers["Authorization"] = f"Bearer {token}"
+                resp = client.get(f"https://api.github.com/repos/{repo}", headers=headers)
+                if resp.status_code == 200:
+                    open_bugs_count = resp.json().get("open_issues_count", 0)
+        except Exception:
+            pass
+
     return {
         "total_sessions": total,
         "completed": completed,
         "failed": failed,
         "projects": projects,
         "bug_frequency": bug_frequency,
-        "open_bugs":      12,              # added per requirements
+        "open_bugs":      open_bugs_count,
         "memory_nodes":   total,           # using total sessions as proxy
         "recalled_today": 0,
         "last_session":   sessions[-1].timestamp.isoformat() if sessions else "",
