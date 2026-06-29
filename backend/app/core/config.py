@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     DATABASE_URL:  str           = "sqlite:///./dev_context.db"
     GITHUB_TOKEN:  Optional[str] = None
     GITHUB_REPO:   Optional[str] = None   # e.g. "owner/repo" — now read from .env
-    OPENAI_API_KEY: Optional[str] = None
+    GROQ_API_KEY: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
     LLM_MODEL:     Optional[str] = "gemini/gemini-1.5-pro"
 
