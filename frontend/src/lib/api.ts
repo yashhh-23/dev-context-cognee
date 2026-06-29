@@ -71,6 +71,7 @@ export interface RecallResult {
   source:     string
   session_id?: string
   created_at?: string
+  conflicts?:  string[]
 }
 
 export interface Session {

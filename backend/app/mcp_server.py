@@ -7,12 +7,19 @@ backend_dir = Path(__file__).resolve().parent.parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
+import os
+import tempfile
+import filelock
 import cognee
 from fastmcp import FastMCP
 from app.core.cognee_client import init_cognee
 
-# Initialize Cognee with the existing configuration
-init_cognee()
+# Use a cross-platform temp file lock to protect Cognee initialization
+lock_path = os.path.join(tempfile.gettempdir(), "cognee_kuzu.lock")
+COGNEE_LOCK = filelock.FileLock(lock_path, timeout=10)
+
+with COGNEE_LOCK:
+    init_cognee()
 
 # Create FastMCP server
 mcp = FastMCP("dev-context-cognee")
@@ -21,7 +28,20 @@ mcp = FastMCP("dev-context-cognee")
 async def remember_context(text: str) -> str:
     """Store text, notes, or terminal logs into Cognee's persistent memory."""
     try:
+        # Search for potentially contradicting existing memories
+        results = await cognee.search(text, query_type="SUMMARIES")
+        contradictions = []
+        if results:
+            for item in results:
+                score = item.score if hasattr(item, "score") else item.get("score", 0)
+                existing = item.text if hasattr(item, "text") else item.get("text", "")
+                if score > 0.75:  # high similarity = possible contradiction
+                    contradictions.append(existing[:100])
+
         await cognee.remember(text)
+
+        if contradictions:
+            return f"Stored. ⚠️ Potential conflict with: {contradictions[0]}"
         return "Successfully stored text in Cognee memory."
     except Exception as e:
         return f"Error storing memory: {str(e)}"
@@ -59,6 +79,13 @@ async def cognify_source_code(file_path: str, content: str) -> str:
     try:
         safe_file_id = file_path.replace(".", "_").replace(" ", "_")
         formatted_content = f"File Path: {safe_file_id}\nContent:\n{content}"
+
+        # Dedup check before ingestion
+        from app.cognee_utils import is_duplicate
+        dup, existing = await is_duplicate(formatted_content)
+        if dup:
+            return f"[DEDUP] Skipped — near-identical content already in graph. Existing: {existing[:100]}..."
+
         # Add the code content to the workspace dataset
         clean_dataset_name = "workspacedata"
         await cognee.add(formatted_content, dataset_name=clean_dataset_name)
