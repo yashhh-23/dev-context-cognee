@@ -1,30 +1,40 @@
-import styles from './page.module.css';
-import SessionList from './components/SessionList';
-import MemorySearch from './components/MemorySearch';
-import ContextSummary from './components/ContextSummary';
+'use client';
+
+import { useState } from 'react';
+import Sidebar from './components/Sidebar';
+import TopBar from './components/TopBar';
+import OverviewTab from './components/OverviewTab';
+import BugsTab from './components/BugsTab';
+import ContributeTab from './components/ContributeTab';
+import RecallTab from './components/RecallTab';
+import ToastContainer from './components/ToastContainer';
+
+export type Tab = 'overview' | 'bugs' | 'contribute' | 'recall';
+export type Toast = { id: number; msg: string; type: 'success' | 'error' };
 
 export default function Home() {
+  const [tab, setTab] = useState<Tab>('overview');
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const addToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    const id = Date.now();
+    setToasts(p => [...p, { id, msg, type }]);
+    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3000);
+  };
+
   return (
-    <main className={styles.container}>
-      <header className={`${styles.header} animate-fade-in`}>
-        <h1 className={styles.title}>Dev Context Cognee</h1>
-        <p className={styles.subtitle}>
-          Your unified development memory. View ingested terminal logs and search across your knowledge graph.
-        </p>
-      </header>
-
-      <div style={{ animationDelay: '0.1s' }} className="animate-fade-in">
-        <ContextSummary />
-      </div>
-
-      <div className={styles.grid}>
-        <div style={{ animationDelay: '0.2s' }} className="animate-fade-in">
-          <SessionList />
-        </div>
-        <div style={{ animationDelay: '0.3s' }} className="animate-fade-in">
-          <MemorySearch />
+    <div id="app-shell">
+      <Sidebar activeTab={tab} onTabChange={setTab} />
+      <div className="main-area">
+        <TopBar />
+        <div className="page-scroll">
+          {tab === 'overview'   && <OverviewTab   addToast={addToast} onTabChange={setTab} />}
+          {tab === 'bugs'       && <BugsTab       addToast={addToast} />}
+          {tab === 'contribute' && <ContributeTab />}
+          {tab === 'recall'     && <RecallTab     />}
         </div>
       </div>
-    </main>
+      <ToastContainer toasts={toasts} />
+    </div>
   );
 }
