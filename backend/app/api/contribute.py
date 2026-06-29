@@ -12,7 +12,7 @@ from app.api.bugs import (
 )
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.github_utils import _gh_headers
+from app.utils.github_utils import get_github_headers
 from app.services.recall_service import get_session, search_memory
 
 router = APIRouter()
@@ -31,7 +31,7 @@ OSS_REPOS = [
 @router.get("")
 async def list_contribute():
     """Return good-first-issues and help-wanted from Cognee + OSS repos."""
-    headers = _gh_headers()
+    headers = get_github_headers(settings.GITHUB_TOKEN)
 
     repos = list(OSS_REPOS)
     user_repo = settings.GITHUB_REPO

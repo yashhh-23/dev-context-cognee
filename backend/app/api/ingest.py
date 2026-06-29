@@ -27,6 +27,8 @@ def ingest_log(
     if req.tags:
         for tag in req.tags:
             verify_safe_input(tag, "tag")
+    if req.content:
+        verify_safe_input(req.content, "content")
 
     # Guard: both content and terminal_output cannot be None
     if req.terminal_output is None and req.content is None:

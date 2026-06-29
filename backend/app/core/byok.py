@@ -16,7 +16,7 @@ def derive_key(passphrase: str, salt: bytes) -> bytes:
         algorithm=hashes.SHA256(),
         length=32,
         salt=salt,
-        iterations=10000,
+        iterations=100000,
     )
     return kdf.derive(passphrase.encode())
 
@@ -40,7 +40,7 @@ def encrypt_data(plain_text: str, passphrase: str) -> str:
         return PREFIX + base64.b64encode(payload).decode('utf-8')
     except Exception as e:
         print(f"[BYOK Encryption Error] {e}")
-        return plain_text
+        raise ValueError(f"Encryption failed: {e}")
 
 def decrypt_data(text: str, passphrase: str) -> str:
     """Decrypt data using AES-256-GCM and derived key.
