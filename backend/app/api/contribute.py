@@ -1,5 +1,5 @@
 """GET /contribute — list good-first-issues and help-wanted from Cognee + OSS repos."""
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from app.api.bugs import (
     extract_error_keyword,
     search_github_issues,
@@ -7,8 +7,8 @@ from app.api.bugs import (
 )
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.github_utils import _gh_headers
 from app.services.recall_service import get_session, search_memory
-from fastapi import Depends
 from sqlalchemy.orm import Session
 import httpx
 
@@ -25,13 +25,7 @@ OSS_REPOS = [
 ]
 
 
-def _gh_headers() -> dict:
-    h = {"Accept": "application/vnd.github+json"}
-    token = settings.GITHUB_TOKEN
-    if token:
-        h["Authorization"] = f"Bearer {token}"
-    return h
-
+import asyncio
 
 @router.get("")
 async def list_contribute():
@@ -45,35 +39,43 @@ async def list_contribute():
 
     results, seen = [], set()
 
-    for repo in repos:
-        for label in ["good first issue", "help wanted"]:
-            try:
-                async with httpx.AsyncClient(timeout=10) as client:
-                    resp = await client.get(
-                        f"https://api.github.com/repos/{repo}/issues",
-                        params={"state": "open", "labels": label, "per_page": 10},
-                        headers=headers,
-                    )
-                if resp.status_code != 200:
-                    continue
-                for item in resp.json():
-                    uid = f"{repo}#{item['number']}"
-                    if "pull_request" in item or uid in seen:
-                        continue
-                    seen.add(uid)
-                    results.append({
-                        "id":         item["number"],
-                        "title":      item["title"],
-                        "url":        item["html_url"],
-                        "repo":       repo,
-                        "type":       "good-first-issue" if label == "good first issue" else "help-wanted",
-                        "difficulty": "easy" if label == "good first issue" else "medium",
-                        "suggestion": "",
-                        "labels":     [l["name"] for l in item.get("labels", [])],
-                    })
-            except Exception as e:
-                print(f"[contribute] error fetching {repo} / {label}: {e}")
+    async def fetch_issues(client, repo, label):
+        try:
+            resp = await client.get(
+                f"https://api.github.com/repos/{repo}/issues",
+                params={"state": "open", "labels": label, "per_page": 10},
+                headers=headers,
+            )
+            if resp.status_code == 200:
+                return repo, label, resp.json()
+        except Exception as e:
+            print(f"[contribute] error fetching {repo} / {label}: {e}")
+        return repo, label, []
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        tasks = []
+        for repo in repos:
+            for label in ["good first issue", "help wanted"]:
+                tasks.append(fetch_issues(client, repo, label))
+        
+        responses = await asyncio.gather(*tasks)
+
+    for repo, label, items in responses:
+        for item in items:
+            uid = f"{repo}#{item['number']}"
+            if "pull_request" in item or uid in seen:
                 continue
+            seen.add(uid)
+            results.append({
+                "id":         item["number"],
+                "title":      item["title"],
+                "url":        item["html_url"],
+                "repo":       repo,
+                "type":       "good-first-issue" if label == "good first issue" else "help-wanted",
+                "difficulty": "easy" if label == "good first issue" else "medium",
+                "suggestion": "",
+                "labels":     [l["name"] for l in item.get("labels", [])],
+            })
 
     return results
 

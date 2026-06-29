@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { getSessions, improveSession, forgetSession, Session } from '@/lib/api';
-import { useWebSocket } from '@/lib/useWebSocket';
+import { api, Session } from '@/lib/api';
+import { useWebSocket } from '@/lib/ws';
 import Topbar from '@/components/layout/Topbar';
 import TagPill from '@/components/shared/TagPill';
 import EmptyState from '@/components/shared/EmptyState';
@@ -23,22 +23,29 @@ export default function BugsPanel() {
 
   const load = useCallback(async () => {
     try {
-      const res = await getSessions(0, 50);
-      setSessions(res.data);
+      const res = await api.getSessions(50);
+      setSessions(res);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, []);
 
-  useWebSocket(useCallback((msg) => {
-    if (msg.type === 'bug_ingested' || msg.type === 'session_resolved' || msg.type === 'session_forgotten') load();
-  }, [load]));
+  const { subscribe } = useWebSocket();
+
+  useEffect(() => {
+    const unsub = subscribe((msg) => {
+      if (msg.type === 'bug_ingested' || msg.type === 'session_resolved' || msg.type === 'session_forgotten') {
+        load();
+      }
+    });
+    return unsub;
+  }, [subscribe, load]);
 
   useEffect(() => { load(); }, [load]);
 
   async function handleImprove(id: string) {
     setResolving(id);
     try {
-      await improveSession(id, fixText[id]);
+      await api.improveSession(id, fixText[id]);
       await load();
     } finally { setResolving(null); }
   }
@@ -46,7 +53,7 @@ export default function BugsPanel() {
   async function handleForget(id: string) {
     if (!confirm('Remove this session from Cognee memory?')) return;
     try {
-      await forgetSession(id);
+      await api.forgetSession(id);
       await load();
     } catch (e) { console.error(e); }
   }

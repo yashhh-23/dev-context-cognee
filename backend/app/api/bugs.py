@@ -8,23 +8,13 @@ from app.services.recall_service import get_session, search_memory, recall_text,
 import httpx
 import re
 
+from app.core.github_utils import _gh_headers
+
 router = APIRouter()
-
-
-def _get_token() -> str:
-    return settings.GITHUB_TOKEN or ""
 
 
 def _get_repo() -> str:
     return settings.GITHUB_REPO or ""
-
-
-def _gh_headers() -> dict:
-    h = {"Accept": "application/vnd.github+json"}
-    tok = _get_token()
-    if tok:
-        h["Authorization"] = f"Bearer {tok}"
-    return h
 
 
 class AnalyzeRequest(BaseModel):
