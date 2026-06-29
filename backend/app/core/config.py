@@ -8,7 +8,8 @@ class Settings(BaseSettings):
     GITHUB_TOKEN:  Optional[str] = None
     GITHUB_REPO:   Optional[str] = None   # e.g. "owner/repo" — now read from .env
     OPENAI_API_KEY: Optional[str] = None
-    LLM_MODEL:     Optional[str] = "gpt-4o-mini"
+    GEMINI_API_KEY: Optional[str] = None
+    LLM_MODEL:     Optional[str] = "gemini/gemini-1.5-pro"
 
     class Config:
         env_file = ".env"
