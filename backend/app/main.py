@@ -37,8 +37,8 @@ app.include_router(bugs.router,      prefix="/api/bugs",      tags=["bugs"])
 # ── dashboard-v2 routes ───────────────────────────────────────────────────────
 app.include_router(recall.router,    prefix="/api/recall",    tags=["recall"])
 app.include_router(graph.router,     prefix="/api/graph",     tags=["graph"])
-app.include_router(stats.router,     prefix="/api/overview/stats", tags=["stats"])
-app.include_router(lifecycle.router, prefix="/api/lifecycle", tags=["lifecycle"])
+app.include_router(stats.router,     prefix="/api/overview",  tags=["stats"])
+app.include_router(lifecycle.router, prefix="/api",           tags=["lifecycle"])
 app.include_router(contribute.router, prefix="/api/contribute", tags=["contribute"])
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────

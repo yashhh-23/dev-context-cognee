@@ -94,22 +94,26 @@ export const api = {
   getContextSummary: ()              => req<{ repo: string; branch: string; summary: string }>('/api/context/summary'),
 
   // Bugs
-  getBugs: async (limit = 20)        => { return [] as Bug[] },
-  recallBugContext: async (bugId: number)  => { return { context: 'Mock context' } },
+  getBugs: (limit = 20)              => req<Bug[]>(`/api/bugs?limit=${limit}`),
+  recallBugContext: (bugId: number)  => req<{ context: string }>(`/api/bugs/${bugId}/recall`),
 
   // Contribute
-  getContributions: async ()               => { return [] as ContributeIssue[] },
-  suggestContribution: async (id: number)  => { return { suggestion: 'Mock suggestion' } },
+  getContributions: ()               => req<ContributeIssue[]>('/api/contribute'),
+  suggestContribution: (id: number)  => req<{ suggestion: string }>(`/api/contribute/${id}/suggest`),
 
   // Graph
-  buildGraph: async ()                     => { return { message: 'Built', node_count: 0 } },
+  buildGraph: ()                     => req<{ message: string; node_count: number }>('/api/graph/build', { method: 'POST' }),
   getGraph: ()                       => req<GraphData>('/api/graph'),
 
   // Recall / Memory
   recall: (query: string, limit = 10) =>
     req<RecallResult[]>(`/api/recall?q=${encodeURIComponent(query)}&limit=${limit}`),
-  forget: async (nodeId: string)            => { return { success: true } },
-  memify: async (content: string)           => { return { node_id: 'mock' } },
+  forget: (nodeId: string)            => req<{ success: boolean }>(`/api/recall/${nodeId}`, { method: 'DELETE' }),
+  memify: (content: string)           =>
+    req<{ node_id: string }>('/api/recall/memify', {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    }),
 
   // Sessions
   getSessions: (limit = 10)          => req<Session[]>(`/api/sessions?limit=${limit}`),
