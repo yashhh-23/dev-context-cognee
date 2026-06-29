@@ -46,13 +46,16 @@ export interface ContributeIssue {
 export interface GraphNode {
   id:    string
   label: string
-  type:  'file' | 'function' | 'bug' | 'session' | 'concept'
+  // Types match graph_builder.py NODE_COLORS keys exactly
+  type:  'project' | 'bug' | 'dependency' | 'fix' | 'github_issue'
+  color?: string
   size?: number
 }
 
 export interface GraphEdge {
   source: string
   target: string
+  label?: string
   weight?: number
 }
 
@@ -109,7 +112,6 @@ export const api = {
   getGraph: ()                       => req<GraphData>('/api/graph'),
 
   // Recall / Memory
-  // Backend returns bare RecallResult[] array
   recall: (query: string, limit = 10) =>
     req<RecallResult[]>(`/api/recall?q=${encodeURIComponent(query)}&limit=${limit}`),
   forget: (nodeId: string)            => req<{ success: boolean }>(`/api/recall/${nodeId}`, { method: 'DELETE' }),
@@ -119,7 +121,7 @@ export const api = {
       body: JSON.stringify({ content }),
     }),
 
-  // Sessions — backend now returns correct shape directly
+  // Sessions — backend returns correct shape directly
   getSessions: (limit = 10)          => req<Session[]>(`/api/sessions?limit=${limit}`),
   getSession:  (id: string)          => req<Session>(`/api/sessions/${id}`),
 }
