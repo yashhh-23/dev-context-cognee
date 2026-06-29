@@ -12,21 +12,20 @@ from app.core.config import settings
 
 router = APIRouter()
 
-GITHUB_TOKEN = settings.GITHUB_TOKEN or ""
-GITHUB_REPO  = settings.GITHUB_REPO or ""
-
 
 async def _get_open_bug_count() -> int:
     """Fetch real open issue count from GitHub."""
-    if not GITHUB_REPO:
+    repo = settings.GITHUB_REPO or ""
+    if not repo:
         return 0
     headers = {"Accept": "application/vnd.github+json"}
-    if GITHUB_TOKEN:
-        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+    token = settings.GITHUB_TOKEN or ""
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     try:
         async with httpx.AsyncClient(timeout=8) as client:
             resp = await client.get(
-                f"https://api.github.com/repos/{GITHUB_REPO}",
+                f"https://api.github.com/repos/{repo}",
                 headers=headers,
             )
         if resp.status_code == 200:
@@ -78,12 +77,14 @@ async def get_stats(db: Session = Depends(get_db)):
 @router.get("/bug-trend")
 async def bug_trend():
     """Return last 7 days opened/closed issue counts via 2 batched GitHub Search queries."""
-    if not GITHUB_REPO:
+    repo = settings.GITHUB_REPO or ""
+    if not repo:
         return {"labels": [], "opened": [], "closed": []}
 
     headers = {"Accept": "application/vnd.github+json"}
-    if GITHUB_TOKEN:
-        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+    token = settings.GITHUB_TOKEN or ""
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
 
     today      = datetime.date.today()
     days       = [(today - datetime.timedelta(days=i)) for i in range(6, -1, -1)]
@@ -100,7 +101,7 @@ async def bug_trend():
         r_opened = await client.get(
             "https://api.github.com/search/issues",
             params={
-                "q": f"repo:{GITHUB_REPO} is:issue created:{start_date}..{end_date}",
+                "q": f"repo:{repo} is:issue created:{start_date}..{end_date}",
                 "per_page": 100,
                 "sort": "created",
                 "order": "asc",
@@ -117,7 +118,7 @@ async def bug_trend():
         r_closed = await client.get(
             "https://api.github.com/search/issues",
             params={
-                "q": f"repo:{GITHUB_REPO} is:issue closed:{start_date}..{end_date}",
+                "q": f"repo:{repo} is:issue closed:{start_date}..{end_date}",
                 "per_page": 100,
                 "sort": "updated",
                 "order": "asc",
