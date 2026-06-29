@@ -1,57 +1,63 @@
 import re
 from app.models.session import SessionRecord
 from app.core.database import SessionLocal
+from app.core.ws_manager import manager
 import cognee
 
 
 def clean_terminal_output(text: str) -> str:
-    # Redact obvious secrets
     text = re.sub(
         r"(api[_\-]?key|secret|token|password)[\s:=]+['\x22]?[A-Za-z0-9_\-\.]+['\x22]?",
         r'\1: [REDACTED]',
         text,
         flags=re.IGNORECASE,
     )
-    # Strip ANSI escape codes
     ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
     text = ansi_escape.sub('', text)
-    # Truncate huge logs
-    max_length = 50000
-    if len(text) > max_length:
-        text = text[:max_length] + "\n...[TRUNCATED]"
+    if len(text) > 50000:
+        text = text[:50000] + "\n...[TRUNCATED]"
     return text
 
 
 async def process_ingest(session_id: str, payload: dict):
     db = SessionLocal()
     try:
-        session_record = db.query(SessionRecord).filter(SessionRecord.id == session_id).first()
-
-        if not session_record:
+        record = db.query(SessionRecord).filter(SessionRecord.id == session_id).first()
+        if not record:
             return
 
-        session_record.status = "processing"
+        record.status = "processing"
         db.commit()
 
-        cleaned_text = clean_terminal_output(payload.get("terminal_output", ""))
-
+        cleaned = clean_terminal_output(payload.get("terminal_output", ""))
         project = payload.get("project", "unknown_project")
-        branch = payload.get("branch", "unknown_branch")
+        branch  = payload.get("branch", "unknown_branch")
+        commit  = payload.get("commit_hash", "")
+        tags    = payload.get("tags", [])
 
-        # Contextualized memory text for Cognee
-        contextualized_text = (
-            f"Project: {project}\nBranch: {branch}\nLog Content:\n{cleaned_text}"
+        memory_text = (
+            f"Project: {project}\n"
+            f"Branch: {branch}\n"
+            f"Commit: {commit}\n"
+            f"Tags: {', '.join(tags) if tags else 'none'}\n"
+            f"Log:\n{cleaned}"
         )
 
-        # cognee v1.0: remember() replaces add() + cognify() + memify()
-        await cognee.remember(contextualized_text)
+        await cognee.remember(memory_text)
 
-        session_record.status = "completed"
+        record.status = "completed"
         db.commit()
 
+        # Notify dashboard via WebSocket
+        await manager.broadcast({
+            "type": "bug_ingested",
+            "session_id": session_id,
+            "project": project,
+        })
+
     except Exception as e:
-        session_record.status = "failed"
-        session_record.error_message = str(e)
+        record.status = "failed"
+        record.error_message = str(e)[:500]
         db.commit()
     finally:
         db.close()
