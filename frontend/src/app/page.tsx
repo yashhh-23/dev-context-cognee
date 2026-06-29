@@ -1,6 +1,7 @@
 import styles from './page.module.css';
 import SessionList from './components/SessionList';
 import MemorySearch from './components/MemorySearch';
+import ContextSummary from './components/ContextSummary';
 
 export default function Home() {
   return (
@@ -12,11 +13,15 @@ export default function Home() {
         </p>
       </header>
 
+      <div style={{ animationDelay: '0.1s' }} className="animate-fade-in">
+        <ContextSummary />
+      </div>
+
       <div className={styles.grid}>
-        <div style={{ animationDelay: '0.1s' }} className="animate-fade-in">
+        <div style={{ animationDelay: '0.2s' }} className="animate-fade-in">
           <SessionList />
         </div>
-        <div style={{ animationDelay: '0.2s' }} className="animate-fade-in">
+        <div style={{ animationDelay: '0.3s' }} className="animate-fade-in">
           <MemorySearch />
         </div>
       </div>
