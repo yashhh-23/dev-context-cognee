@@ -8,10 +8,12 @@ import datetime
 import httpx
 import os
 
+from app.core.config import settings
+
 router = APIRouter()
 
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
-GITHUB_REPO  = os.getenv("GITHUB_REPO", "")
+GITHUB_TOKEN = settings.GITHUB_TOKEN or ""
+GITHUB_REPO  = settings.GITHUB_REPO or ""
 
 
 async def _get_open_bug_count() -> int:
@@ -29,9 +31,11 @@ async def _get_open_bug_count() -> int:
             )
         if resp.status_code == 200:
             return resp.json().get("open_issues_count", 0)
+        else:
+            return -1
     except Exception:
         pass
-    return 0
+    return -1
 
 
 @router.get("/stats")

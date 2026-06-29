@@ -212,3 +212,38 @@ async def get_opportunities(db: Session = Depends(get_db)):
                 all_opps.append(opp)
 
     return {"opportunities": all_opps[:20]}
+
+
+@router.get("/{bug_id}/recall")
+async def recall_bug_context(bug_id: int):
+    """Use Cognee recall to find past session context related to a GitHub bug."""
+    try:
+        query = f"context for GitHub bug #{bug_id}"
+        raw = await search_memory(query)
+
+        context_text = ""
+        if isinstance(raw, list) and raw:
+            first = raw[0]
+            if isinstance(first, dict):
+                context_text = first.get("content", first.get("text", ""))
+            elif hasattr(first, "content"):
+                context_text = first.content
+            else:
+                context_text = str(first)
+        elif raw:
+            context_text = str(raw)
+
+        if not context_text:
+            context_text = (
+                f"No specific memory found for bug #{bug_id}. "
+                "Try exploring similar past sessions or check the global knowledge graph."
+            )
+
+        return {"context": context_text}
+    except Exception as e:
+        return {
+            "context": (
+                f"Could not recall context from Cognee memory (reason: {str(e)}). "
+                "Try ingesting a related session first."
+            )
+        }
