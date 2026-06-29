@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
 from app.models.ingest import SessionResponse
-from app.services.recall_service import get_all_sessions, get_session, search_memory
+from app.services.recall_service import get_all_sessions, get_session, search_cognee
+import cognee
 
 router = APIRouter()
 
@@ -29,15 +30,13 @@ async def forget_session(session_id: str, db: Session = Depends(get_db)):
     
     try:
         dataset_name = f"{session_record.project}_{session_record.branch}".replace("/", "_").replace("-", "_")
-        # In absence of clear documentation on forget signature, we assume it takes dataset_name
-        await search_cognee.cognee.forget(dataset_name=dataset_name)
+        await cognee.forget(dataset_name=dataset_name)
+        session_record.status = "forgotten"
+        db.commit()
+        return {"status": "forgotten"}
     except Exception as e:
         print("Cognee forget error:", e)
-        # We still mark it as forgotten in DB even if Cognee fails
-        
-    session_record.status = "forgotten"
-    db.commit()
-    return {"status": "forgotten"}
+        raise HTTPException(status_code=500, detail=f"Cognee forget failed: {str(e)}")
 
 @router.post("/{session_id}/improve")
 async def improve_session(session_id: str, db: Session = Depends(get_db)):
@@ -46,8 +45,8 @@ async def improve_session(session_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Session not found")
     
     try:
-        # According to phase3.md, improve() takes the session's stored text to enrich its graph
-        await search_cognee.cognee.improve(session_record.terminal_output)
+        contextualized_text = f"Project: {session_record.project}\nBranch: {session_record.branch}\nLog Content:\n{session_record.terminal_output}"
+        await cognee.improve(contextualized_text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
         
