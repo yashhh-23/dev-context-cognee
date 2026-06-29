@@ -49,34 +49,15 @@ async def end_session(body: SessionEndRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to end session: {str(e)}")
 
-# In-memory cache for text embeddings during deduplication runs
-_embedding_cache: dict[str, list[float]] = {}
-
-async def _get_text_embedding(text: str) -> Optional[list[float]]:
-    val = text.strip()
-    if not val:
-        return None
-    if val in _embedding_cache:
-        return _embedding_cache[val]
-    try:
-        engine = get_embedding_engine()
-        res = await engine.embed_text([val])
-        if res and len(res) > 0:
-            emb = res[0]
-            _embedding_cache[val] = emb
-            return emb
-    except Exception as e:
-        print("[DEBUG] Failed to get embedding:", e)
-    return None
-
-def _calculate_cosine_similarity(v1: list[float], v2: list[float]) -> float:
-    arr1 = np.array(v1)
-    arr2 = np.array(v2)
-    norm1 = np.linalg.norm(arr1)
-    norm2 = np.linalg.norm(arr2)
-    if norm1 == 0 or norm2 == 0:
-        return 0.0
-    return float(np.dot(arr1, arr2) / (norm1 * norm2))
+from app.utils.embeddings import (
+    _get_text_embedding,
+    _calculate_cosine_similarity,
+    EXACT_MATCH_THRESHOLD,
+    SUPERSEDE_MIN_THRESHOLD,
+    SUPERSEDE_MAX_THRESHOLD,
+    DIFFLIB_FAST_RATIO,
+    sanitize_dataset_name,
+)
 
 # ---------------------------------------------------------------------------
 # LLM helper — Gemini 1.5 Flash → Groq llama-3.1-8b fallback
@@ -188,11 +169,7 @@ async def _forget_session_helper(s: SessionRecord, pinned_ids: set[str]) -> bool
     if str(s.id) in pinned_ids:
         return False  # safety guard
     try:
-        dataset_name = (
-            f"{s.project}_{s.branch}"
-            .replace("/", "_")
-            .replace("-", "_")
-        )
+        dataset_name = sanitize_dataset_name(f"{s.project}_{s.branch}")
         await cognee.forget(dataset_name=dataset_name)
         s.status = "forgotten"
         return True
@@ -254,11 +231,7 @@ async def forget_session(session_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Session not found")
 
     try:
-        dataset_name = (
-            f"{record.project}_{record.branch}"
-            .replace("/", "_")
-            .replace("-", "_")
-        )
+        dataset_name = sanitize_dataset_name(f"{record.project}_{record.branch}")
         await cognee.forget(dataset_name=dataset_name)
         record.status = "forgotten"
         db.commit()
@@ -329,24 +302,24 @@ async def auto_clean_memories(db: Session = Depends(get_db)):
                     # Fallback to difflib SequenceMatcher if embedding fails
                     # Optimize: quick check on length ratio first
                     len_ratio = min(len(text), len(kept_text)) / max(len(text), len(kept_text)) if max(len(text), len(kept_text)) > 0 else 0
-                    if len_ratio < 0.55:
+                    if len_ratio < DIFFLIB_FAST_RATIO:
                         continue
                     matcher = difflib.SequenceMatcher(None, text.lower(), kept_text.lower())
-                    if matcher.real_quick_ratio() < 0.55:
+                    if matcher.real_quick_ratio() < DIFFLIB_FAST_RATIO:
                         continue
-                    if matcher.quick_ratio() < 0.55:
+                    if matcher.quick_ratio() < DIFFLIB_FAST_RATIO:
                         continue
                     sim = matcher.ratio()
 
                 # ── Phase 1: exact-ish duplicate ──────────────────────────────
-                if sim >= 0.94 or text.lower() in kept_text.lower() or kept_text.lower() in text.lower():
+                if sim >= EXACT_MATCH_THRESHOLD or text.lower() in kept_text.lower() or kept_text.lower() in text.lower():
                     if await _forget_session_helper(session, pinned_ids):
                         cleaned_exact += 1
                         removed = True
                         break
 
                 # ── Phase 2: similar but not identical → ask LLM ─────────────
-                elif 0.70 <= sim < 0.94 and llm_calls < MAX_LLM_CALLS:
+                elif SUPERSEDE_MIN_THRESHOLD <= sim < SUPERSEDE_MAX_THRESHOLD and llm_calls < MAX_LLM_CALLS:
                     llm_calls += 1
                     # session is NEWER (sorted asc), kept_session is OLDER
                     superseded = await _is_superseded_by_llm(

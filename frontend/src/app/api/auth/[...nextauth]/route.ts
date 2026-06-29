@@ -2,11 +2,11 @@ import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 
 if (!process.env.NEXTAUTH_SECRET) {
-  process.env.NEXTAUTH_SECRET = 'dev-context-cognee-super-secret-key-12345'
+  throw new Error("Missing NEXTAUTH_SECRET environment variable. Please set it in your environment or .env file.");
 }
 
 if (!process.env.DASHBOARD_PASSWORD) {
-  process.env.DASHBOARD_PASSWORD = 'devcontext'
+  throw new Error("Missing DASHBOARD_PASSWORD environment variable. Please set it in your environment or .env file.");
 }
 
 const handler = NextAuth({

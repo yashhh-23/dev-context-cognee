@@ -23,5 +23,5 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
-d e v _ c o n t e x t . e g g - i n f o /  
+*.egg-info/
 .vscode/
