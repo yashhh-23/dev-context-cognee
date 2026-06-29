@@ -13,9 +13,40 @@ from sqlalchemy.orm import Session
 router = APIRouter()
 
 
-@router.get("/")
-async def get_contributions():
-    return []
+@router.get("")
+async def list_contribute():
+    """Return good-first-issues and help-wanted from the configured repo."""
+    from app.api.bugs import GITHUB_TOKEN
+    import httpx, os
+
+    repo = os.getenv("GITHUB_REPO", "")
+    if not repo:
+        return []
+
+    headers = {"Accept": "application/vnd.github+json"}
+    if GITHUB_TOKEN:
+        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+
+    results = []
+    for label in ["good first issue", "help wanted"]:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                f"https://api.github.com/repos/{repo}/issues",
+                params={"state": "open", "labels": label, "per_page": 10},
+                headers=headers,
+            )
+        if resp.status_code == 200:
+            for item in resp.json():
+                if "pull_request" not in item:
+                    results.append({
+                        "title":      item["title"],
+                        "html_url":   item["html_url"],
+                        "repository": repo,
+                        "labels":     [l["name"] for l in item.get("labels", [])],
+                        "difficulty": "beginner" if "good first issue" in label else "intermediate",
+                        "number":     item["number"],
+                    })
+    return results
 
 @router.get("/search")
 async def contribute_search(
