@@ -1,2 +1,5 @@
-import OverviewPanel from '@/components/panels/OverviewPanel';
-export default function Home() { return <OverviewPanel />; }
+import { redirect } from 'next/navigation'
+
+export default function RootPage() {
+  redirect('/overview')
+}
