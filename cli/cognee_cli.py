@@ -2,9 +2,9 @@ import sys
 import subprocess
 import requests
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
-API_URL = "http://localhost:8000/ingest/"
+API_URL = "http://localhost:8000/api/ingest/"
 
 def get_git_branch():
     try:
@@ -31,19 +31,19 @@ def main():
         "branch": branch_name,
         "terminal_output": terminal_output,
         "tags": ["cli-ingest"],
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
     try:
         # Ingest accepts trailing slash or no trailing slash, but our route is POST /ingest/
         response = requests.post(API_URL, json=payload)
         if response.status_code == 200:
-            print(f"✅ Successfully ingested to Cognee! Session ID: {response.json().get('session_id')}")
+            print(f"[SUCCESS] Successfully ingested to Cognee! Session ID: {response.json().get('session_id')}")
         else:
-            print(f"❌ Failed to ingest. Status code: {response.status_code}")
+            print(f"[ERROR] Failed to ingest. Status code: {response.status_code}")
             print(response.text)
     except Exception as e:
-        print(f"❌ Connection error: {e}")
+        print(f"[ERROR] Connection error: {e}")
 
 if __name__ == "__main__":
     main()
