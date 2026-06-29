@@ -46,14 +46,35 @@ export default function MemorySearch() {
         </button>
       </form>
 
-      {results && (
+      {results && Array.isArray(results) ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {results.length === 0 ? (
+            <p style={{ color: 'var(--text-secondary)' }}>No matches found.</p>
+          ) : (
+            results.map((result: any, i: number) => (
+              <div key={i} style={{ 
+                padding: '16px', 
+                background: 'rgba(0,0,0,0.3)', 
+                borderRadius: '12px',
+                border: '1px solid var(--card-border)',
+                color: 'var(--text-primary)'
+              }}>
+                <div style={{ fontWeight: 600, color: 'var(--accent)', marginBottom: '8px' }}>
+                  Result Match
+                </div>
+                <div style={{ fontSize: '0.9rem', color: '#e6edf3', whiteSpace: 'pre-wrap' }}>
+                  {result.text || JSON.stringify(result, null, 2)}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      ) : results && (
         <div style={{ 
           padding: '16px', 
           background: 'rgba(0,0,0,0.3)', 
           borderRadius: '12px',
           border: '1px solid var(--card-border)',
-          maxHeight: '300px',
-          overflowY: 'auto',
           fontSize: '0.9rem',
           color: 'var(--text-secondary)'
         }}>
