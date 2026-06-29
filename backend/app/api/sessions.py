@@ -3,9 +3,14 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
 from app.models.ingest import SessionResponse
-from app.services.recall_service import get_all_sessions, get_session
+from app.services.recall_service import get_all_sessions, get_session, search_cognee
 
 router = APIRouter()
+
+@router.get("/search")
+async def search_memory(query: str):
+    results = await search_cognee(query)
+    return {"query": query, "results": results}
 
 @router.get("/", response_model=List[SessionResponse])
 def list_sessions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
