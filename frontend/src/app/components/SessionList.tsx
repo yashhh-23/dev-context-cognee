@@ -36,6 +36,19 @@ export default function SessionList() {
     return () => clearInterval(intervalId);
   }, []);
 
+  const handleAction = async (id: string, action: 'forget' | 'improve') => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      await fetch(`${apiUrl}/sessions/${id}/${action}`, { method: 'POST' });
+      // update state locally to feel fast
+      setSessions(prev => prev.map(s => 
+        s.id === id ? { ...s, status: action === 'forget' ? 'forgotten' : 'improved' } : s
+      ));
+    } catch (e) {
+      console.error(`Failed to ${action} session ${id}`);
+    }
+  };
+
   return (
     <div className="glass-panel">
       <h2 style={{ marginBottom: '20px', fontSize: '1.5rem', fontWeight: 600 }}>Recent Ingestions</h2>
@@ -57,9 +70,26 @@ export default function SessionList() {
                 <strong style={{ color: '#fff' }}>{session.project}</strong>
                 <span className="tag">{session.status}</span>
               </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
                 Branch: {session.branch} • {new Date(session.timestamp).toLocaleString()}
               </div>
+              
+              {session.status !== 'forgotten' && (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button 
+                    onClick={() => handleAction(session.id, 'improve')}
+                    style={{ background: 'rgba(88, 166, 255, 0.1)', color: 'var(--accent)', border: '1px solid var(--accent-glow)', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}
+                  >
+                    Improve
+                  </button>
+                  <button 
+                    onClick={() => handleAction(session.id, 'forget')}
+                    style={{ background: 'rgba(255, 88, 88, 0.1)', color: '#ff5858', border: '1px solid rgba(255, 88, 88, 0.2)', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}
+                  >
+                    Forget
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
