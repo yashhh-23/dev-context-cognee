@@ -5,8 +5,7 @@ from app.core.ws_manager import manager
 router = APIRouter()
 
 
-@router.websocket("/ws/notifications")
-async def ws_notifications(websocket: WebSocket):
+async def _handle(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
@@ -16,3 +15,11 @@ async def ws_notifications(websocket: WebSocket):
                 await websocket.send_text('{"type":"pong"}')
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+@router.websocket("/ws/notifications")
+async def ws_notifications(websocket: WebSocket):
+    await _handle(websocket)
+
+@router.websocket("/ws")
+async def ws_short(websocket: WebSocket):
+    await _handle(websocket)
