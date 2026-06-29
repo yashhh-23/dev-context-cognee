@@ -15,9 +15,18 @@ interface WebSocketContextType {
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null)
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000/ws/notifications'
+const getWsUrl = () => {
+  if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL
+  if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    return `${protocol}//${window.location.host}/ws/notifications`
+  }
+  return 'ws://localhost:8000/ws/notifications'
+}
+const WS_URL = getWsUrl()
+
 if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_WS_URL) {
-  console.warn("[WS] NEXT_PUBLIC_WS_URL not set")
+  console.warn("[WS] NEXT_PUBLIC_WS_URL not set" + (process.env.NODE_ENV !== 'production' ? ", using localhost fallback" : ""))
 }
 
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {

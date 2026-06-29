@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { api, type Bug } from '@/lib/api'
-import { formatRelative } from '@/lib/utils'
+import { formatRelativeSafe } from '@/lib/utils'
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'] as const
 
@@ -118,7 +118,7 @@ export default function BugsPage() {
                       #{bug.id} {bug.title}
                     </div>
                     <div className="item-meta">
-                      {bug.author} · {formatRelative(bug.created)}
+                      {bug.author} · {formatRelativeSafe(bug.created)}
                     </div>
                   </div>
                   <SeverityBadge severity={bug.severity} />

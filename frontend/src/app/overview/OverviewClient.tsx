@@ -9,7 +9,7 @@ import LiveFeed from '@/components/ui/LiveFeed'
 import { DashboardSkeleton } from '@/components/skeletons/Skeletons'
 import MemoryHealthModal from '@/components/ui/MemoryHealthModal'
 import { useHealth } from '@/hooks/useHealth'
-import { formatRelative, repoShortName } from '@/lib/utils'
+import { formatRelativeSafe, safeRepoName } from '@/lib/utils'
 
 const BugTrendChart = dynamic(() => import('@/components/ui/BugTrendChart'), { ssr: false })
 
@@ -184,7 +184,7 @@ export default function OverviewClient() {
         <StatCard label="Recalled Today" value={stats?.recalled_today ?? 0} />
         <StatCard
           label="Last Ingest"
-          value={stats?.last_session ? formatRelative(stats.last_session) : '—'}
+          value={stats?.last_session ? formatRelativeSafe(stats.last_session) : '—'}
         />
       </div>
 
@@ -258,7 +258,7 @@ export default function OverviewClient() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                       <span className="item-title" style={{ fontFamily: 'var(--font-mono)' }}>
-                        {repoShortName(s.repo || "")}
+                        {safeRepoName(s.repo || "")}
                       </span>
                       <span className="badge badge-default" style={{ fontSize: '10px' }}>{s.branch}</span>
                     </div>
@@ -276,7 +276,7 @@ export default function OverviewClient() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                     <span style={{ fontSize: '10px', color: 'var(--color-text-faint)', fontFamily: 'var(--font-mono)' }}>
-                      {formatRelative(s.started_at)}
+                      {formatRelativeSafe(s.started_at)}
                     </span>
                     <span className="badge badge-info" style={{ fontSize: '9px', fontVariantNumeric: 'tabular-nums' }}>
                       {s.context_size} nodes
