@@ -1,11 +1,12 @@
 # dev·context — AI Memory for Developer Workflows
 
-> Built for the **WeMakeDevs × Cognee Hackathon**. Cognee powers every memory operation.
+> Built for the **WeMakeDevs × Cognee Hackathon**. Cognee powers every memory operation: ingest, recall, forget, and draft.
 
-[![Branch](https://img.shields.io/badge/branch-feature%2Fdashboard--v2-teal)](#)
-[![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Next.js%20%2B%20Cognee-blue)](#)
+[![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Cognee%20%2B%20VS%20Code-teal)](#)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#)
+[![License](https://img.shields.io/badge/license-MIT-green)](#)
 
-dev·context is a full-stack developer context engine that captures your coding sessions, ingests them into Cognee’s knowledge graph, and surfaces relevant memory exactly when you need it — across debugging, bug triage, and open-source contribution.
+dev·context is a full-stack developer context engine that captures your coding sessions, ingests them into Cognee's knowledge graph, and surfaces relevant memory exactly when you need it — across debugging, bug triage, and open-source contribution.
 
 ---
 
@@ -13,11 +14,11 @@ dev·context is a full-stack developer context engine that captures your coding 
 
 | Workflow | How Cognee is used |
 |---|---|
-| **Debug session capture** | Terminal output + file context → `cognee.add()` + `cognee.cognify()` |
-| **Bug recall** | Select a GitHub issue → `cognee.search()` returns related past sessions |
-| **Contribute suggestions** | Good-first issues → Cognee graph traversal suggests relevant code entry points |
-| **Memory graph** | Visual knowledge graph of files, functions, bugs, and sessions via `cognee.get_graph()` |
-| **Recall search** | Free-text search over all stored context with forget + memify actions |
+| **Save context** | Active file + symbols → `cognee.add()` + `cognee.cognify()` |
+| **Recall similar bugs** | Code snippet → `cognee.search(SIMILARITY)` returns related past sessions |
+| **Draft GitHub issue** | Snippet + error → Cognee recall + `cognee.llm_query()` → structured issue body |
+| **Memory graph** | Visual knowledge graph of files, functions, bugs, sessions via `cognee.get_graph()` |
+| **Forget** | Remove any memory node on demand via `cognee.delete()` |
 | **Live stream** | WebSocket pushes Cognee memory events (stored, recalled, forgotten) in real time |
 
 ---
@@ -25,126 +26,35 @@ dev·context is a full-stack developer context engine that captures your coding 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  Input Layer                                    │
-│  VS Code Extension  ┌───┐  CLI (stdin pipe)     │
-│  cognee.sendToMemory └───┘  python cli/cognee_cli.py │
-└─────────────────┬───────────────────────────┘
-                       │
-┌─────────────────┴───────────────────────────┐
-│  FastAPI Backend  (backend/)                    │
-│                                                 │
-│  /api/bugs          → GitHub Issues API          │
-│  /api/contribute    → Good-first-issue finder    │
-│  /api/graph/build   → cognee.cognify()           │
-│  /api/graph/query   → cognee.get_graph()         │
-│  /api/recall        → cognee.search()            │
-│  /api/recall/memify → cognee.add() + cognify()   │
-│  /ws                → WebSocket event stream     │
-│                                                 │
-│  cognee_utils.py: remember / recall /           │
-│                   forget / memify wrappers      │
-└─────────────────┬───────────────────────────┘
-                       │
-          ┌──────────┴──────────┐
+┌──────────────────────────────────────────────────┐
+│  Input Layer                                     │
+│  VS Code Extension (sidebar + keybindings)       │
+│  CLI  →  python cli/cognee_cli.py                │
+└─────────────────────┬────────────────────────────┘
+                      │  HTTP / WebSocket
+┌─────────────────────┴────────────────────────────┐
+│  FastAPI Backend  (backend/)                     │
+│                                                  │
+│  POST /api/ingest         → cognee.add/cognify   │
+│  POST /api/recall         → cognee.search()      │
+│  POST /api/bugs/draft-issue → bug_service.py     │
+│  GET  /api/graph/query    → cognee.get_graph()   │
+│  GET  /api/overview       → stats + KPIs         │
+│  POST /api/memory/forget  → cognee.delete()      │
+│  WS   /ws                 → live event stream    │
+│                                                  │
+│  services/  ingest_service  recall_service       │
+│             bug_service (Cognee + LLM draft)     │
+└─────────────────────┬────────────────────────────┘
+                      │
+          ┌───────────┴───────────┐
           │                       │
-┌─────────┴───────┐ ┌─────────┴────────┐
-│  Cognee Core        │ │  Next.js Dashboard    │
-│                    │ │                      │
-│  Knowledge Graph   │ │  /overview  → KPIs   │
-│  Vector Store      │ │  /bugs      → Recall  │
-│  Graph DB          │ │  /contribute→ Suggest │
-│  (Postgres/Neo4j)  │ │  /graph     → Vis.js  │
-└────────────────────┘ │  /recall    → Search  │
-                       └──────────────────────┘
-```
-
----
-
-## Quick Start
-
-### 1. Clone & set environment variables
-
-```bash
-git clone https://github.com/yashhh-23/dev-context-cognee.git
-cd dev-context-cognee
-cp .env.example .env
-```
-
-Required env vars:
-
-```env
-COGNEE_LLM_PROVIDER=openai          # or anthropic, local
-COGNEE_LLM_MODEL=gpt-4o-mini
-COGNEE_VECTOR_DB_PROVIDER=lancedb   # zero-config local option
-GITHUB_TOKEN=ghp_...                # for bug + contribute routes
-GITHUB_REPO=owner/repo              # target repo to analyze
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
-```
-
-### 2. Start with Docker (recommended)
-
-```bash
-docker-compose up --build
-```
-
-| Service | URL |
-|---|---|
-| Dashboard | http://localhost:3000 |
-| API docs  | http://localhost:8000/docs |
-| WebSocket | ws://localhost:8000/ws |
-
-### 3. Start manually
-
-```bash
-# Backend
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-
-# Frontend
-cd frontend
-npm install
-npm run dev
-```
-
-### 4. Ingest your first context
-
-```bash
-# Via CLI (pipe any output)
-echo "Fixed auth bug — missing await in middleware.ts:42" | python cli/cognee_cli.py
-
-# Via VS Code
-# Cmd/Ctrl+Shift+P → "Cognee: Send to Memory"
-```
-
----
-
-## Dashboard Pages
-
-| Route | Description |
-|---|---|
-| `/overview` | KPI cards, 7-day bug trend chart, recent sessions, live memory event stream |
-| `/bugs` | GitHub issues with severity badges, Cognee recall per bug |
-| `/contribute` | Good-first-issues and stale PRs with Cognee-suggested entry points |
-| `/graph` | Interactive vis.js knowledge graph of all Cognee memory nodes |
-| `/recall` | Free-text search, per-node forget, and manual memify panel |
-
----
-
-## Cognee Memory Lifecycle
-
-```
-Capture → cognee.add()      # store raw context
-         → cognee.cognify()  # build knowledge graph (async)
-
-Query   → cognee.search()   # vector + graph recall
-         → cognee.get_graph() # full node/edge map
-
-Manage  → forget()           # remove a node
-         → memify()           # store manual context
-         → improve()          # triggered on session end
+┌─────────┴─────────┐  ┌─────────┴──────────┐
+│  Cognee Core      │  │  Next.js Dashboard  │
+│  Knowledge Graph  │  │  /overview  KPIs    │
+│  Vector Store     │  │  /bugs      Recall  │
+│  LLM layer        │  │  /graph     Vis.js  │
+└───────────────────┘  └────────────────────┘
 ```
 
 ---
@@ -154,53 +64,189 @@ Manage  → forget()           # remove a node
 ```
 dev-context-cognee/
 ├── backend/
-│   ├── main.py              # FastAPI app + WebSocket
-│   ├── cognee_utils.py      # remember/recall/forget/memify wrappers
-│   ├── websocket.py         # WS manager + event broadcast
-│   └── routes/
-│       ├── bugs.py            # GitHub Issues + severity tagging
-│       ├── contribute.py      # Good-first-issue + stale PR finder
-│       ├── graph.py           # Cognee graph build + query
-│       └── recall.py          # Vector search + forget + memify
-├── frontend/
-│   └── src/
-│       ├── app/               # Next.js App Router pages
-│       ├── components/
-│       │   ├── layout/        # DashboardShell, Sidebar, Topbar
-│       │   └── ui/            # LiveFeed, BugTrendChart
-│       └── lib/
-│           ├── api.ts         # Typed API client
-│           └── ws.ts          # WebSocket singleton + reconnect
+│   ├── app/
+│   │   ├── main.py                  # FastAPI app, all routers registered
+│   │   ├── cognee_utils.py          # remember/recall/forget/memify wrappers
+│   │   ├── file_watcher.py          # watchdog-based auto-ingest on file save
+│   │   ├── mcp_server.py            # MCP tool server (Cognee recall as MCP tool)
+│   │   ├── api/                     # Route handlers
+│   │   │   ├── ingest.py
+│   │   │   ├── recall.py
+│   │   │   ├── bugs.py
+│   │   │   ├── sessions.py
+│   │   │   ├── context.py
+│   │   │   ├── graph.py
+│   │   │   ├── stats.py
+│   │   │   ├── lifecycle.py
+│   │   │   ├── contribute.py
+│   │   │   └── ws.py
+│   │   ├── services/
+│   │   │   ├── ingest_service.py
+│   │   │   ├── recall_service.py
+│   │   │   └── bug_service.py       # Cognee recall + LLM → GitHub issue draft
+│   │   ├── models/
+│   │   │   ├── ingest.py
+│   │   │   └── session.py
+│   │   └── core/
+│   │       ├── cognee_client.py     # init_cognee() + provider config
+│   │       ├── config.py            # pydantic-settings config
+│   │       ├── database.py          # SQLAlchemy engine + Base
+│   │       ├── graph_builder.py
+│   │       ├── github_utils.py
+│   │       └── ws_manager.py
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── .env.example
+├── extension/
+│   ├── src/
+│   │   ├── extension.ts             # activate() entry point
+│   │   ├── provider.ts              # Sidebar WebView (full UI)
+│   │   ├── commands/
+│   │   │   ├── rememberContext.ts
+│   │   │   ├── recallBugs.ts
+│   │   │   └── draftIssue.ts
+│   │   └── utils/
+│   │       ├── apiClient.ts         # HTTP client with retry + 401 handling
+│   │       ├── languageDetector.ts  # VS Code languageId → parse profile
+│   │       └── tokenManager.ts      # SecretStorage read/write for API key
+│   └── package.json
+├── frontend/                        # Next.js dashboard
 ├── cli/
-│   └── cognee_cli.py        # stdin → Cognee ingestion
-├── extension/             # VS Code extension
+│   └── cognee_cli.py               # stdin → Cognee ingestion
+├── mcp/                             # MCP server module
 └── docker-compose.yml
 ```
 
 ---
 
+## Quick Start
+
+### Option A — Docker (recommended for demo)
+
+```bash
+git clone https://github.com/yashhh-23/dev-context-cognee.git
+cd dev-context-cognee
+cp backend/.env.example backend/.env
+# Fill in your keys (see Environment Variables section below)
+docker-compose up --build
+```
+
+| Service | URL |
+|---|---|
+| API + docs | http://localhost:8000/docs |
+| Dashboard  | http://localhost:3000 |
+| WebSocket  | ws://localhost:8000/ws |
+
+### Option B — Manual
+
+```bash
+git clone https://github.com/yashhh-23/dev-context-cognee.git
+cd dev-context-cognee
+
+# 1. Backend
+cd backend
+cp .env.example .env        # fill in your keys
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+
+# 2. Frontend (separate terminal)
+cd frontend
+npm install
+npm run dev                 # runs on http://localhost:3000
+```
+
+### VS Code Extension
+
+```bash
+cd extension
+npm install
+npm run compile
+# In VS Code: press F5 to launch Extension Development Host
+# Or package it: npm run package → installs the generated .vsix
+```
+
+On first use, run **Dev-Context: Set Cognee API Key** from the Command Palette (`Cmd/Ctrl+Shift+P`). The key is stored in VS Code SecretStorage — never in plain settings.
+
+---
+
+## Environment Variables
+
+Copy `backend/.env.example` to `backend/.env` and fill in the values below.
+
+```env
+# ── LLM Provider (required) ────────────────────────────────────────────────
+OPENAI_API_KEY=sk-...              # Required if using OpenAI (default)
+# ANTHROPIC_API_KEY=sk-ant-...    # Uncomment if using Anthropic
+
+# ── Cognee config (required) ───────────────────────────────────────────────
+COGNEE_LLM_PROVIDER=openai        # openai | anthropic | ollama
+COGNEE_LLM_MODEL=gpt-4o-mini      # any model supported by your provider
+COGNEE_VECTOR_DB_PROVIDER=lancedb # lancedb (zero-config local) | qdrant | weaviate
+COGNEE_DB_PATH=./cognee_db        # local path for LanceDB + SQLite storage
+
+# ── GitHub integration (required for /api/bugs and /api/contribute) ────────
+GITHUB_TOKEN=ghp_...              # Personal access token, repo scope
+GITHUB_REPO=owner/repo            # e.g. yashhh-23/dev-context-cognee
+
+# ── App settings ───────────────────────────────────────────────────────────
+PROJECT_NAME=dev-context-cognee
+DATABASE_URL=sqlite:///./dev_context.db   # SQLite default; swap for postgres in prod
+SECRET_KEY=change-me-in-production        # used for any signed tokens
+
+# ── Frontend URLs (used by Next.js dashboard) ──────────────────────────────
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
+```
+
+> **Minimum to get running:** `OPENAI_API_KEY`, `COGNEE_LLM_PROVIDER`, `COGNEE_LLM_MODEL`, `COGNEE_VECTOR_DB_PROVIDER`.
+> GitHub vars are only needed for bug-recall and contribute routes.
+
+---
+
+## Cognee Memory Lifecycle
+
+```
+Capture  →  cognee.add()        store raw context (file + symbols)
+         →  cognee.cognify()    build knowledge graph (async, background)
+
+Query    →  cognee.search()     vector + graph recall by similarity
+         →  cognee.get_graph()  full node/edge map for visualisation
+
+Manage   →  cognee.delete()     forget a specific memory node
+         →  cognee.add()        memify — store manual note/context
+         →  cognee.llm_query()  LLM call through Cognee's configured provider
+```
+
+---
+
+## Keybindings (VS Code Extension)
+
+| Action | Mac | Windows/Linux |
+|---|---|---|
+| Save current context | `Cmd+Shift+M` | `Ctrl+Shift+M` |
+| Recall similar bugs | `Cmd+Shift+R` | `Ctrl+Shift+R` |
+| Draft GitHub issue  | `Cmd+Shift+I` | `Ctrl+Shift+I` |
+
+---
+
 ## Demo Script (3-minute video)
 
-1. **Open `/overview`** — show KPI cards loading, live memory stream ticking
-2. **Open `/bugs`** — click a bug, watch Cognee recall surface related session context
-3. **Open `/contribute`** — hit “cognee recall” on a good-first-issue, show AI suggestion
-4. **Open `/graph`** — hit “rebuild graph”, watch nodes/edges appear live
-5. **Open `/recall`** — type a query, show results, forget one node, memify a new note
-6. **Show the VS Code extension** sending context to memory in one command
+1. **Open VS Code** on any project file → sidebar shows file name, language, line count
+2. **Press `Cmd+Shift+M`** → "Context saved" toast; backend logs `cognee.cognify()` running
+3. **Press `Cmd+Shift+R`** → sidebar populates with recalled bug cards + similarity scores
+4. **Press `Cmd+Shift+I`** → drafts a GitHub issue with description, steps, and related past bugs
+5. **Open `http://localhost:3000/graph`** → show the live Cognee knowledge graph growing
+6. **Open `/recall`** → free-text search, forget a node, memify a manual note
 
 ---
 
 ## Open-Source Contribution Targets
 
-This project was built to demonstrate deep Cognee integration. Meaningful PR opportunities:
-
-- **LangGraph integration**: Wire Cognee memory into a LangGraph agent loop for multi-step debugging
-- **n8n node**: Cognee memory node for n8n automation workflows  
-- **MCP server**: Expose Cognee recall as an MCP tool for Claude/Cursor
-- **Cognee docs**: Add dev-context as an example in the Cognee cookbook
+- **LangGraph integration** — wire Cognee memory into a LangGraph agent for multi-step debugging
+- **n8n node** — Cognee memory node for n8n automation workflows
+- **MCP server** — expose Cognee recall as an MCP tool for Claude / Cursor (see `mcp/`)
+- **Cognee cookbook** — add dev-context as a reference example in the Cognee docs
 
 ---
 
 *Built with [Cognee](https://github.com/topoteretes/cognee) — memory infrastructure for AI.*
-
-
