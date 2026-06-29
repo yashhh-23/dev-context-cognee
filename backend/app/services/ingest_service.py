@@ -7,7 +7,7 @@ import cognee
 def clean_terminal_output(text: str) -> str:
     # Redact obvious secrets
     text = re.sub(
-        r'(api[_\-]?key|secret|token|password)[\s:=]+[\'"']?[A-Za-z0-9_\-\.]+[\'"']?',
+        r"(api[_\-]?key|secret|token|password)[\s:=]+['\x22]?[A-Za-z0-9_\-\.]+['\x22]?",
         r'\1: [REDACTED]',
         text,
         flags=re.IGNORECASE,
