@@ -1,7 +1,21 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { api, type OverviewStats, type Session } from '@/lib/api'
+import LiveFeed from '@/components/ui/LiveFeed'
+
+const BugTrendChart = dynamic(() => import('@/components/ui/BugTrendChart'), { ssr: false })
+
+// Generate last-7-day labels
+function last7Days(): string[] {
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (6 - i))
+    return days[d.getDay()]
+  })
+}
 
 export default function OverviewPage() {
   const [stats,    setStats]    = useState<OverviewStats | null>(null)
@@ -9,12 +23,14 @@ export default function OverviewPage() {
   const [loading,  setLoading]  = useState(true)
   const [error,    setError]    = useState<string | null>(null)
 
+  // Placeholder sparkline data (replaced by real API when backend exposes it)
+  const trendLabels = last7Days()
+  const [trendOpened] = useState([2, 4, 1, 5, 3, 2, 4])
+  const [trendClosed] = useState([1, 3, 2, 4, 2, 3, 1])
+
   useEffect(() => {
     Promise.all([api.getStats(), api.getSessions(5)])
-      .then(([s, sess]) => {
-        setStats(s)
-        setSessions(sess)
-      })
+      .then(([s, sess]) => { setStats(s); setSessions(sess) })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
@@ -39,22 +55,34 @@ export default function OverviewPage() {
           <ErrorBanner message={error} />
         ) : stats ? (
           <>
-            <StatCard label="Sessions" value={stats.total_sessions} delta={null} />
-            <StatCard label="Open Bugs" value={stats.open_bugs} delta={null} color="error" />
-            <StatCard label="Memory Nodes" value={stats.memory_nodes} delta={null} color="primary" />
-            <StatCard label="Recalled Today" value={stats.recalled_today} delta={null} />
+            <StatCard label="Sessions"      value={stats.total_sessions} color={undefined} />
+            <StatCard label="Open Bugs"     value={stats.open_bugs}      color="error" />
+            <StatCard label="Memory Nodes"  value={stats.memory_nodes}   color="primary" />
+            <StatCard label="Recalled Today" value={stats.recalled_today} color={undefined} />
             <StatCard
               label="Health Score"
               value={`${stats.health_score}%`}
-              delta={null}
               color={stats.health_score >= 80 ? 'success' : stats.health_score >= 50 ? 'warning' : 'error'}
             />
           </>
         ) : null}
       </div>
 
-      <div className="grid-2">
-        {/* Recent Sessions */}
+      {/* Charts + sessions row */}
+      <div className="grid-2" style={{ marginBottom: 'var(--space-5)' }}>
+        {/* Bug trend sparkline */}
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">bug trend — 7d</span>
+            <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+              <LegendDot color="var(--color-error)"   label="opened" />
+              <LegendDot color="var(--color-success)" label="closed" />
+            </div>
+          </div>
+          <BugTrendChart labels={trendLabels} opened={trendOpened} closed={trendClosed} />
+        </div>
+
+        {/* Recent sessions */}
         <div className="card">
           <div className="card-header">
             <span className="card-title">recent sessions</span>
@@ -62,91 +90,61 @@ export default function OverviewPage() {
           {loading ? (
             <SkeletonRows n={4} />
           ) : sessions.length === 0 ? (
-            <EmptyState
-              icon="⌗"
-              title="No sessions yet"
-              desc="Start a debug session to see history here."
-            />
+            <EmptyState icon="⌗" title="No sessions yet" desc="Start a debug session to see history here." />
           ) : (
             sessions.map(s => (
               <div key={s.id} className="item-row">
                 <div>
-                  <div className="item-title">
-                    <span className="mono">{s.repo}</span>
-                  </div>
-                  <div className="item-meta">
-                    {s.branch} · {formatRelative(s.last_active)}
-                  </div>
+                  <div className="item-title"><span className="mono">{s.repo}</span></div>
+                  <div className="item-meta">{s.branch} · {formatRelative(s.last_active)}</div>
                 </div>
-                <span
-                  className="badge badge-default"
-                  style={{ fontVariantNumeric: 'tabular-nums' }}
-                >
+                <span className="badge badge-default" style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {s.context_size} nodes
                 </span>
               </div>
             ))
           )}
         </div>
+      </div>
 
-        {/* Dependency / Repo Health */}
+      {/* Bottom row: health + live feed */}
+      <div className="grid-2">
         <div className="card">
-          <div className="card-header">
-            <span className="card-title">dependency health</span>
-          </div>
-          {loading ? (
-            <SkeletonRows n={4} />
-          ) : stats ? (
+          <div className="card-header"><span className="card-title">dependency health</span></div>
+          {loading ? <SkeletonRows n={4} /> : stats ? (
             <>
-              <HealthRow label="Memory graph" status={stats.memory_nodes > 0 ? 'ok' : 'warn'} />
-              <HealthRow label="Open bugs" status={stats.open_bugs === 0 ? 'ok' : stats.open_bugs < 5 ? 'warn' : 'error'} />
+              <HealthRow label="Memory graph"      status={stats.memory_nodes > 0 ? 'ok' : 'warn'} />
+              <HealthRow label="Open bugs"         status={stats.open_bugs === 0 ? 'ok' : stats.open_bugs < 5 ? 'warn' : 'error'} />
               <HealthRow label="Session continuity" status="ok" />
-              <HealthRow label="Recall latency" status="ok" />
+              <HealthRow label="Recall latency"    status="ok" />
             </>
           ) : null}
         </div>
+
+        {/* Live WebSocket memory event feed */}
+        <LiveFeed />
       </div>
     </div>
   )
 }
 
 /* ---- Sub-components ---- */
-
-function StatCard({
-  label, value, delta, color,
-}: {
-  label: string
-  value: string | number
-  delta: string | null
-  color?: 'primary' | 'success' | 'warning' | 'error'
-}) {
+function StatCard({ label, value, color }: { label: string; value: string | number; color?: 'primary'|'success'|'warning'|'error' }) {
   const colorMap: Record<string, string> = {
-    primary: 'var(--color-primary)',
-    success: 'var(--color-success)',
-    warning: 'var(--color-warning)',
-    error:   'var(--color-error)',
+    primary: 'var(--color-primary)', success: 'var(--color-success)',
+    warning: 'var(--color-warning)', error:   'var(--color-error)',
   }
   return (
     <div className="stat-card">
       <div className="stat-label">{label}</div>
-      <div
-        className="stat-value"
-        style={color ? { color: colorMap[color] } : undefined}
-      >
-        {value}
-      </div>
-      {delta && <div className="stat-delta">{delta}</div>}
+      <div className="stat-value" style={color ? { color: colorMap[color] } : undefined}>{value}</div>
     </div>
   )
 }
 
-function HealthRow({ label, status }: { label: string; status: 'ok' | 'warn' | 'error' }) {
-  const dot: Record<string, string> = {
-    ok:    'var(--color-success)',
-    warn:  'var(--color-warning)',
-    error: 'var(--color-error)',
-  }
-  const text: Record<string, string> = { ok: 'healthy', warn: 'degraded', error: 'failing' }
+function HealthRow({ label, status }: { label: string; status: 'ok'|'warn'|'error' }) {
+  const dot  = { ok: 'var(--color-success)', warn: 'var(--color-warning)', error: 'var(--color-error)' }
+  const text = { ok: 'healthy', warn: 'degraded', error: 'failing' }
   return (
     <div className="item-row">
       <span className="item-title">{label}</span>
@@ -154,6 +152,15 @@ function HealthRow({ label, status }: { label: string; status: 'ok' | 'warn' | '
         <div style={{ width: 7, height: 7, borderRadius: '50%', background: dot[status] }} />
         <span className="item-meta">{text[status]}</span>
       </div>
+    </div>
+  )
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+      <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+      <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)' }}>{label}</span>
     </div>
   )
 }
@@ -183,18 +190,12 @@ function EmptyState({ icon, title, desc }: { icon: string; title: string; desc: 
 
 function ErrorBanner({ message }: { message: string }) {
   return (
-    <div
-      style={{
-        gridColumn: '1 / -1',
-        padding: 'var(--space-3) var(--space-4)',
-        background: 'var(--color-error-dim)',
-        border: '1px solid var(--color-error)',
-        borderRadius: 'var(--radius-md)',
-        color: 'var(--color-error)',
-        fontFamily: 'var(--font-mono)',
-        fontSize: 'var(--text-xs)',
-      }}
-    >
+    <div style={{
+      gridColumn: '1 / -1', padding: 'var(--space-3) var(--space-4)',
+      background: 'var(--color-error-dim)', border: '1px solid var(--color-error)',
+      borderRadius: 'var(--radius-md)', color: 'var(--color-error)',
+      fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)',
+    }}>
       {message}
     </div>
   )
