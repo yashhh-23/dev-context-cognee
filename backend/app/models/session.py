@@ -17,26 +17,41 @@ class SessionRecord(Base):
     _terminal_output = Column("terminal_output", Text)
     tags = Column(JSON, nullable=True)
     github_url = Column(String, nullable=True)
-    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
-    context_size = Column(Integer, default=1, nullable=True)
+    timestamp = Column(DateTime, index=True, default=datetime.datetime.utcnow)
+    # Semantics: updated by ingest (log lines), recall (similar nodes),
+    # lifecycle (auto-clean), and bugs (similar bugs).
+    # Do NOT use as a unique stable counter; treat as "last write wins".
+    context_size = Column(Integer, default=0, nullable=True)
     
     # Tracking Cognee ingestion status
     status = Column(String, index=True, default="queued") # queued, processing, completed, failed
     error_message = Column(Text, nullable=True)
+    cognee_response_id = Column(String, nullable=True)
+
+    is_encrypted = Column(Boolean, default=False)
 
     @property
     def terminal_output(self) -> str:
-        if not self._terminal_output:
-            return ""
-        key = byok_key_var.get()
-        try:
-            return decrypt_data(self._terminal_output, key)
-        except Exception:
-            return self._terminal_output
+        if self.is_encrypted and self._terminal_output:
+            key = byok_key_var.get()
+            if key:
+                try:
+                    return decrypt_data(self._terminal_output, key)
+                except Exception:
+                    return "[DECRYPTION FAILED]"
+        return self._terminal_output or ""
 
     @terminal_output.setter
     def terminal_output(self, value: str):
-        self._terminal_output = value
+        key = byok_key_var.get()
+        if key and value:
+            # encrypt_data must be imported
+            from app.core.byok import encrypt_data
+            self._terminal_output = encrypt_data(value, key)
+            self.is_encrypted = True
+        else:
+            self._terminal_output = value
+            self.is_encrypted = False
 
 class PinnedNode(Base):
     __tablename__ = "pinned_nodes"
