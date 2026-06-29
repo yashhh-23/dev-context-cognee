@@ -1,99 +1,136 @@
 'use client';
+import { useState, useEffect } from 'react';
 
-import { useEffect, useState } from 'react';
-
-type Session = {
+interface Session {
   id: string;
-  project: string;
-  branch: string;
+  title: string;
   timestamp: string;
-  status: string;
+  type?: string;
   tags?: string[];
+  summary?: string;
+  error_log?: string;
+}
+
+const COLOR_MAP: Record<string, string> = {
+  debug: 'blue', fix: 'green', error: 'red', warning: 'yellow', refactor: 'purple',
 };
 
-export default function SessionList() {
+export default function SessionList({
+  addToast,
+  compact = false,
+  limit,
+}: {
+  addToast: (msg: string, type?: 'success' | 'error') => void;
+  compact?: boolean;
+  limit?: number;
+}) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState<Session | null>(null);
 
   useEffect(() => {
-    const fetchSessions = async () => {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${apiUrl}/sessions/`);
-        if (res.ok) {
-          const data = await res.json();
-          setSessions(data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch sessions:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSessions();
-    const intervalId = setInterval(fetchSessions, 5000); // Auto-refresh every 5s
-    return () => clearInterval(intervalId);
+    fetch('http://localhost:8000/api/sessions')
+      .then(r => r.json())
+      .then(d => setSessions(Array.isArray(d) ? d : []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleAction = async (id: string, action: 'forget' | 'improve') => {
+  const forget = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      await fetch(`${apiUrl}/sessions/${id}/${action}`, { method: 'POST' });
-      // update state locally to feel fast
-      setSessions(prev => prev.map(s => 
-        s.id === id ? { ...s, status: action === 'forget' ? 'forgotten' : 'improved' } : s
-      ));
-    } catch (e) {
-      console.error(`Failed to ${action} session ${id}`);
+      await fetch(`http://localhost:8000/api/memory/forget/${id}`, { method: 'DELETE' });
+      setSessions(p => p.filter(s => s.id !== id));
+      addToast('Session forgotten');
+    } catch {
+      addToast('Failed to forget', 'error');
     }
   };
 
+  const displayed = limit ? sessions.slice(0, limit) : sessions;
+
+  if (loading) return (
+    <div style={{ padding: 'var(--s3) var(--s4)' }}>
+      {[0, 1, 2].map(i => (
+        <div key={i} style={{ padding: 'var(--s3) 0', borderBottom: '1px solid var(--divider)' }}>
+          <div className="skeleton sk-line" style={{ width: '60%' }} />
+          <div className="skeleton sk-line" style={{ width: '30%', height: 8 }} />
+        </div>
+      ))}
+    </div>
+  );
+
+  if (sessions.length === 0) return (
+    <div className="empty-state">
+      <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.4">
+        <circle cx="14" cy="14" r="10" /><path d="M10 14h8M14 10v8" />
+      </svg>
+      <p>No sessions recorded yet. Start debugging to build memory.</p>
+    </div>
+  );
+
   return (
-    <div className="glass-panel">
-      <h2 style={{ marginBottom: '20px', fontSize: '1.5rem', fontWeight: 600 }}>Recent Ingestions</h2>
-      
-      {loading ? (
-        <p style={{ color: 'var(--text-secondary)' }}>Loading sessions...</p>
-      ) : sessions.length === 0 ? (
-        <p style={{ color: 'var(--text-secondary)' }}>No sessions ingested yet.</p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {sessions.map(session => (
-            <div key={session.id} style={{ 
-              padding: '16px', 
-              background: 'rgba(0,0,0,0.2)', 
-              borderRadius: '12px',
-              border: '1px solid rgba(255,255,255,0.05)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <strong style={{ color: '#fff' }}>{session.project}</strong>
-                <span className="tag">{session.status}</span>
+    <>
+      <div style={{ padding: compact ? '0 var(--s4)' : '0' }}>
+        {displayed.map(s => {
+          const color = COLOR_MAP[s.type ?? ''] ?? 'gray';
+          return (
+            <div key={s.id} className="session-row" onClick={() => setOpen(s)}>
+              <span className={`session-dot ${color}`} />
+              <div className="session-main">
+                <div className="session-title">{s.title}</div>
+                <div className="session-meta">
+                  <span>{new Date(s.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  {s.type && <span style={{ opacity: 0.6 }}>·</span>}
+                  {s.type && <span>{s.type}</span>}
+                </div>
+                {!compact && s.tags && s.tags.length > 0 && (
+                  <div className="session-tags">
+                    {s.tags.slice(0, 3).map(t => (
+                      <span key={t} className={`tag ${COLOR_MAP[t] ?? 'gray'}`}>{t}</span>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                Branch: {session.branch} • {new Date(session.timestamp).toLocaleString()}
+              <div className="session-actions">
+                <button
+                  className="btn btn-ghost"
+                  style={{ fontSize: 10, padding: '2px 7px' }}
+                  onClick={e => forget(s.id, e)}
+                  aria-label="Forget session"
+                >
+                  Forget
+                </button>
               </div>
-              
-              {session.status !== 'forgotten' && (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button 
-                    onClick={() => handleAction(session.id, 'improve')}
-                    style={{ background: 'rgba(88, 166, 255, 0.1)', color: 'var(--accent)', border: '1px solid var(--accent-glow)', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}
-                  >
-                    Improve
-                  </button>
-                  <button 
-                    onClick={() => handleAction(session.id, 'forget')}
-                    style={{ background: 'rgba(255, 88, 88, 0.1)', color: '#ff5858', border: '1px solid rgba(255, 88, 88, 0.2)', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}
-                  >
-                    Forget
-                  </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {open && (
+        <div className="drawer-overlay" onClick={() => setOpen(null)}>
+          <div className="drawer" onClick={e => e.stopPropagation()}>
+            <div className="drawer-header">
+              <h3>{open.title}</h3>
+              <button className="btn btn-ghost" onClick={() => setOpen(null)}>Close</button>
+            </div>
+            <div className="drawer-body">
+              {open.summary && (
+                <div style={{ marginBottom: 'var(--s4)' }}>
+                  <div className="context-label" style={{ marginBottom: 6 }}>Summary</div>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>{open.summary}</p>
                 </div>
               )}
+              {open.error_log && (
+                <>
+                  <div className="context-label" style={{ marginBottom: 6 }}>Error Log</div>
+                  <div className="log-output">{open.error_log}</div>
+                </>
+              )}
             </div>
-          ))}
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
