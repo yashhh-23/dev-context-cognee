@@ -54,25 +54,25 @@ async def list_contribute():
 @router.get("/search")
 async def contribute_search(
     session_id: str = Query(None, description="Search based on a specific session's error"),
-    q: str = Query(None, description="Manual search query"),
+    keyword: str = Query(None, description="Direct keyword search"),
     db: Session = Depends(get_db),
 ):
-    """Search GitHub for similar open issues and contribution opportunities."""
-    if not session_id and not q:
-        raise HTTPException(status_code=400, detail="Provide session_id or q")
-
-    keyword = q
-    if session_id and not keyword:
-        record = get_session(db, session_id)
-        if not record:
+    """Search GitHub for contribution opportunities based on session error or keyword."""
+    if session_id:
+        session = get_session(db, session_id)
+        if not session:
             raise HTTPException(status_code=404, detail="Session not found")
-        keyword = extract_error_keyword(record.terminal_output or "")
+        kw = extract_error_keyword(session.terminal_output or "")
+    elif keyword:
+        kw = keyword
+    else:
+        raise HTTPException(status_code=400, detail="Provide session_id or keyword")
 
-    similar_bugs = await search_github_issues(keyword)
-    opportunities = await search_github_contributions(keyword)
+    issues = await search_github_issues(kw)
+    contributions = await search_github_contributions(kw)
 
     return {
-        "keyword": keyword,
-        "similar_bugs": similar_bugs,
-        "opportunities": opportunities,
+        "keyword": kw,
+        "github_issues": issues,
+        "contribution_opportunities": contributions,
     }
