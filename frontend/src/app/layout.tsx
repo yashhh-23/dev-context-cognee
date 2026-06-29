@@ -1,21 +1,26 @@
-import type { Metadata } from 'next';
-import Sidebar from '@/components/layout/Sidebar';
-import './globals.css';
+import type { Metadata } from 'next'
+import './globals.css'
+import DashboardShell from '@/components/layout/DashboardShell'
 
 export const metadata: Metadata = {
-  title: 'Dev-Context Assistant',
-  description: 'Persistent developer memory powered by Cognee',
-};
+  title: 'Dev·Context — Cognee Memory Dashboard',
+  description: 'AI-powered developer context engine built on Cognee memory',
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body>
-        <div className="app-shell">
-          <Sidebar />
-          <main className="main-content">{children}</main>
-        </div>
+        <DashboardShell>{children}</DashboardShell>
       </body>
     </html>
-  );
+  )
 }
