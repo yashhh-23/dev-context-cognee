@@ -8,7 +8,7 @@ router = APIRouter()
 async def get_context_summary(project: Optional[str] = None):
     query = f"what was I last working on in {project}" if project else "what was I last working on"
     try:
-        results = await cognee.search(query)
+        results = await cognee.recall(query)
         return {"query": query, "summary": results}
     except Exception as e:
         return {"query": query, "error": str(e)}
