@@ -102,36 +102,51 @@ async def search_github_contributions(keyword: str) -> list:
 
 GITHUB_REPO = os.getenv("GITHUB_REPO", "")
 
-@router.get("/")
-async def get_bugs(limit: int = 30):
-    if not GITHUB_REPO:
+@router.get("")
+async def list_bugs(limit: int = 30):
+    """Return open issues from the configured GitHub repo."""
+    repo = os.getenv("GITHUB_REPO", "")   # e.g. "yashhh-23/dev-context-cognee"
+    if not repo:
         return []
-    
+
     headers = {"Accept": "application/vnd.github+json"}
     if GITHUB_TOKEN:
         headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
-        
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/issues"
+
     try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            resp = await client.get(url, params={"state": "open", "per_page": limit}, headers=headers)
-            if resp.status_code == 200:
-                items = resp.json()
-                return [
-                    {
-                        "id": item["number"],
-                        "title": item["title"],
-                        "url": item["html_url"],
-                        "severity": "high" if any("bug" in l["name"].lower() for l in item.get("labels", [])) else "medium",
-                        "labels": [l["name"] for l in item.get("labels", [])],
-                        "created": item["created_at"],
-                        "author": item["user"]["login"],
-                    }
-                    for item in items if "pull_request" not in item
-                ]
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                f"https://api.github.com/repos/{repo}/issues",
+                params={"state": "open", "per_page": limit, "sort": "created"},
+                headers=headers,
+            )
+        if resp.status_code != 200:
+            return []
+
+        items = resp.json()
+        return [
+            {
+                "id":       str(item["number"]),
+                "title":    item["title"],
+                "severity": _map_severity(item.get("labels", [])),
+                "author":   item["user"]["login"],
+                "created":  item["created_at"],
+                "url":      item["html_url"],
+                "labels":   [l["name"] for l in item.get("labels", [])],
+            }
+            for item in items
+            if "pull_request" not in item   # exclude PRs
+        ]
     except Exception as e:
         print("Fetch bugs error:", e)
-    return []
+        return []
+
+def _map_severity(labels: list) -> str:
+    names = [l["name"].lower() for l in labels]
+    if any("critical" in n for n in names): return "critical"
+    if any("high" in n or "bug" in n for n in names): return "high"
+    if any("medium" in n or "enhancement" in n for n in names): return "medium"
+    return "low"
 
 @router.post("/analyze")
 async def analyze_bug(request: AnalyzeRequest, db: Session = Depends(get_db)):
