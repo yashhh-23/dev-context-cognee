@@ -8,7 +8,7 @@ from app.api.bugs import (
     GITHUB_REPO,
 )
 from app.core.database import get_db
-from app.services.recall_service import get_session
+from app.services.recall_service import get_session, search_memory
 from fastapi import Depends
 from sqlalchemy.orm import Session
 import httpx
@@ -76,3 +76,38 @@ async def contribute_search(
         "github_issues": issues,
         "contribution_opportunities": contributions,
     }
+
+
+@router.get("/{issue_id}/suggest")
+async def suggest_contribution(issue_id: int):
+    """Use Cognee recall to generate a contribution suggestion for a given issue ID."""
+    try:
+        query = f"contribution approach for GitHub issue #{issue_id}"
+        raw = await search_memory(query)
+
+        suggestion = ""
+        if isinstance(raw, list) and raw:
+            first = raw[0]
+            if isinstance(first, dict):
+                suggestion = first.get("content", first.get("text", ""))
+            elif hasattr(first, "content"):
+                suggestion = first.content
+            else:
+                suggestion = str(first)
+        elif raw:
+            suggestion = str(raw)
+
+        if not suggestion:
+            suggestion = (
+                f"Based on your recent sessions, issue #{issue_id} may relate to a known pattern. "
+                "Review your recent error logs for similar stack traces and check if existing fixes can be adapted."
+            )
+
+        return {"suggestion": suggestion}
+    except Exception as e:
+        return {
+            "suggestion": (
+                f"Could not recall context from Cognee memory (reason: {str(e)}). "
+                "Try ingesting a related session first."
+            )
+        }
