@@ -13,6 +13,10 @@ from sqlalchemy.orm import Session
 router = APIRouter()
 
 
+@router.get("/")
+async def get_contributions():
+    return []
+
 @router.get("/search")
 async def contribute_search(
     session_id: str = Query(None, description="Search based on a specific session's error"),

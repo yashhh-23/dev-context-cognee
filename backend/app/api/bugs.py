@@ -100,6 +100,10 @@ async def search_github_contributions(keyword: str) -> list:
     return []
 
 
+@router.get("/")
+async def get_bugs(limit: int = 30):
+    return []
+
 @router.post("/analyze")
 async def analyze_bug(request: AnalyzeRequest, db: Session = Depends(get_db)):
     """Analyze a session: recall similar bugs from Cognee + search GitHub."""
