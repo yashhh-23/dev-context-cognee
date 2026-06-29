@@ -8,21 +8,29 @@ interface TopbarProps {
   wsStatus: WsStatus
 }
 
+const API_BASE =
+  typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000')
+    : 'http://localhost:8000'
+
 export default function Topbar({ wsStatus }: TopbarProps) {
-  const [repo, setRepo]     = useState<string>('loading...')
+  const [repo,   setRepo]   = useState<string>('dev-context-cognee')
   const [branch, setBranch] = useState<string>('main')
 
   useEffect(() => {
-    // Fetch project context from backend
-    fetch('/api/context/summary')
-      .then(r => r.json())
+    fetch(`${API_BASE}/api/context/summary`)
+      .then(r => {
+        if (!r.ok) throw new Error(`status ${r.status}`)
+        return r.json()
+      })
       .then(d => {
         if (d?.repo)   setRepo(d.repo)
         if (d?.branch) setBranch(d.branch)
       })
       .catch(() => {
+        // Sensible fallback — never show a deleted branch name
         setRepo('dev-context-cognee')
-        setBranch('feature/dashboard-v2')
+        setBranch('main')
       })
   }, [])
 
@@ -36,15 +44,11 @@ export default function Topbar({ wsStatus }: TopbarProps) {
     <header className="topbar">
       <div className="topbar-left">
         <div className="topbar-context">
-          {/* Repo chip */}
           <div className="context-chip" title="Repository">
             <RepoIcon className="chip-icon" />
             {repo}
           </div>
-
           <span className="context-separator">/</span>
-
-          {/* Branch chip */}
           <div className="context-chip" title="Branch">
             <BranchIcon className="chip-icon" />
             {branch}
@@ -53,13 +57,10 @@ export default function Topbar({ wsStatus }: TopbarProps) {
       </div>
 
       <div className="topbar-right">
-        {/* WebSocket live indicator */}
         <div className="ws-indicator" title={`Memory stream: ${statusLabel[wsStatus]}`}>
           <div className={`ws-dot ${wsStatus}`} aria-hidden="true" />
           <span>{statusLabel[wsStatus]}</span>
         </div>
-
-        {/* Theme toggle */}
         <ThemeToggle />
       </div>
     </header>
@@ -92,7 +93,6 @@ function ThemeToggle() {
   )
 }
 
-/* ---- Icons ---- */
 function RepoIcon({ className }: { className?: string }) {
   return (
     <svg className={className} width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">

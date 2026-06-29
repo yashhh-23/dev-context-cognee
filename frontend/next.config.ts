@@ -1,7 +1,25 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
+
+// Derive ws:// from http:// for the WebSocket rewrite
+const WS_BASE = API_BASE.replace(/^http/, 'ws')
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  async rewrites() {
+    return [
+      // Proxy all /api/* requests to FastAPI backend
+      {
+        source: '/api/:path*',
+        destination: `${API_BASE}/api/:path*`,
+      },
+      // Proxy WebSocket upgrade requests
+      {
+        source: '/ws/:path*',
+        destination: `${WS_BASE}/ws/:path*`,
+      },
+    ]
+  },
+}
 
-export default nextConfig;
+export default nextConfig
