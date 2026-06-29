@@ -1,113 +1,86 @@
 'use client';
+import { useState } from 'react';
 
-import { useEffect, useState } from 'react';
+interface RecallResult { node_id: string; content: string; score?: number; type?: string }
 
 export default function RecallTab() {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<RecallResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState('');
-  const [summaryLoading, setSummaryLoading] = useState(true);
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const [searched, setSearched] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      setSummaryLoading(true);
-      try {
-        const res = await fetch(`${apiUrl}/context/summary`);
-        if (res.ok) {
-          const d = await res.json();
-          let text = '';
-          if (d.summary && Array.isArray(d.summary) && d.summary.length > 0)
-            text = d.summary[0].text || JSON.stringify(d.summary[0]);
-          else if (d.summary)
-            text = typeof d.summary === 'string' ? d.summary : JSON.stringify(d.summary);
-          setSummary(text);
-        }
-      } catch {}
-      setSummaryLoading(false);
-    };
-    load();
-  }, [apiUrl]);
-
-  const handleSearch = async (e: React.FormEvent) => {
+  const recall = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
     setLoading(true);
+    setSearched(true);
     try {
-      const res = await fetch(`${apiUrl}/sessions/search?query=${encodeURIComponent(query)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setResults(Array.isArray(data.results) ? data.results : []);
-      } else {
-        setResults([]);
-      }
+      const r = await fetch('http://localhost:8000/api/memory/recall', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      const d = await r.json();
+      setResults(Array.isArray(d) ? d : d.results ?? []);
     } catch {
       setResults([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <div className="animate-in">
-      {/* Context summary */}
-      <div className="context-panel" style={{ marginBottom: 'var(--s5)' }}>
-        <div className="context-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-            <path d="M12 6v6l4 2"/>
-          </svg>
-        </div>
-        <div className="context-body">
-          <div className="context-label">Last recall · Smart context</div>
-          <div className="context-text">
-            {summaryLoading ? (
-              <>
-                <div className="skeleton sk-line" style={{ width: '80%' }} />
-                <div className="skeleton sk-line" style={{ width: '55%' }} />
-              </>
-            ) : summary || 'No context yet. Ingest some logs to build memory.'}
-          </div>
-        </div>
-      </div>
-
-      {/* Search */}
       <div className="panel">
-        <form onSubmit={handleSearch} className="search-form">
+        <form className="search-form" onSubmit={recall}>
           <input
             className="search-input"
-            placeholder="Ask Cognee — what broke in auth? what was I working on?"
+            placeholder="Search memory — e.g. 'auth bug last week', 'null pointer fix'"
             value={query}
             onChange={e => setQuery(e.target.value)}
+            autoFocus
           />
-          <button type="submit" className="btn btn-primary" disabled={loading}>
+          <button className="btn btn-primary" type="submit" disabled={loading}>
             {loading ? '…' : 'Recall'}
           </button>
         </form>
 
-        <div className="search-results">
-          {!results.length && !loading ? (
-            <div className="empty-state" style={{ padding: 'var(--s8) 0' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 28, height: 28 }}>
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-              </svg>
-              <p>Type a question above to search your Cognee knowledge graph.</p>
-            </div>
-          ) : loading ? (
-            [...Array(3)].map((_, i) => (
+        {loading ? (
+          <div className="search-results">
+            {[0, 1, 2].map(i => (
               <div key={i} className="result-card">
-                <div className="skeleton sk-line" style={{ width: '30%', marginBottom: 8 }} />
-                <div className="skeleton sk-line" style={{ width: '85%' }} />
-                <div className="skeleton sk-line" style={{ width: '60%' }} />
+                <div className="skeleton sk-line" style={{ width: '30%', height: 8, marginBottom: 6 }} />
+                <div className="skeleton sk-line" style={{ width: '90%' }} />
+                <div className="skeleton sk-line" style={{ width: '70%' }} />
               </div>
-            ))
-          ) : results.map((r, i) => (
-            <div key={i} className="result-card">
-              <div className="result-label">Result {i + 1}</div>
-              <div className="result-text">{r.text || JSON.stringify(r, null, 2)}</div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : searched && results.length === 0 ? (
+          <div className="empty-state">
+            <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.4">
+              <circle cx="12" cy="12" r="8" /><path d="M18 18 24 24" />
+            </svg>
+            <p>No memory matches found for &ldquo;{query}&rdquo;</p>
+          </div>
+        ) : results.length > 0 ? (
+          <div className="search-results">
+            {results.map((r, i) => (
+              <div key={r.node_id ?? i} className="result-card">
+                <div className="result-label">
+                  {r.type ?? 'memory'}{r.score ? ` · ${(r.score * 100).toFixed(0)}%` : ''}
+                </div>
+                <div className="result-text">{r.content}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.4">
+              <circle cx="12" cy="12" r="8" /><path d="M18 18 24 24" />
+            </svg>
+            <p>Search your Cognee memory graph — sessions, bugs, and context recalled semantically.</p>
+          </div>
+        )}
       </div>
     </div>
   );
