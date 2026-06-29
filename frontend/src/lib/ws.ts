@@ -9,7 +9,7 @@ export interface WsMessage {
   payload: unknown
 }
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000/ws'
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000/ws/notifications'
 const MAX_RETRIES    = 5
 const BASE_DELAY_MS  = 1000
 
