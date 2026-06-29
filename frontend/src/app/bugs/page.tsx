@@ -14,6 +14,22 @@ export default function BugsPage() {
   const [recalling,    setRecalling]    = useState(false)
   const [recallResult, setRecallResult] = useState<string | null>(null)
   const [filter,       setFilter]       = useState<'all' | typeof SEVERITY_ORDER[number]>('all')
+  const [feedbackApplied, setFeedbackApplied] = useState<Record<string, boolean>>({})
+
+  async function submitBugFeedback(e: React.MouseEvent, bugId: string, score: number) {
+    e.stopPropagation()
+    try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/recall/feedback`
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qa_id: bugId, score })
+      })
+      setFeedbackApplied(prev => ({ ...prev, [bugId]: true }))
+    } catch (err) {
+      console.error('Feedback error:', err)
+    }
+  }
 
   useEffect(() => {
     api.getBugs(30)
@@ -119,6 +135,30 @@ export default function BugsPage() {
                     </div>
                     <div className="item-meta">
                       {bug.author} · {formatRelativeSafe(bug.created)}
+                    </div>
+                    
+                    {/* Feedback Rating Bar */}
+                    <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                      {feedbackApplied[bug.id] ? (
+                        <span style={{ fontSize: '10px', color: 'var(--success)', fontWeight: 500 }}>✓ Feedback applied</span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={(e) => submitBugFeedback(e, bug.id, 1)}
+                            className="btn btn-ghost btn-xs"
+                            style={{ fontSize: '10px', padding: '2px 6px', fontFamily: 'var(--font-mono)' }}
+                          >
+                            [👍 Helpful]
+                          </button>
+                          <button
+                            onClick={(e) => submitBugFeedback(e, bug.id, -1)}
+                            className="btn btn-ghost btn-xs"
+                            style={{ fontSize: '10px', padding: '2px 6px', fontFamily: 'var(--font-mono)' }}
+                          >
+                            [👎 Unhelpful]
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                   <SeverityBadge severity={bug.severity} />
