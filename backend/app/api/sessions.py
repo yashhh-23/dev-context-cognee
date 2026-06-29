@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
 from app.models.ingest import SessionResponse
-from app.services.recall_service import get_all_sessions, get_session, search_cognee
+from app.services.recall_service import get_all_sessions, get_session, search_memory
 import cognee
 
 router = APIRouter()
