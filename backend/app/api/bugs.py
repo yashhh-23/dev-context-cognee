@@ -1,3 +1,4 @@
+"""Bugs API — list open GitHub issues + analyze sessions for bug context."""
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -10,10 +11,19 @@ import re
 router = APIRouter()
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+GITHUB_REPO  = os.getenv("GITHUB_REPO", "")
 
 
 class AnalyzeRequest(BaseModel):
     session_id: str
+
+
+def _map_severity(labels: list) -> str:
+    names = [l["name"].lower() for l in labels]
+    if any("critical" in n for n in names): return "critical"
+    if any("high" in n or "bug" in n for n in names): return "high"
+    if any("medium" in n or "enhancement" in n for n in names): return "medium"
+    return "low"
 
 
 def extract_error_keyword(terminal_output: str) -> str:
@@ -31,7 +41,6 @@ def extract_error_keyword(terminal_output: str) -> str:
         if match:
             kw = match.group(1).strip()
             return kw[:80]
-    # Fallback: first non-empty line with content
     for line in terminal_output.splitlines():
         line = line.strip()
         if len(line) > 10:
@@ -45,7 +54,6 @@ async def search_github_issues(keyword: str) -> list:
     if GITHUB_TOKEN:
         headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
     query = f"{keyword} in:title,body is:issue is:open"
-    url = f"https://api.github.com/search/issues?q={httpx.URL('', params={'q': query}).params['q']}&per_page=5&sort=relevance"
     try:
         async with httpx.AsyncClient(timeout=8) as client:
             resp = await client.get(
@@ -100,53 +108,40 @@ async def search_github_contributions(keyword: str) -> list:
     return []
 
 
-GITHUB_REPO = os.getenv("GITHUB_REPO", "")
-
 @router.get("")
 async def list_bugs(limit: int = 30):
-    """Return open issues from the configured GitHub repo."""
-    repo = os.getenv("GITHUB_REPO", "")   # e.g. "yashhh-23/dev-context-cognee"
-    if not repo:
+    """Return open issues from the configured GITHUB_REPO."""
+    if not GITHUB_REPO:
         return []
 
     headers = {"Accept": "application/vnd.github+json"}
     if GITHUB_TOKEN:
         headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
 
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(
-                f"https://api.github.com/repos/{repo}/issues",
-                params={"state": "open", "per_page": limit, "sort": "created"},
-                headers=headers,
-            )
-        if resp.status_code != 200:
-            return []
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.get(
+            f"https://api.github.com/repos/{GITHUB_REPO}/issues",
+            params={"state": "open", "per_page": limit, "sort": "created", "direction": "desc"},
+            headers=headers,
+        )
 
-        items = resp.json()
-        return [
-            {
-                "id":       str(item["number"]),
-                "title":    item["title"],
-                "severity": _map_severity(item.get("labels", [])),
-                "author":   item["user"]["login"],
-                "created":  item["created_at"],
-                "url":      item["html_url"],
-                "labels":   [l["name"] for l in item.get("labels", [])],
-            }
-            for item in items
-            if "pull_request" not in item   # exclude PRs
-        ]
-    except Exception as e:
-        print("Fetch bugs error:", e)
+    if resp.status_code != 200:
         return []
 
-def _map_severity(labels: list) -> str:
-    names = [l["name"].lower() for l in labels]
-    if any("critical" in n for n in names): return "critical"
-    if any("high" in n or "bug" in n for n in names): return "high"
-    if any("medium" in n or "enhancement" in n for n in names): return "medium"
-    return "low"
+    return [
+        {
+            "id":       item["number"],
+            "title":    item["title"],
+            "severity": _map_severity(item.get("labels", [])),
+            "author":   item["user"]["login"],
+            "created":  item["created_at"],
+            "url":      item["html_url"],
+            "labels":   [l["name"] for l in item.get("labels", [])],
+        }
+        for item in resp.json()
+        if "pull_request" not in item
+    ]
+
 
 @router.post("/analyze")
 async def analyze_bug(request: AnalyzeRequest, db: Session = Depends(get_db)):
@@ -158,14 +153,12 @@ async def analyze_bug(request: AnalyzeRequest, db: Session = Depends(get_db)):
     terminal_output = session_record.terminal_output or ""
     keyword = extract_error_keyword(terminal_output)
 
-    # Recall similar bugs from Cognee memory
     try:
         similar = await search_memory(f"bug error: {keyword}")
         similar_bugs = similar if isinstance(similar, list) else []
     except Exception:
         similar_bugs = []
 
-    # Search GitHub in parallel
     github_issues = await search_github_issues(keyword)
     contribution_opportunities = await search_github_contributions(keyword)
 
@@ -191,7 +184,6 @@ async def get_opportunities(db: Session = Depends(get_db)):
     if GITHUB_TOKEN:
         headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
 
-    # Deduplicate keywords from recent sessions
     keywords: list[str] = []
     for s in sessions:
         if s.terminal_output:
