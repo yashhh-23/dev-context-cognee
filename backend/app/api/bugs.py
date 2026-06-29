@@ -100,8 +100,37 @@ async def search_github_contributions(keyword: str) -> list:
     return []
 
 
+GITHUB_REPO = os.getenv("GITHUB_REPO", "")
+
 @router.get("/")
 async def get_bugs(limit: int = 30):
+    if not GITHUB_REPO:
+        return []
+    
+    headers = {"Accept": "application/vnd.github+json"}
+    if GITHUB_TOKEN:
+        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+        
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/issues"
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            resp = await client.get(url, params={"state": "open", "per_page": limit}, headers=headers)
+            if resp.status_code == 200:
+                items = resp.json()
+                return [
+                    {
+                        "id": item["number"],
+                        "title": item["title"],
+                        "url": item["html_url"],
+                        "severity": "high" if any("bug" in l["name"].lower() for l in item.get("labels", [])) else "medium",
+                        "labels": [l["name"] for l in item.get("labels", [])],
+                        "created": item["created_at"],
+                        "author": item["user"]["login"],
+                    }
+                    for item in items if "pull_request" not in item
+                ]
+    except Exception as e:
+        print("Fetch bugs error:", e)
     return []
 
 @router.post("/analyze")
