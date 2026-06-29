@@ -10,7 +10,7 @@ export type RecalledBug = {
   sourceFile?: string;
 };
 
-const bugDecorationType = vscode.window.createTextEditorDecorationType({
+export const bugDecorationType = vscode.window.createTextEditorDecorationType({
   after: {
     contentText: ' ⚠ Similar bug recalled',
     color: '#f59e0b',

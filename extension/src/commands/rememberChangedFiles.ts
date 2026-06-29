@@ -17,7 +17,7 @@ export function registerRememberChangedFilesCommand(
         return;
       }
       const git = gitExtension.getAPI(1);
-      if (!git || !git.repositories.length) {
+      if (!git || !git.repositories || git.repositories.length === 0) {
         vscode.window.showWarningMessage('Dev-Context: No git repositories found.');
         status.error();
         return;
