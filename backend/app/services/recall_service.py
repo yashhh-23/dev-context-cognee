@@ -6,3 +6,9 @@ def get_all_sessions(db: Session, skip: int = 0, limit: int = 100):
 
 def get_session(db: Session, session_id: str):
     return db.query(SessionRecord).filter(SessionRecord.id == session_id).first()
+
+import cognee
+
+async def search_cognee(query: str):
+    # Depending on the new cognee api, usually cognee.search()
+    return await cognee.search(query)

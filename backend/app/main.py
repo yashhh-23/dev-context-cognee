@@ -15,7 +15,6 @@ async def startup_event():
 
 app.include_router(ingest.router, prefix="/ingest", tags=["ingest"])
 app.include_router(sessions.router, prefix="/sessions", tags=["sessions"])
-app.include_router(sessions.router, prefix="/session", tags=["sessions"])
 
 @app.get("/health", tags=["health"])
 def health_check():
