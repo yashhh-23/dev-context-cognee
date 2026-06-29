@@ -2,11 +2,15 @@ import sys
 import subprocess
 import requests
 import os
+import json
+import signal
 from datetime import datetime, timezone
-import typer
+from pathlib import Path
 from typing import Optional
 
-API_URL = "http://localhost:8000/api"
+import typer
+
+from cli.config import load_config, save_config, get_auth_headers
 
 app = typer.Typer(help="CLI for dev-context-cognee memory management.")
 
@@ -21,7 +25,131 @@ def get_project_name():
     return os.path.basename(os.getcwd())
 
 @app.command()
-def ingest(text: Optional[str] = typer.Option(None, help="Text to ingest directly")):
+def config(
+    api_url: Optional[str] = typer.Option(None, help="Backend URL"),
+    api_key: Optional[str] = typer.Option(None, help="Cognee API key"),
+    show: bool = typer.Option(False, "--show", help="Print current config"),
+):
+    """Configure dev-context CLI settings"""
+    cfg = load_config()
+    if show:
+        typer.echo(json.dumps(cfg, indent=2))
+        return
+    if api_url: cfg["api_url"] = api_url
+    if api_key: cfg["api_key"] = api_key
+    save_config(cfg)
+    typer.secho("[SUCCESS] Config saved", fg=typer.colors.GREEN)
+
+@app.command()
+def start(
+    dir: str = typer.Argument(".", help="Project directory to watch"),
+):
+    """Start a dev-context memory session (background daemon)"""
+    cfg = load_config()
+    from cli.daemon import DAEMON_PID_FILE, DAEMON_INFO_FILE
+    
+    if DAEMON_PID_FILE.exists():
+        typer.secho("⚠ Session already running. Run 'dev-context end' first.", 
+                    fg=typer.colors.YELLOW)
+        raise typer.Exit(1)
+    
+    daemon_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "daemon.py")
+    api_key = cfg.get("api_key") or "NONE"
+    
+    if os.name == 'nt':
+        CREATE_NO_WINDOW = 0x08000000
+        subprocess.Popen([sys.executable, daemon_script, cfg["api_url"], api_key, dir], 
+                         creationflags=CREATE_NO_WINDOW)
+    else:
+        pid = os.fork()
+        if pid > 0:
+            project = os.path.basename(os.path.abspath(dir))
+            typer.secho(f"[SUCCESS] Session started for '{project}' (PID {pid})", 
+                        fg=typer.colors.GREEN)
+            typer.echo("  Run 'dev-context end' to stop and distill learnings")
+            return
+        
+        import asyncio
+        from cli.daemon import watch_and_collect
+        DAEMON_PID_FILE.parent.mkdir(exist_ok=True)
+        DAEMON_PID_FILE.write_text(str(os.getpid()))
+        DAEMON_INFO_FILE.write_text(json.dumps({
+            "pid": os.getpid(),
+            "project_dir": os.path.abspath(dir),
+            "start_time": datetime.now().isoformat()
+        }))
+        try:
+            asyncio.run(watch_and_collect(cfg["api_url"], api_key, dir))
+        finally:
+            if DAEMON_PID_FILE.exists():
+                DAEMON_PID_FILE.unlink()
+            if DAEMON_INFO_FILE.exists():
+                DAEMON_INFO_FILE.unlink()
+        sys.exit(0)
+    
+    project = os.path.basename(os.path.abspath(dir))
+    typer.secho(f"[SUCCESS] Session started for '{project}'", fg=typer.colors.GREEN)
+    typer.echo("  Run 'dev-context end' to stop and distill learnings")
+
+@app.command()
+def status():
+    """Check if the background daemon is running"""
+    from cli.daemon import DAEMON_PID_FILE, DAEMON_INFO_FILE
+    if not DAEMON_PID_FILE.exists() or not DAEMON_INFO_FILE.exists():
+        typer.secho("No active session running.", fg=typer.colors.YELLOW)
+        return
+    
+    try:
+        info = json.loads(DAEMON_INFO_FILE.read_text())
+        typer.secho(f"[SUCCESS] Session ACTIVE", fg=typer.colors.GREEN, bold=True)
+        typer.echo(f"  PID: {info.get('pid')}")
+        typer.echo(f"  Project Dir: {info.get('project_dir')}")
+        typer.echo(f"  Started: {info.get('start_time')}")
+    except Exception:
+        typer.secho("Session info file corrupted.", fg=typer.colors.RED)
+
+@app.command()
+def end(
+    distill: bool = typer.Option(True, help="Distill session learnings into permanent memory"),
+):
+    """End session and optionally distill learnings into Cognee graph"""
+    from cli.daemon import DAEMON_PID_FILE, DAEMON_INFO_FILE
+    if not DAEMON_PID_FILE.exists():
+        typer.secho("No active session found.", fg=typer.colors.YELLOW)
+        raise typer.Exit(1)
+    
+    pid = int(DAEMON_PID_FILE.read_text())
+    try:
+        if os.name == 'nt':
+            subprocess.run(["taskkill", "/F", "/PID", str(pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            os.kill(pid, signal.SIGTERM)
+    except Exception:
+        pass
+    
+    if DAEMON_PID_FILE.exists():
+        DAEMON_PID_FILE.unlink()
+    if DAEMON_INFO_FILE.exists():
+        DAEMON_INFO_FILE.unlink()
+    
+    if distill:
+        cfg = load_config()
+        with typer.progressbar(length=1, label="Distilling session learnings") as progress:
+            try:
+                requests.post(f"{cfg['api_url']}/session/end", 
+                              json={"trigger_distillation": True},
+                              headers=get_auth_headers(cfg), timeout=30)
+            except Exception:
+                pass
+            progress.update(1)
+        typer.secho("[SUCCESS] Session distilled into permanent memory", fg=typer.colors.GREEN)
+
+@app.command()
+def ingest(
+    text: Optional[str] = typer.Option(None, help="Text to ingest directly"),
+    source: str = typer.Option("cli", help="Source of the data"),
+    silent: bool = typer.Option(False, "--silent", help="Do not print success message"),
+):
     """Ingest terminal output (via pipe) or text into Cognee memory"""
     terminal_output = text
     
@@ -39,44 +167,107 @@ def ingest(text: Optional[str] = typer.Option(None, help="Text to ingest directl
         "project": project_name,
         "branch": branch_name,
         "terminal_output": terminal_output,
-        "tags": ["cli-ingest"],
+        "tags": [source],
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
+    cfg = load_config()
     try:
-        response = requests.post(f"{API_URL}/ingest/", json=payload)
+        response = requests.post(f"{cfg['api_url']}/ingest/", json=payload, headers=get_auth_headers(cfg))
         if response.status_code == 200:
-            typer.secho(f"[SUCCESS] Successfully ingested to Cognee! Session ID: {response.json().get('session_id')}", fg=typer.colors.GREEN)
+            if not silent:
+                typer.secho(f"[SUCCESS] Successfully ingested to Cognee! Session ID: {response.json().get('session_id')}", fg=typer.colors.GREEN)
         else:
-            typer.secho(f"[ERROR] Failed to ingest. Status code: {response.status_code}", fg=typer.colors.RED)
-            typer.echo(response.text)
+            if not silent:
+                typer.secho(f"[ERROR] Failed to ingest. Status code: {response.status_code}", fg=typer.colors.RED)
+                typer.echo(response.text)
     except Exception as e:
-        typer.secho(f"[ERROR] Connection error: {e}", fg=typer.colors.RED)
+        if not silent:
+            typer.secho(f"[ERROR] Connection error: {e}", fg=typer.colors.RED)
 
 @app.command()
-def recall(query: str):
+def recall(
+    query: str = typer.Argument(...),
+    top_k: int = typer.Option(5, "--top", "-n"),
+    interactive: bool = typer.Option(False, "--interactive", "-i", help="Interactive mode with feedback"),
+):
     """Query Cognee memory for past context"""
+    from rich.console import Console
+    from rich.panel import Panel
+    
+    cfg = load_config()
+    console = Console()
+    
+    with console.status("[bold cyan]Searching memory...[/bold cyan]"):
+        try:
+            resp = requests.post(f"{cfg['api_url']}/recall",
+                                 json={"query": query, "limit": top_k},
+                                 headers=get_auth_headers(cfg))
+        except Exception as e:
+            console.print(f"[red]Connection error: {e}[/red]")
+            return
+            
+    if resp.status_code != 200:
+        console.print(f"[red]Failed to recall. Status code: {resp.status_code}[/red]")
+        return
+        
+    results = resp.json().get("bugs", [])
+    
+    if not results:
+        console.print("[yellow]No memories found for this query.[/yellow]")
+        return
+    
+    for i, r in enumerate(results, 1):
+        score = r.get("score", 0.0)
+        score_color = "green" if score > 0.8 else "yellow" if score > 0.5 else "red"
+        content = r.get('content', '').strip()
+        
+        panel = Panel(
+            f"{content}",
+            title=f"[bold]#{i}[/bold] [{score_color}]{score:.0%} match[/{score_color}]",
+            subtitle=f"[dim]ID: {r.get('id', 'N/A')}[/dim]",
+            border_style=score_color,
+        )
+        console.print(panel)
+        
+        if interactive:
+            feedback = typer.confirm(f"  Was result #{i} helpful?")
+            if feedback is not None:
+                try:
+                    requests.post(f"{cfg['api_url']}/recall/feedback",
+                                  json={"session_id": r.get('id'), "score": 1 if feedback else -1},
+                                  headers=get_auth_headers(cfg))
+                except Exception:
+                    pass
+
+@app.command()
+def improve(
+    session_id: str = typer.Argument(..., help="Session ID to improve"),
+    feedback: str = typer.Option(..., "--feedback", "-f", prompt="What was useful about this memory?"),
+    score: int = typer.Option(1, "--score", "-s", help="1=helpful, -1=not useful"),
+):
+    """Improve a recalled memory with your feedback"""
+    cfg = load_config()
     try:
-        response = requests.get(f"{API_URL}/recall/", params={"q": query})
-        if response.status_code == 200:
-            results = response.json()
-            if not results:
-                typer.echo("No matching memories found.")
-                return
-            for idx, res in enumerate(results, 1):
-                typer.secho(f"[{idx}] (Score: {res.get('score', 0):.2f})", fg=typer.colors.CYAN)
-                typer.echo(res.get('content', '').strip())
-                typer.echo("-" * 40)
+        resp = requests.post(
+            f"{cfg['api_url']}/recall/feedback",
+            json={"session_id": session_id, "feedback": feedback, "score": score},
+            headers=get_auth_headers(cfg)
+        )
+        if resp.status_code == 200:
+            verb = "strengthened" if score > 0 else "flagged for review"
+            typer.secho(f"[SUCCESS] Memory {verb}", fg=typer.colors.GREEN)
         else:
-            typer.secho(f"[ERROR] Failed to recall. Status code: {response.status_code}", fg=typer.colors.RED)
+            typer.secho(f"[ERROR] Failed: {resp.text}", fg=typer.colors.RED)
     except Exception as e:
         typer.secho(f"[ERROR] Connection error: {e}", fg=typer.colors.RED)
 
 @app.command()
 def forget(session_id: str):
     """Delete a memory session from Cognee"""
+    cfg = load_config()
     try:
-        response = requests.delete(f"{API_URL}/forget/{session_id}")
+        response = requests.delete(f"{cfg['api_url']}/forget/{session_id}", headers=get_auth_headers(cfg))
         if response.status_code == 200:
             typer.secho(f"[SUCCESS] Session {session_id} forgotten.", fg=typer.colors.GREEN)
         else:
@@ -86,57 +277,68 @@ def forget(session_id: str):
         typer.secho(f"[ERROR] Connection error: {e}", fg=typer.colors.RED)
 
 @app.command()
-def watch():
-    """Starts capturing terminal output to a log file"""
-    log_file = os.path.join(os.getcwd(), ".devcontext.log")
-    if os.name == 'nt':
-        typer.secho(f"Starting PowerShell transcript to {log_file}...", fg=typer.colors.CYAN)
-        typer.secho("Type 'exit' to stop the session, then run 'dev-context stop' to ingest.", fg=typer.colors.YELLOW)
-        # Spawn a powershell with transcript
-        subprocess.run(["powershell", "-NoExit", "-Command", f"Start-Transcript -Path '{log_file}'"])
-    else:
-        typer.secho(f"Starting script capture to {log_file}...", fg=typer.colors.CYAN)
-        typer.secho("Type 'exit' to stop the session, then run 'dev-context stop' to ingest.", fg=typer.colors.YELLOW)
-        os.system(f"script -q {log_file}")
-
-@app.command()
-def stop():
-    """Stops capturing and ingests the session from the log file"""
-    log_file = os.path.join(os.getcwd(), ".devcontext.log")
-    if not os.path.exists(log_file):
-        typer.secho("No active session log found (.devcontext.log). Run 'dev-context watch' first.", fg=typer.colors.RED)
-        raise typer.Exit(1)
-    
-    with open(log_file, "r", encoding="utf-8", errors="replace") as f:
-        content = f.read()
-    
-    typer.secho("Ingesting captured session...", fg=typer.colors.CYAN)
-    
-    # Process the content using the ingest logic
-    project_name = get_project_name()
-    branch_name = get_git_branch()
-    
-    payload = {
-        "project": project_name,
-        "branch": branch_name,
-        "terminal_output": content,
-        "tags": ["cli-watch"],
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
-    
-    try:
-        response = requests.post(f"{API_URL}/ingest/", json=payload)
-        if response.status_code == 200:
-            typer.secho(f"[SUCCESS] Successfully ingested watched session! Session ID: {response.json().get('session_id')}", fg=typer.colors.GREEN)
-            try:
-                os.remove(log_file)
-                typer.echo("Cleaned up log file.")
-            except Exception:
-                pass
+def install_hook(
+    shell: str = typer.Option("auto", help="Shell type: powershell/zsh/bash/auto"),
+):
+    """Install shell error hook for automatic error capture"""
+    if shell == "auto":
+        if os.name == 'nt':
+            shell = "powershell"
         else:
-            typer.secho(f"[ERROR] Failed to ingest session. Status: {response.status_code}", fg=typer.colors.RED)
-    except Exception as e:
-        typer.secho(f"[ERROR] Connection error: {e}", fg=typer.colors.RED)
+            shell_env = os.environ.get("SHELL", "")
+            if "zsh" in shell_env:
+                shell = "zsh"
+            else:
+                shell = "bash"
+
+    if shell == "powershell":
+        profile_path = subprocess.run(["powershell", "-NoProfile", "-Command", "echo $PROFILE"], capture_output=True, text=True).stdout.strip()
+        if not profile_path:
+            profile_path = str(Path.home() / "Documents" / "WindowsPowerShell" / "Microsoft.PowerShell_profile.ps1")
+        
+        hook_ps1 = """
+# dev-context memory hook
+if (-not (Test-Path Function:\\prompt_orig)) {
+    Rename-Item -Path Function:\\prompt -NewName prompt_orig -ErrorAction SilentlyContinue
+}
+function prompt {
+    $last_exit = $global:LASTEXITCODE
+    $last_success = $?
+    if (-not $last_success -and $last_exit -ne 0) {
+        $last_cmd = (Get-History -Count 1 | Select-Object -ExpandProperty CommandLine)
+        if ($last_cmd) {
+            Start-Process -NoNewWindow -FilePath "dev-context" -ArgumentList "ingest", "--text", "EXIT_CODE:$last_exit CMD:$last_cmd PWD:$PWD", "--source", "shell-error", "--silent"
+        }
+    }
+    if (Test-Path Function:\\prompt_orig) {
+        prompt_orig
+    } else {
+        "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "
+    }
+}
+"""
+        os.makedirs(os.path.dirname(profile_path), exist_ok=True)
+        with open(profile_path, "a", encoding="utf-8") as f:
+            f.write(hook_ps1)
+        typer.secho(f"[SUCCESS] Hook installed in {profile_path}. Restart PowerShell to activate.", fg=typer.colors.GREEN)
+
+    elif shell in ["zsh", "bash"]:
+        shell_rc = Path.home() / f".{shell}rc"
+        hook_line = """
+_devcontext_hook() {
+    local exit_code=$?
+    if [ $exit_code -ne 0 ] && command -v dev-context &>/dev/null; then
+        local last_cmd=$(fc -ln -1 2>/dev/null || history 1 | sed 's/^ *[0-9]* *//')
+        dev-context ingest --text "EXIT_CODE:$exit_code CMD:$last_cmd PWD:$(pwd)" --source "shell-error" --silent &
+    fi
+}
+trap '_devcontext_hook' ERR
+"""
+        with open(shell_rc, "a") as f:
+            f.write(f"\n# dev-context memory hook\n{hook_line}\n")
+        typer.secho(f"[SUCCESS] Hook installed in {shell_rc}. Restart terminal to activate.", fg=typer.colors.GREEN)
+    else:
+        typer.secho(f"Unsupported shell: {shell}", fg=typer.colors.RED)
 
 if __name__ == "__main__":
     app()
