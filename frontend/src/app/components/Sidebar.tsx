@@ -1,69 +1,97 @@
 'use client';
 
-import { Tab } from '../page';
+interface SidebarProps {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+  bugCount?: number;
+  contributeCount?: number;
+}
 
-type Props = { activeTab: Tab; onTabChange: (t: Tab) => void };
+export default function Sidebar({ activeTab, onTabChange, bugCount = 0, contributeCount = 0 }: SidebarProps) {
+  const nav = [
+    { id: 'overview',   label: 'Overview',   icon: <GridIcon /> },
+    { id: 'bugs',       label: 'Bugs',        icon: <BugIcon />,   badge: bugCount > 0 ? { val: bugCount, cls: 'red' } : null },
+    { id: 'contribute', label: 'Contribute',  icon: <GitPRIcon />, badge: contributeCount > 0 ? { val: contributeCount, cls: 'green' } : null },
+    { id: 'recall',     label: 'Recall',      icon: <SearchIcon /> },
+  ] as const;
 
-const NAV: { id: Tab; label: string; icon: string; badgeKey?: string }[] = [
-  { id: 'overview',   label: 'Overview',   icon: 'grid' },
-  { id: 'bugs',       label: 'Bugs',       icon: 'bug',       badgeKey: 'bugs' },
-  { id: 'contribute', label: 'Contribute', icon: 'git-pull-request', badgeKey: 'contribute' },
-  { id: 'recall',     label: 'Recall',     icon: 'search' },
-];
-
-const icons: Record<string, string> = {
-  grid: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
-  bug: '<path d="M8 2a4 4 0 1 0 8 0"/><path d="M12 10v4"/><path d="M10 12h4"/><circle cx="12" cy="14" r="6"/>',
-  'git-pull-request': '<circle cx="6" cy="6" r="3"/><path d="M6 9v12"/><path d="M21 3l-6 6"/><path d="M15 3h6v6"/><circle cx="18" cy="18" r="3"/>',
-  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>',
-  branch: '<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
-  zap: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
-};
-
-const Svg = ({ name, size = 14 }: { name: string; size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: icons[name] ?? '' }} />
-);
-
-export default function Sidebar({ activeTab, onTabChange }: Props) {
   return (
     <nav className="sidebar">
-      {/* Logo */}
       <div className="sidebar-logo">
-        <svg className="sidebar-logo-mark" viewBox="0 0 22 22" fill="none">
-          <rect x="1" y="1" width="20" height="20" rx="5" fill="#3b82f6" fillOpacity="0.15" stroke="#3b82f6" strokeWidth="1.2"/>
-          <path d="M7 11h3l2-4 2 8 2-4h1" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <svg className="sidebar-logo-mark" viewBox="0 0 20 20" fill="none" aria-label="DevContext logo">
+          <rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.4" opacity="0.9"/>
+          <rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.4" opacity="0.5"/>
+          <rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.4" opacity="0.5"/>
+          <rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.4" opacity="0.3"/>
         </svg>
-        <div>
-          <div className="sidebar-logo-text">DevContext</div>
-          <div className="sidebar-logo-sub">Cognee · memory</div>
-        </div>
+        <span className="sidebar-logo-name">DevContext</span>
+        <span className="sidebar-logo-tag">v0.1</span>
       </div>
 
-      {/* Workspace nav */}
-      <div className="sidebar-section">
-        <div className="sidebar-label">Workspace</div>
-        {NAV.map(item => (
-          <button
-            key={item.id}
-            className={`sidebar-nav-item${activeTab === item.id ? ' active' : ''}`}
-            onClick={() => onTabChange(item.id)}
-          >
-            <Svg name={item.icon} />
-            {item.label}
-          </button>
-        ))}
+      <div className="sidebar-nav">
+        <div className="sidebar-group-label">Workspace</div>
+        {nav.map(item => {
+          const badge = 'badge' in item ? item.badge : null;
+          return (
+            <button
+              key={item.id}
+              className={`nav-item${activeTab === item.id ? ' active' : ''}`}
+              onClick={() => onTabChange(item.id)}
+            >
+              {item.icon}
+              {item.label}
+              {badge && (
+                <span className={`nav-badge ${badge.cls}`}>{badge.val}</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="sidebar-divider" />
-
-      {/* Context footer */}
-      <div className="sidebar-context">
-        <div className="ctx-row">
-          <span className="ctx-dot" />
-          <span className="ctx-text">Cognee sync active</span>
+      <div className="sidebar-footer">
+        <div className="footer-row">
+          <span className="status-dot" />
+          <span className="footer-text">cognee memory</span>
         </div>
-        <div className="ctx-sub">3s ago</div>
+        <div className="footer-sub">active · graph+vector</div>
       </div>
     </nav>
+  );
+}
+
+function GridIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
+      <rect x="1" y="1" width="5" height="5" rx="1"/>
+      <rect x="8" y="1" width="5" height="5" rx="1"/>
+      <rect x="1" y="8" width="5" height="5" rx="1"/>
+      <rect x="8" y="8" width="5" height="5" rx="1"/>
+    </svg>
+  );
+}
+function BugIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
+      <circle cx="7" cy="8" r="3.5"/>
+      <path d="M5 3.5 7 5 9 3.5M2 7h2M10 7h2M3 10.5l1.5-1M11 10.5l-1.5-1M3 5.5l1.5 1M11 5.5l-1.5 1"/>
+    </svg>
+  );
+}
+function GitPRIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
+      <circle cx="3" cy="3.5" r="1.5"/>
+      <circle cx="3" cy="10.5" r="1.5"/>
+      <circle cx="11" cy="4.5" r="1.5"/>
+      <path d="M3 5v3M3 12v-.5M11 6c0 3-2.5 4.5-5 4.5H5"/>
+    </svg>
+  );
+}
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
+      <circle cx="6" cy="6" r="4"/>
+      <path d="M9.5 9.5 12 12"/>
+    </svg>
   );
 }
