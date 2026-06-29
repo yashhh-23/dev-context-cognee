@@ -105,8 +105,8 @@ async def process_file_ingest(session_id: str, payload: dict, byok_key: str = No
         symbols_str = f"Symbols: {', '.join(symbols)}" if symbols else ""
         formatted_content = f"File: {file_name}\nLanguage: {lang}\nSource: {source}\n{symbols_str}\nContent:\n{content}"
 
-        await cognee.add(formatted_content, dataset_name="main_dataset")
-        
+        result = await cognee.add(formatted_content, dataset_name="main_dataset")
+        record.cognee_response_id = str(result.id) if hasattr(result, 'id') else None
         _cognify_event.set()
         asyncio.create_task(_debounced_cognify())
 

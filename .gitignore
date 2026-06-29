@@ -23,5 +23,11 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
-*.egg-info/
 .vscode/
+
+# Python build artifacts
+dev_context.egg-info/
+*.egg-info/
+dist/
+.pytest_cache/
+.mypy_cache/

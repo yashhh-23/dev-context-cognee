@@ -276,7 +276,7 @@ export default function OverviewClient() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                     <span style={{ fontSize: '10px', color: 'var(--color-text-faint)', fontFamily: 'var(--font-mono)' }}>
-                      {formatRelative(s.last_active || s.started_at)}
+                      {formatRelative(s.started_at)}
                     </span>
                     <span className="badge badge-info" style={{ fontSize: '9px', fontVariantNumeric: 'tabular-nums' }}>
                       {s.context_size} nodes

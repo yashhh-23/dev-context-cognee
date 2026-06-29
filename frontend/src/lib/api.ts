@@ -190,7 +190,6 @@ export interface Session {
   repo: string
   branch: string
   started_at: string
-  last_active: string
   context_size: number
   summary?: string
   status?: string
