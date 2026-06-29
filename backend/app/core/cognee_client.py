@@ -5,8 +5,16 @@ from app.core.config import settings
 def init_cognee():
     """Initialise Cognee with LLM config if provided."""
     try:
-        if settings.OPENAI_API_KEY:
-            # Use the supported config API (not deprecated direct attribute assignment)
+        if settings.GEMINI_API_KEY:
+            import os
+            os.environ["GEMINI_API_KEY"] = settings.GEMINI_API_KEY
+            cognee.config.set_llm_config(
+                provider="gemini",
+                model="gemini/gemini-1.5-pro",
+                api_key=settings.GEMINI_API_KEY,
+            )
+        elif settings.OPENAI_API_KEY:
+            # Use the supported config API
             cognee.config.set_llm_config(
                 provider="openai",
                 model=settings.LLM_MODEL or "gpt-4o-mini",
