@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.recall_service import get_all_sessions
+from app.core.graph_builder import build_graph
+from app.models.session import SessionRecord
 from collections import Counter
 import datetime
 import httpx
@@ -40,13 +42,23 @@ async def get_stats(db: Session = Depends(get_db)):
     total    = len(sessions)
 
     open_bugs = await _get_open_bug_count()
-    memory_nodes = total
     health = max(0, 100 - open_bugs * 2)
+
+    try:
+        graph_data = build_graph(sessions)
+        memory_nodes = len(graph_data.get("nodes", []))
+    except Exception:
+        memory_nodes = total
+
+    today_start = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    recalled_today = db.query(SessionRecord).filter(
+        SessionRecord.timestamp >= today_start
+    ).count()
 
     last_session = ""
     if sessions:
         try:
-            last_session = sessions[-1].timestamp.isoformat()
+            last_session = sessions[0].timestamp.isoformat()
         except Exception:
             last_session = ""
 
@@ -54,7 +66,7 @@ async def get_stats(db: Session = Depends(get_db)):
         "total_sessions":  total,
         "open_bugs":       open_bugs,
         "memory_nodes":    memory_nodes,
-        "recalled_today":  0,
+        "recalled_today":  recalled_today,
         "last_session":    last_session,
         "health_score":    health,
     }
