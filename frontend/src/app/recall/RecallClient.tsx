@@ -442,8 +442,33 @@ export default function RecallClient() {
                     )}
 
                     {msg.role === 'assistant' && msg.correction && (
-                      <div style={{ fontSize: '10px', color: '#2dd4bf', fontFamily: 'var(--font-mono)', marginTop: '2px', padding: '0 var(--space-2)' }}>
-                        ✓ Corrected: &ldquo;{msg.correction}&rdquo; (Cognee updated)
+                      <div style={{
+                        width: '100%',
+                        marginTop: 'var(--space-2)',
+                        padding: 'var(--space-3)',
+                        background: 'var(--color-surface-offset)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--color-border)',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '11px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 'var(--space-2)',
+                      }}>
+                        <div style={{ fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          ⚡ Memory Delta (Before vs. After)
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <div style={{ color: 'var(--color-error)', textDecoration: 'line-through', padding: '4px 6px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                            - {msg.content.slice(0, 150)}{msg.content.length > 150 ? '...' : ''}
+                          </div>
+                          <div style={{ color: 'var(--color-success)', padding: '4px 6px', background: 'rgba(34, 197, 94, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                            + {msg.correction}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '9px', color: 'var(--color-text-faint)' }}>
+                          ✓ cognee.improve() dispatched. Context updated successfully.
+                        </div>
                       </div>
                     )}
                   </div>

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Text, JSON, Boolean
+from sqlalchemy import Column, String, DateTime, Text, JSON, Boolean, Integer
 from sqlalchemy.ext.hybrid import hybrid_property
 from app.core.database import Base
 from app.core.byok import decrypt_data, byok_key_var
@@ -18,6 +18,7 @@ class SessionRecord(Base):
     tags = Column(JSON, nullable=True)
     github_url = Column(String, nullable=True)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    context_size = Column(Integer, default=1, nullable=True)
     
     # Tracking Cognee ingestion status
     status = Column(String, default="queued") # queued, processing, completed, failed
