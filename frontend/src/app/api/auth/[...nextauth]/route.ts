@@ -24,7 +24,7 @@ const handler = NextAuth({
   session: {
     strategy: 'jwt',
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || 'dev-context-cognee-super-secret-key-12345',
 })
 
 export { handler as GET, handler as POST }
