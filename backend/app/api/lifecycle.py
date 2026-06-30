@@ -17,6 +17,38 @@ import httpx
 
 router = APIRouter()
 
+from cognee.modules.session_lifecycle import ensure_session, mark_ended, SessionStatus
+from cognee.modules.session_distillation import distill_session
+import uuid
+
+class SessionStartRequest(BaseModel):
+    sessionId: str
+    workspaceName: Optional[str] = None
+
+class SessionEndRequest(BaseModel):
+    sessionId: str
+    triggerDistillation: bool = True
+
+_default_user = uuid.UUID("00000000-0000-0000-0000-000000000000")
+
+@router.post("/session/start")
+async def start_session(body: SessionStartRequest):
+    try:
+        await ensure_session(session_id=body.sessionId, user_id=_default_user)
+        return {"status": "started", "session_id": body.sessionId}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start session: {str(e)}")
+
+@router.post("/session/end")
+async def end_session(body: SessionEndRequest):
+    try:
+        await mark_ended(session_id=body.sessionId, user_id=_default_user, status=SessionStatus.COMPLETED)
+        if body.triggerDistillation:
+            await distill_session(session_id=body.sessionId, dataset="main_dataset")
+        return {"status": "ended", "session_id": body.sessionId}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to end session: {str(e)}")
+
 # In-memory cache for text embeddings during deduplication runs
 _embedding_cache: dict[str, list[float]] = {}
 

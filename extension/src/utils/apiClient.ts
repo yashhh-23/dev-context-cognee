@@ -87,6 +87,7 @@ export class ApiClient {
     fileName: string;
     languageId: string;
     source: string;
+    symbols?: string[];
   }) {
     return this.request('/api/ingest', {
       method: 'POST',
@@ -108,6 +109,27 @@ export class ApiClient {
     codeSnippet: string;
   }) {
     return this.request<{ title?: string; body?: string }>('/api/bugs/draft-issue', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async startSession(payload: { sessionId: string; workspaceName: string }) {
+    return this.request<{ status: string }>('/api/session/start', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async endSession(payload: { sessionId: string; triggerDistillation: boolean }) {
+    return this.request<{ status: string }>('/api/session/end', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async submitFeedback(payload: { qaId: string; score: number; sessionId: string }) {
+    return this.request<{ status: string }>('/api/recall/feedback', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
