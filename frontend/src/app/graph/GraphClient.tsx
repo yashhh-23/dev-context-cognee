@@ -90,9 +90,8 @@ export default function GraphClient() {
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- state update inside effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial stats fetch
     fetchStats()
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- state update inside effect
     loadGraph()
   }, [loadGraph])
 

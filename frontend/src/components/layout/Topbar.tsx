@@ -59,13 +59,14 @@ function ThemeToggle() {
   useEffect(() => {
     if (typeof document !== 'undefined') {
       const active = document.documentElement.getAttribute('data-theme') as 'dark' | 'light' || 'dark'
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- initial theme sync on mount
       setTheme(active)
     }
   }, [])
 
   function toggle(event: React.MouseEvent<HTMLButtonElement>) {
     const next = theme === 'dark' ? 'light' : 'dark'
-    const doc = document as any
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => { ready: Promise<void> } }
 
     if (!doc.startViewTransition) {
       setTheme(next)
