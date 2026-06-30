@@ -4,6 +4,7 @@ import DashboardShell from '@/components/layout/DashboardShell'
 import { WebSocketProvider } from '@/context/WebSocketContext'
 import BackendStatusBanner from '@/components/shared/BackendStatusBanner'
 import { Toaster } from 'sonner'
+import { AuthProvider } from '@/context/AuthProvider'
 
 export const metadata: Metadata = {
   title: 'Dev·Context — Cognee Memory Dashboard',
@@ -22,11 +23,13 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body>
-        <WebSocketProvider>
-          <BackendStatusBanner />
-          <DashboardShell>{children}</DashboardShell>
-          <Toaster theme="dark" closeButton position="top-right" />
-        </WebSocketProvider>
+        <AuthProvider>
+          <WebSocketProvider>
+            <BackendStatusBanner />
+            <DashboardShell>{children}</DashboardShell>
+            <Toaster theme="dark" closeButton position="top-right" />
+          </WebSocketProvider>
+        </AuthProvider>
       </body>
     </html>
   )
