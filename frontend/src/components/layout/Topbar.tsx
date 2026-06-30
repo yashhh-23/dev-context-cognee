@@ -1,19 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-
-type WsStatus = 'connected' | 'connecting' | 'disconnected'
-
-interface TopbarProps {
-  wsStatus: WsStatus
-}
+import ConnectionStatus from '@/components/shared/ConnectionStatus'
 
 const API_BASE =
   typeof window !== 'undefined'
     ? (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000')
     : 'http://localhost:8000'
 
-export default function Topbar({ wsStatus }: TopbarProps) {
+export default function Topbar() {
   const [repo,   setRepo]   = useState<string>('dev-context-cognee')
   const [branch, setBranch] = useState<string>('main')
 
@@ -34,12 +29,6 @@ export default function Topbar({ wsStatus }: TopbarProps) {
       })
   }, [])
 
-  const statusLabel: Record<WsStatus, string> = {
-    connected:    'live',
-    connecting:   'connecting',
-    disconnected: 'offline',
-  }
-
   return (
     <header className="topbar">
       <div className="topbar-left">
@@ -56,11 +45,8 @@ export default function Topbar({ wsStatus }: TopbarProps) {
         </div>
       </div>
 
-      <div className="topbar-right">
-        <div className="ws-indicator" title={`Memory stream: ${statusLabel[wsStatus]}`}>
-          <div className={`ws-dot ${wsStatus}`} aria-hidden="true" />
-          <span>{statusLabel[wsStatus]}</span>
-        </div>
+      <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+        <ConnectionStatus />
         <ThemeToggle />
       </div>
     </header>
