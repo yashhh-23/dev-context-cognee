@@ -12,7 +12,10 @@ class Settings(BaseSettings):
     LLM_MODEL:     Optional[str] = "gemini/gemini-1.5-pro"
 
     class Config:
-        env_file = ".env"
+        import os
+        from pathlib import Path
+        BASE_DIR = Path(__file__).resolve().parent.parent.parent
+        env_file = os.path.join(BASE_DIR, ".env")
         extra = "allow"
 
 
