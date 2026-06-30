@@ -2,6 +2,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
+import asyncio
+import subprocess
+import sys
 
 from app.core.database import init_db
 from app.api import ingest, sessions, context, bugs, recall, graph, stats, lifecycle, contribute, ws, memory_health
@@ -67,11 +70,47 @@ def health():
 
 
 @app.get("/api/dependencies/health")
-def dependencies_health():
-    return {
-        "total_dependencies": 42,
-        "outdated_count": 3,
-        "vulnerable_count": 0,
-        "packages": []
-    }
+async def dependencies_health():
+    """
+    Real dependency health check — runs `pip list --outdated` in a
+    subprocess and parses the JSON output. Falls back gracefully if
+    pip is unavailable or the environment is restricted.
+    """
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            sys.executable, "-m", "pip", "list", "--outdated", "--format=json",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=30)
+        import json
+        outdated_packages = json.loads(stdout.decode()) if stdout else []
+    except Exception:
+        outdated_packages = []
 
+    # Count installed packages for total_dependencies
+    try:
+        proc2 = await asyncio.create_subprocess_exec(
+            sys.executable, "-m", "pip", "list", "--format=json",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        stdout2, _ = await asyncio.wait_for(proc2.communicate(), timeout=30)
+        import json as _json
+        all_packages = _json.loads(stdout2.decode()) if stdout2 else []
+    except Exception:
+        all_packages = []
+
+    return {
+        "total_dependencies": len(all_packages),
+        "outdated_count": len(outdated_packages),
+        "vulnerable_count": 0,  # Reserved: integrate pip-audit for real CVE scanning
+        "packages": [
+            {
+                "name": pkg["name"],
+                "current_version": pkg["version"],
+                "latest_version": pkg["latest_version"],
+            }
+            for pkg in outdated_packages
+        ],
+    }
