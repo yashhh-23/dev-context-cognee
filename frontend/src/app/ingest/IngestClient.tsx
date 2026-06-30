@@ -216,9 +216,9 @@ export default function IngestClient() {
         </div>
 
         {/* Streaming Console Log Panel (Right) */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '420px', padding: 0, overflow: 'hidden', background: '#0a0a09', border: '1px solid var(--color-border)' }}>
-          <div className="card-header" style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid #1a1a19', background: '#121211', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 'bold', color: '#2dd4bf' }}>🖥 Ingest console stream</span>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '420px', padding: 0, overflow: 'hidden', background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+          <div className="card-header" style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface-offset)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 'bold', color: 'var(--color-primary)' }}>🖥 Ingest console stream</span>
             <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)' }}>WebSocket status: {status}</span>
           </div>
 
@@ -238,10 +238,10 @@ export default function IngestClient() {
             ) : (
               logs.map(log => {
                 const colorMap = {
-                  info: '#e2e0db',
-                  success: '#4ade80',
-                  error: '#f87171',
-                  warning: '#fbbf24',
+                  info: 'var(--color-text)',
+                  success: 'var(--color-success)',
+                  error: 'var(--color-error)',
+                  warning: 'var(--color-warning)',
                 }
                 return (
                   <div
@@ -256,7 +256,7 @@ export default function IngestClient() {
                       alignItems: 'baseline',
                     }}
                   >
-                    <span style={{ color: '#4a4846', flexShrink: 0, fontSize: '10px' }}>
+                    <span style={{ color: 'var(--color-text-faint)', flexShrink: 0, fontSize: '10px' }}>
                       {log.time.toLocaleTimeString('en', { hour12: false })}
                     </span>
                     <span style={{ wordBreak: 'break-all', flex: 1 }}>
@@ -271,13 +271,13 @@ export default function IngestClient() {
 
           {/* Progress Bar inside Terminal Footer */}
           {ingestStatus === 'running' && (
-            <div style={{ padding: 'var(--space-3)', background: '#121211', borderTop: '1px solid #1a1a19', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#2dd4bf' }}>
+            <div style={{ padding: 'var(--space-3)', background: 'var(--color-surface-offset)', borderTop: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-primary)' }}>
                 <span>indexing codebase...</span>
                 <span>{progress}%</span>
               </div>
-              <div style={{ width: '100%', height: '6px', background: '#242422', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                <div style={{ width: `${progress}%`, height: '100%', background: '#2dd4bf', borderRadius: 'var(--radius-full)', transition: 'width 0.2s ease-out' }} />
+              <div style={{ width: '100%', height: '6px', background: 'var(--color-divider)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                <div style={{ width: `${progress}%`, height: '100%', background: 'var(--color-primary)', borderRadius: 'var(--radius-full)', transition: 'width 0.2s ease-out' }} />
               </div>
             </div>
           )}
