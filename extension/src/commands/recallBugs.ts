@@ -3,6 +3,9 @@ import { ApiClient } from '../utils/apiClient';
 import { summarizeDocumentStructure, isSupportedLanguage } from '../utils/languageDetector';
 import { StatusSetter, ProviderBridge } from './rememberContext';
 import { applyBugDecorations } from '../decorations/bugDecorator';
+import { checkAndSuggestMemify } from './suggestMemify';
+import { SessionTracker } from '../utils/sessionTracker';
+import { StateManager } from '../utils/stateManager';
 
 export function registerRecallBugsCommand(
   context: vscode.ExtensionContext,
@@ -74,6 +77,12 @@ export function registerRecallBugsCommand(
           `Dev-Context: No similar bugs found for ${languageNote}.`
         );
       }
+
+      checkAndSuggestMemify(bugs, context);
+
+      const stateManager = new StateManager(context);
+      const sessionTracker = new SessionTracker(stateManager);
+      sessionTracker.increment('recalled');
     } catch (err: unknown) {
       status.error();
       const message = err instanceof Error ? err.message : String(err);

@@ -81,6 +81,10 @@ app.include_router(memory_health.router, prefix="/api/stats",   tags=["memory_he
 app.include_router(memify.router, prefix="/api", tags=["memify"])
 app.include_router(forget.router, prefix="/api", tags=["forget"])
 
+@app.get("/api/stats")
+def api_stats():
+    return {"status": "ok", "total_datasets": 1, "cognee_ready": True}
+
 @app.get("/")
 def root_endpoint():
     return {"message": "Welcome to dev-context-cognee API. Status: healthy."}
