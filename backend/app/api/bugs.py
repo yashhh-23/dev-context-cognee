@@ -135,29 +135,33 @@ async def list_bugs(limit: int = 30):
 
     headers = _gh_headers()
 
-    async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.get(
-            f"https://api.github.com/repos/{repo}/issues",
-            params={"state": "open", "per_page": limit, "sort": "created", "direction": "desc"},
-            headers=headers,
-        )
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                f"https://api.github.com/repos/{repo}/issues",
+                params={"state": "open", "per_page": limit, "sort": "created", "direction": "desc"},
+                headers=headers,
+            )
 
-    if resp.status_code != 200:
+        if resp.status_code != 200:
+            return []
+
+        return [
+            {
+                "id":       item["number"],
+                "title":    item["title"],
+                "severity": _map_severity(item.get("labels", [])),
+                "author":   item["user"]["login"],
+                "created":  item["created_at"],
+                "url":      item["html_url"],
+                "labels":   [l["name"] for l in item.get("labels", [])],
+            }
+            for item in resp.json()
+            if "pull_request" not in item
+        ]
+    except Exception as e:
+        print(f"GitHub list_bugs error: {e}")
         return []
-
-    return [
-        {
-            "id":       item["number"],
-            "title":    item["title"],
-            "severity": _map_severity(item.get("labels", [])),
-            "author":   item["user"]["login"],
-            "created":  item["created_at"],
-            "url":      item["html_url"],
-            "labels":   [l["name"] for l in item.get("labels", [])],
-        }
-        for item in resp.json()
-        if "pull_request" not in item
-    ]
 
 
 @router.post("/analyze")
