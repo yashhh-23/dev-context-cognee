@@ -1,5 +1,10 @@
 """GET /contribute — list good-first-issues and help-wanted from Cognee + OSS repos."""
+import asyncio
+
 from fastapi import APIRouter, Query, HTTPException, Depends
+from sqlalchemy.orm import Session
+import httpx
+
 from app.api.bugs import (
     extract_error_keyword,
     search_github_issues,
@@ -9,8 +14,6 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.github_utils import _gh_headers
 from app.services.recall_service import get_session, search_memory
-from sqlalchemy.orm import Session
-import httpx
 
 router = APIRouter()
 
@@ -24,8 +27,6 @@ OSS_REPOS = [
     "sqlalchemy/sqlalchemy",
 ]
 
-
-import asyncio
 
 @router.get("")
 async def list_contribute():
@@ -53,11 +54,11 @@ async def list_contribute():
         return repo, label, []
 
     async with httpx.AsyncClient(timeout=10) as client:
-        tasks = []
-        for repo in repos:
-            for label in ["good first issue", "help wanted"]:
-                tasks.append(fetch_issues(client, repo, label))
-        
+        tasks = [
+            fetch_issues(client, repo, label)
+            for repo in repos
+            for label in ["good first issue", "help wanted"]
+        ]
         responses = await asyncio.gather(*tasks)
 
     for repo, label, items in responses:
