@@ -1,0 +1,15 @@
+{
+  "nodes": [
+    { "id": "project:dev-context-cognee", "label": "dev-context-cognee", "type": "project", "size": 15 },
+    { "id": "session:sess-01", "label": "Ingested main.py", "type": "fix", "size": 10 },
+    { "id": "session:sess-02", "label": "Traced auth exception", "type": "bug", "size": 10 },
+    { "id": "dep:next", "label": "next", "type": "dependency", "size": 8 },
+    { "id": "dep:cognee", "label": "cognee", "type": "dependency", "size": 8 }
+  ],
+  "edges": [
+    { "source": "project:dev-context-cognee", "target": "session:sess-01", "label": "belongs_to" },
+    { "source": "project:dev-context-cognee", "target": "session:sess-02", "label": "belongs_to" },
+    { "source": "session:sess-01", "target": "dep:next", "label": "uses" },
+    { "source": "session:sess-01", "target": "dep:cognee", "label": "uses" }
+  ]
+}
