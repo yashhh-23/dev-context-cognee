@@ -4,6 +4,7 @@ import os
 import json
 import sys
 import datetime
+import subprocess
 from pathlib import Path
 from watchfiles import awatch
 
@@ -38,6 +39,28 @@ def should_track(change, path):
         return False
     return True
 
+def get_file_content(path: str, project_dir: str) -> str:
+    try:
+        result = subprocess.run(
+            ["git", "diff", "HEAD", "--", path],
+            cwd=project_dir,
+            capture_output=True,
+            text=True,
+            timeout=2
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except Exception:
+        pass
+        
+    try:
+        if os.path.isfile(path) and os.path.getsize(path) < 50_000:
+            with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                return f.read(50_000)
+    except Exception:
+        pass
+    return ""
+
 async def watch_and_collect(api_url: str, api_key: str, project_dir: str):
     buffer = []
     last_flush = time.time()
@@ -47,10 +70,12 @@ async def watch_and_collect(api_url: str, api_key: str, project_dir: str):
             for change_type, path in changes:
                 try:
                     rel_path = os.path.relpath(path, project_dir)
+                    content_snippet = get_file_content(path, project_dir) if change_type.name != 'deleted' else ""
                     entry = {
                         "path": rel_path,
                         "change": change_type.name,
                         "timestamp": time.time(),
+                        "content": content_snippet,
                     }
                     buffer.append(entry)
                 except ValueError:

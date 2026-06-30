@@ -165,18 +165,29 @@ def end(
 
 @app.command()
 def ingest(
+    file: Optional[str] = typer.Argument(None, help="File to ingest"),
     text: Optional[str] = typer.Option(None, help="Text to ingest directly"),
     source: str = typer.Option("cli", help="Source of the data"),
     silent: bool = typer.Option(False, "--silent", help="Do not print success message"),
 ):
-    """Ingest terminal output (via pipe) or text into Cognee memory"""
+    """Ingest terminal output (via pipe), text, or a specific file into Cognee memory"""
     terminal_output = text
     
+    if file and os.path.isfile(file):
+        try:
+            with open(file, "r", encoding="utf-8", errors="ignore") as f:
+                terminal_output = f.read(50_000)
+            if source == "cli":
+                source = "cli-manual-ingest"
+        except Exception as e:
+            typer.secho(f"Error reading file: {e}", fg=typer.colors.RED)
+            raise typer.Exit(1)
+            
     if not terminal_output and not sys.stdin.isatty():
         terminal_output = sys.stdin.read()
         
     if not terminal_output or not terminal_output.strip():
-        typer.secho("No input provided. Please pipe text or provide --text.", fg=typer.colors.RED)
+        typer.secho("No input provided. Please provide a file, pipe text, or use --text.", fg=typer.colors.RED)
         raise typer.Exit(1)
 
     project_name = get_project_name()
