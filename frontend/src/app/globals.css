@@ -88,18 +88,19 @@
    LIGHT THEME
    ============================================================ */
 [data-theme="light"] {
-  --color-bg:              #f5f4f0;
-  --color-surface:         #f9f8f5;
-  --color-surface-2:       #ffffff;
-  --color-surface-offset:  #efede9;
-  --color-surface-dynamic: #e8e6e2;
-  --color-divider:         #dedad5;
-  --color-border:          #d4d0cb;
-  --color-text:            #1a1916;
-  --color-text-muted:      #6b6965;
-  --color-text-faint:      #b0aea9;
-  --color-text-inverse:    #f9f8f5;
-  --color-primary:         #0d9488;
+  /* Soft warm cream / eye protection theme */
+  --color-bg:              #f7f4eb; /* Soft paper cream */
+  --color-surface:         #faf8f2; /* Bright warm ivory */
+  --color-surface-2:       #fdfbf7; /* Softest warm ivory (no pure white) */
+  --color-surface-offset:  #eeeae0; /* Soft warm gray-beige */
+  --color-surface-dynamic: #e4dfd3; /* Deeper warm tone for active/focus */
+  --color-divider:         #dbd6c8; /* Warm divider */
+  --color-border:          #d2cbbd; /* Soft warm border */
+  --color-text:            #2c2820; /* Eye-friendly soft charcoal (less blue/glare) */
+  --color-text-muted:      #6b6355; /* Soft warm muted gray */
+  --color-text-faint:      #9c9485; /* Soft warm faint gray for legible secondary text */
+  --color-text-inverse:    #faf8f2;
+  --color-primary:         #0d9488; /* Beautiful warm teal */
   --color-primary-hover:   #0f766e;
   --color-primary-active:  #115e59;
   --color-primary-dim:     oklch(from #0d9488 l c h / 0.1);
@@ -111,10 +112,46 @@
   --color-error-dim:       oklch(from #dc2626 l c h / 0.1);
   --color-info:            #2563eb;
   --color-info-dim:        oklch(from #2563eb l c h / 0.1);
-  --shadow-sm: 0 1px 2px oklch(0.2 0.01 80 / 0.06);
-  --shadow-md: 0 4px 12px oklch(0.2 0.01 80 / 0.08);
-  --shadow-lg: 0 12px 32px oklch(0.2 0.01 80 / 0.12);
+  --shadow-sm: 0 1px 2px oklch(0.2 0.01 80 / 0.04);
+  --shadow-md: 0 4px 12px oklch(0.2 0.01 80 / 0.06);
+  --shadow-lg: 0 12px 32px oklch(0.2 0.01 80 / 0.1);
 }
+
+/* ============================================================
+   SMOOTH THEME TRANSITION
+   ============================================================ */
+body,
+.dashboard-shell,
+.sidebar,
+.topbar,
+.main-content,
+.card,
+.stat-card,
+.item-row,
+.divider,
+code,
+.mono,
+input,
+textarea,
+select,
+.context-chip,
+.sidebar-link,
+.sidebar-logo,
+.btn,
+.badge,
+h1, h2, h3, h4, h5, h6,
+p,
+span,
+svg,
+a {
+  transition: background-color 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+              border-color 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+              color 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+              box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+              fill 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+              stroke 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
 
 /* ============================================================
    BASE RESET
