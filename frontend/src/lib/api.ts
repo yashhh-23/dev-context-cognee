@@ -252,8 +252,8 @@ export const api = {
     req<{ success: boolean; node_id: string; pinned: boolean }>(`/api/recall/${nodeId}/pin`, { method: 'POST' }),
   unpin: (nodeId: string)             =>
     req<{ success: boolean; node_id: string; pinned: boolean }>(`/api/recall/${nodeId}/unpin`, { method: 'POST' }),
-  autoCleanMemories: ()               =>
-    req<{ status: string; cleaned_count: number }>('/api/memories/auto-clean', { method: 'POST' }),
+  autoCleanMemories: () =>
+    req<{ status: string; cleaned_count: number; message: string }>('/api/memories/auto-clean', { method: 'POST' }),
 
   // Sessions — backend returns correct shape directly
   getSessions: (limit = 10)          => req<Session[]>(`/api/sessions?limit=${limit}`),

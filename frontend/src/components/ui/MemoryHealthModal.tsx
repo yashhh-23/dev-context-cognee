@@ -17,6 +17,7 @@ interface AutoCleanResult {
   removed: number
   kept: number
   clusters: number
+  message?: string
   error?: string
 }
 
@@ -49,8 +50,13 @@ export default function MemoryHealthModal({ open, onClose, autoCleanEnabled, onT
     setCleaning(true)
     setCleanResult(null)
     try {
-      const res: AutoCleanResult = await api.autoCleanMemories()
-      setCleanResult(res)
+      const res = await api.autoCleanMemories()
+      setCleanResult({
+        removed: res.cleaned_count,
+        kept: 0,
+        clusters: 0,
+        message: res.message,
+      })
       // refresh health stats
       const d: MemoryHealthData = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}/api/stats/memory-health`
@@ -246,9 +252,11 @@ export default function MemoryHealthModal({ open, onClose, autoCleanEnabled, onT
                 }}>
                   {cleanResult.error
                     ? `⚠ ${cleanResult.error}`
-                    : cleanResult.removed === 0
-                      ? '✓ memory is clean — no duplicates found'
-                      : `✓ removed ${cleanResult.removed} duplicates across ${cleanResult.clusters} cluster${cleanResult.clusters !== 1 ? 's' : ''} — ${cleanResult.kept} nodes kept`
+                    : cleanResult.message
+                      ? `✓ ${cleanResult.message}`
+                      : cleanResult.removed === 0
+                        ? '✓ memory is clean — no duplicates found'
+                        : `✓ removed ${cleanResult.removed} duplicates across ${cleanResult.clusters} cluster${cleanResult.clusters !== 1 ? 's' : ''} — ${cleanResult.kept} nodes kept`
                   }
                 </div>
               )}
