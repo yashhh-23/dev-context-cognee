@@ -67,3 +67,59 @@ async def forget_session(session_id: str, db: Session = Depends(get_db)):
 
     await manager.broadcast({"type": "session_forgotten", "session_id": session_id})
     return {"status": "forgotten", "session_id": session_id}
+
+
+@router.post("/memories/auto-clean")
+async def auto_clean_memories(db: Session = Depends(get_db)):
+    """Deduplicate memories using the existing is_duplicate logic."""
+    from app.models.session import SessionRecord
+    import difflib
+
+    # Fetch all completed sessions ordered by timestamp (oldest first)
+    sessions = (
+        db.query(SessionRecord)
+        .filter(SessionRecord.status == "completed")
+        .order_by(SessionRecord.timestamp.asc())
+        .all()
+    )
+
+    cleaned_count = 0
+    seen_texts = []
+
+    for session in sessions:
+        text = session.terminal_output or ""
+        if not text.strip():
+            continue
+
+        # Check if this text is a duplicate of any session we've already kept
+        is_dup = False
+        for seen in seen_texts:
+            similarity = difflib.SequenceMatcher(None, text.strip().lower(), seen.strip().lower()).ratio()
+            if similarity >= 0.85 or text.strip().lower() in seen.strip().lower() or seen.strip().lower() in text.strip().lower():
+                is_dup = True
+                break
+
+        if is_dup:
+            # It's a duplicate! Remove from Cognee and mark as forgotten in DB
+            try:
+                dataset_name = (
+                    f"{session.project}_{session.branch}"
+                    .replace("/", "_")
+                    .replace("-", "_")
+                )
+                await cognee.forget(dataset_name=dataset_name)
+                session.status = "forgotten"
+                cleaned_count += 1
+            except Exception as e:
+                print(f"[auto-clean] Error forgetting duplicate session {session.id}: {e}")
+        else:
+            seen_texts.append(text)
+
+    if cleaned_count > 0:
+        db.commit()
+
+    return {
+        "status": "success",
+        "cleaned_count": cleaned_count,
+        "message": f"Successfully cleaned {cleaned_count} duplicate memories."
+    }
