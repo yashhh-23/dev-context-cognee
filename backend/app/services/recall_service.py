@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.session import SessionRecord
 import cognee
+import re
 
 
 def get_all_sessions(db: Session, skip: int = 0, limit: int = 100):
@@ -45,7 +46,6 @@ def extract_text(item) -> str:
     # Last resort: stringify but strip the dataclass noise
     raw = str(item)
     # If it looks like a repr (kind='...'), try to extract text='...' substring
-    import re
     match = re.search(r"text=['\"](.+?)['\"](\s|$|,)", raw, re.DOTALL)
     if match:
         return match.group(1).strip()
@@ -54,6 +54,7 @@ def extract_text(item) -> str:
         return match.group(1).strip()
 
     return raw
+
 
 
 async def search_memory(query: str):

@@ -215,6 +215,9 @@ export interface OverviewStats {
   recalled_today:   number
   last_session:     string
   health_score:     number
+  code_quality?:    number
+  test_coverage?:   number
+  documentation?:   number
 }
 
 /* ---- API methods ---- */
