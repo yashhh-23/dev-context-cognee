@@ -10,7 +10,7 @@ from pathlib import Path
 from fastmcp import FastMCP
 from cognee.infrastructure.databases.vector.embeddings.get_embedding_engine import get_embedding_engine
 
-from app.utils.embeddings import (
+from app.utils.embedding_utils import (
     _get_text_embedding,
     _calculate_cosine_similarity,
     CONFLICT_MIN_THRESHOLD,

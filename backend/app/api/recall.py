@@ -226,7 +226,7 @@ async def submit_feedback(body: FeedbackRequest, db: Session = Depends(get_db)):
             qa_id=body.qaId,
             feedback_score=body.score
         )
-        if body.score >= 4:
+        if body.score == 1 or body.score >= 4:
             await cognee.improve(node_name=[body.qaId])
         return {"status": "ok"}
     except Exception as e:
