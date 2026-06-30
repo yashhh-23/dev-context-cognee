@@ -3,7 +3,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import ingest, sessions, context, bugs
 from app.api import recall, graph, stats, lifecycle, contribute, ws
-from app.api import memories
 from app.core.database import Base, engine
 from app.core.config import settings
 from app.core.cognee_client import init_cognee
@@ -42,26 +41,24 @@ async def startup_event():
     init_cognee()
 
 
-# ── existing routes (unchanged) ─────────────────────────────────────────────
+# ── existing routes (unchanged) ──────────────────────────────────────────────
 app.include_router(ingest.router,    prefix="/api/ingest",    tags=["ingest"])
 app.include_router(sessions.router,  prefix="/api/sessions",  tags=["sessions"])
 app.include_router(context.router,   prefix="/api/context",   tags=["context"])
 app.include_router(bugs.router,      prefix="/api/bugs",      tags=["bugs"])
 
-# ── dashboard-v2 routes ────────────────────────────────────────────────
+# ── dashboard-v2 routes ───────────────────────────────────────────────────────
 app.include_router(recall.router,    prefix="/api/recall",    tags=["recall"])
 app.include_router(graph.router,     prefix="/api/graph",     tags=["graph"])
 app.include_router(stats.router,     prefix="/api/overview",  tags=["stats"])
 app.include_router(lifecycle.router, prefix="/api",           tags=["lifecycle"])
 app.include_router(contribute.router, prefix="/api/contribute", tags=["contribute"])
 
-# ── memory management ───────────────────────────────────────────────────
-app.include_router(memories.router,  prefix="/api/memories",  tags=["memories"])
-
-# ── WebSocket ──────────────────────────────────────────────────────────────
+# ── WebSocket ─────────────────────────────────────────────────────────────────
 app.include_router(ws.router, tags=["ws"])
 
 
 @app.get("/health", tags=["health"])
 def health_check():
     return {"status": "ok", "version": "2.0.0"}
+
