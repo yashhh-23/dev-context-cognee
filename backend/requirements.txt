@@ -25,7 +25,7 @@ PyGithub==2.3.0
 watchdog==4.0.1
 
 # Utilities
-tenacity==8.3.0
+tenacity
 python-multipart==0.0.9
 
 # Cross-platform process lock (guards Cognee/KuzuDB init)
