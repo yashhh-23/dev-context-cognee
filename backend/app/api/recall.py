@@ -23,40 +23,54 @@ async def recall(
         print(f"[recall] search_memory error: {e}")
         return []
 
+    async def process_item(item, idx):
+        text = extract_text(item)
+
+        # Extract structured metadata where available
+        if isinstance(item, dict):
+            score_val = item.get("score") or item.get("relevance") or 1.0
+            item_id   = item.get("id") or item.get("node_id") or str(idx)
+            source    = item.get("source", "cognee")
+            session_id = item.get("session_id")
+            created_at = item.get("created_at")
+        else:
+            score_val  = getattr(item, "score", None) or getattr(item, "relevance", 1.0) or 1.0
+            item_id    = str(getattr(item, "id", idx))
+            source     = getattr(item, "source", "cognee")
+            session_id = getattr(item, "session_id", None)
+            created_at = getattr(item, "created_at", None)
+
+        conflicts = []
+        try:
+            # Check for conflicts / contradictions
+            dup_results = await cognee.search(text, query_type="SUMMARIES")
+            if dup_results:
+                for dup_item in dup_results:
+                    score = dup_item.score if hasattr(dup_item, "score") else dup_item.get("score", 0)
+                    existing = dup_item.text if hasattr(dup_item, "text") else dup_item.get("text", "")
+                    if 0.75 < score < 0.98 and existing.strip() != text.strip():
+                        conflicts.append(existing[:100])
+        except Exception:
+            pass
+
+        return {
+            "id":         item_id,
+            "content":    text,
+            "score":      float(score_val),
+            "source":     source,
+            "session_id": session_id,
+            "created_at": created_at,
+            "conflicts":  conflicts,
+        }
+
+    import asyncio
     results = []
     if isinstance(raw, list):
-        for item in raw[:limit]:
-            text = extract_text(item)
-
-            # Extract structured metadata where available
-            if isinstance(item, dict):
-                score_val = item.get("score") or item.get("relevance") or 1.0
-                item_id   = item.get("id") or item.get("node_id") or str(len(results))
-                source    = item.get("source", "cognee")
-                session_id = item.get("session_id")
-                created_at = item.get("created_at")
-            else:
-                score_val  = getattr(item, "score", None) or getattr(item, "relevance", 1.0) or 1.0
-                item_id    = str(getattr(item, "id", len(results)))
-                source     = getattr(item, "source", "cognee")
-                session_id = getattr(item, "session_id", None)
-                created_at = getattr(item, "created_at", None)
-
-            results.append({
-                "id":         item_id,
-                "content":    text,
-                "score":      float(score_val),
-                "source":     source,
-                "session_id": session_id,
-                "created_at": created_at,
-            })
+        items_to_process = raw[:limit]
+        results = await asyncio.gather(*(process_item(item, idx) for idx, item in enumerate(items_to_process)))
     elif raw:
-        results.append({
-            "id":      "0",
-            "content": extract_text(raw),
-            "score":   1.0,
-            "source":  "cognee",
-        })
+        processed = await process_item(raw, 0)
+        results.append(processed)
 
     return results
 
