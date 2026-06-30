@@ -1,13 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { toast } from 'sonner'
-import healthMock from './mocks/health.json'
-import statsMock from './mocks/stats.json'
-import bugsTrendMock from './mocks/bugs_trend.json'
-import sessionsMock from './mocks/sessions.json'
-import dependenciesHealthMock from './mocks/dependencies_health.json'
-import memoryStatsMock from './mocks/memory_stats.json'
-import memorySearchMock from './mocks/memory_search.json'
-import memoryGraphMock from './mocks/memory_graph.json'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
@@ -28,35 +20,36 @@ function showFallbackToast() {
   }
 }
 
-function getMockFallback(path: string): any {
+async function getMockFallback(path: string): Promise<any> {
   const cleanPath = path.split('?')[0]
 
   if (cleanPath.startsWith('/health')) {
-    return healthMock
+    return (await import('./mocks/health.json')).default
   }
   if (cleanPath.startsWith('/api/overview/stats')) {
-    return statsMock
+    return (await import('./mocks/stats.json')).default
   }
   if (cleanPath.startsWith('/api/overview/bug-trend')) {
-    return bugsTrendMock
+    return (await import('./mocks/bugs_trend.json')).default
   }
   if (cleanPath.startsWith('/api/dependencies/health')) {
-    return dependenciesHealthMock
+    return (await import('./mocks/dependencies_health.json')).default
   }
   if (cleanPath.startsWith('/api/stats/memory-health')) {
-    return memoryStatsMock
+    return (await import('./mocks/memory_stats.json')).default
   }
   // Session routes — specific before general
   if (cleanPath.match(/^\/api\/sessions\/[^/]+$/)) {
+    const sessions = (await import('./mocks/sessions.json')).default as any[]
     const id = cleanPath.split('/').pop()
-    return (sessionsMock as any[]).find((s: any) => s.id === id) || sessionsMock[0]
+    return sessions.find((s: any) => s.id === id) || sessions[0]
   }
   if (cleanPath.startsWith('/api/sessions')) {
-    return sessionsMock
+    return (await import('./mocks/sessions.json')).default
   }
   // Recall / memory routes — specific routes BEFORE the broad /api/recall prefix
   if (cleanPath.startsWith('/api/recall/memify')) {
-    return { node_id: 'mock-node-' + Math.random().toString(36).substr(2, 9) }
+    return { node_id: 'mock-node-' + Math.random().toString(36).substring(2, 11) }
   }
   if (cleanPath.includes('/pin')) {
     const parts = cleanPath.split('/')
@@ -70,16 +63,16 @@ function getMockFallback(path: string): any {
   }
   // Generic recall search — must come after all specific /api/recall/* routes
   if (cleanPath.startsWith('/api/recall') || cleanPath.startsWith('/api/memory')) {
-    return memorySearchMock
+    return (await import('./mocks/memory_search.json')).default
   }
   if (cleanPath.startsWith('/api/graph/build')) {
     return { message: 'Graph built successfully (cached demo data)', node_count: 142 }
   }
   if (cleanPath.startsWith('/api/graph')) {
-    return memoryGraphMock
+    return (await import('./mocks/memory_graph.json')).default
   }
   if (cleanPath.startsWith('/api/bugs/trend')) {
-    return bugsTrendMock
+    return (await import('./mocks/bugs_trend.json')).default
   }
   if (cleanPath.startsWith('/api/bugs')) {
     return [
@@ -139,7 +132,7 @@ async function req<T>(path: string, opts?: RequestInit): Promise<T> {
     clearTimeout(timeoutId)
     console.warn(`[API Fallback] Request to ${path} failed, using mock data. Error:`, err.message || err)
     showFallbackToast()
-    return getMockFallback(path) as T
+    return await getMockFallback(path) as T
   }
 }
 

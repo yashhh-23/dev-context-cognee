@@ -853,4 +853,26 @@ code, .mono {
   50% { transform: scale(1.08); }
 }
 
+/* --- System Component Animations --- */
+@keyframes pulse-scale {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
+
+@keyframes bug-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+
+@keyframes glow-flow {
+  0%, 100% { filter: drop-shadow(0 0 0px var(--color-info)); opacity: 0.7; }
+  50% { filter: drop-shadow(0 0 3px var(--color-info)); opacity: 1; }
+}
+
+@keyframes clock-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 
