@@ -88,10 +88,11 @@ def _compute_health_score(
     return round(score)
 
 
+from app.models.session import SessionRecord
+
 @router.get("/stats")
 async def get_stats(db: Session = Depends(get_db)):
-    sessions     = get_all_sessions(db, skip=0, limit=500)
-    sessions.sort(key=lambda s: s.timestamp or datetime.datetime.min, reverse=True)
+    sessions = db.query(SessionRecord).order_by(SessionRecord.timestamp.desc()).limit(50).all()
     total        = len(sessions)
     open_bugs    = await _get_open_bug_count()
 

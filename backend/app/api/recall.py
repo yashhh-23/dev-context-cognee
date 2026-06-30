@@ -184,7 +184,8 @@ async def forget_node(node_id: str, db: Session = Depends(get_db)):
         await cognee.forget(node_id)
         return {"success": True, "node_id": node_id}
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Forget failed")
+        print(f"[recall] forget error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to forget node: {str(e)}")
 
 
 @router.post("/{node_id}/pin")
@@ -226,7 +227,7 @@ async def submit_feedback(body: FeedbackRequest, db: Session = Depends(get_db)):
             qa_id=body.qaId,
             feedback_score=body.score
         )
-        if body.score == 1 or body.score >= 4:
+        if body.score == 1:        
             await cognee.improve(node_name=[body.qaId])
         return {"status": "ok"}
     except Exception as e:
