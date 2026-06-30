@@ -42,10 +42,8 @@ async def recall(
 
         conflicts = []
         try:
-            # Check for conflicts / contradictions
             dup_results = await cognee.recall(text)
             if dup_results:
-                from app.services.recall_service import extract_text
                 import difflib
                 dup_items = dup_results if isinstance(dup_results, list) else [dup_results]
                 for dup_item in dup_items:
