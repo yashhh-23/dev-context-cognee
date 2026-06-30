@@ -277,16 +277,18 @@ export default function GraphClient() {
             <button
               className={`btn btn-sm ${viewMode === 'graph' ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setViewMode('graph')}
-              style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', borderRadius: 'var(--radius-sm)' }}
+              style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', borderRadius: 'var(--radius-sm)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
             >
-              🕸 Graph View
+              <NetworkIcon size={12} />
+              <span>Graph View</span>
             </button>
             <button
               className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setViewMode('grid')}
-              style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', borderRadius: 'var(--radius-sm)' }}
+              style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', borderRadius: 'var(--radius-sm)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
             >
-              📊 Grid View
+              <TableIcon size={12} />
+              <span>Grid View</span>
             </button>
           </div>
         </div>
@@ -591,3 +593,31 @@ export default function GraphClient() {
     </div>
   )
 }
+
+/* ---- Icon Components for Graph & Grid View ---- */
+
+function NetworkIcon({ className, size = 12 }: { className?: string; size?: number }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="16" y="16" width="6" height="6" rx="1" />
+      <rect x="2" y="16" width="6" height="6" rx="1" />
+      <rect x="9" y="2" width="6" height="6" rx="1" />
+      <path d="M12 8v8" />
+      <path d="M12 12H5" />
+      <path d="M12 12h7" />
+    </svg>
+  )
+}
+
+function TableIcon({ className, size = 12 }: { className?: string; size?: number }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M3 9h18" />
+      <path d="M3 15h18" />
+      <path d="M9 3v18" />
+      <path d="M15 3v18" />
+    </svg>
+  )
+}
+

@@ -805,3 +805,52 @@ code, .mono {
   z-index: 9999;
 }
 
+/* ============================================================
+   MICRO-ANIMATIONS FOR PROFESSIONAL ICONS
+   ============================================================ */
+.rocket-icon {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.btn:hover .rocket-icon {
+  transform: translate(2px, -2px) rotate(8deg);
+}
+
+.terminal-icon {
+  width: 13px;
+  height: 13px;
+  color: var(--color-primary);
+}
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.terminal-cursor {
+  animation: blink-cursor 1s step-end infinite;
+}
+
+.thumbs-up-icon, .thumbs-down-icon {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.2s ease;
+}
+.btn:hover .thumbs-up-icon {
+  transform: translateY(-2px) rotate(-8deg);
+}
+.btn:hover .thumbs-down-icon {
+  transform: translateY(2px) rotate(8deg);
+}
+
+.success-circle-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--color-success);
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes pulse-ring {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+
