@@ -30,7 +30,6 @@ jest.mock('@/lib/api', () => ({
         repo: 'yashhh-23/dev-context-cognee',
         branch: 'main',
         started_at: '2026-06-26T15:30:00Z',
-        last_active: '2026-06-26T17:38:13Z',
         context_size: 42,
         status: 'completed',
         summary: 'Ingested file app/main.py and built initial dependency mapping graph.'
