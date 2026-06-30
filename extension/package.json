@@ -97,11 +97,7 @@
           "default": true,
           "description": "Use Cognee Cloud for persistent memory storage across sessions"
         },
-        "devContext.cogneeApiKey": {
-          "type": "string",
-          "default": "",
-          "description": "Your Cognee Cloud API key (stored securely via VS Code SecretStorage)"
-        },
+
         "devContext.similarityThreshold": {
           "type": "number",
           "default": 0.75,
