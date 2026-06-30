@@ -205,6 +205,7 @@ export interface Session {
   last_active:  string
   context_size: number
   summary?:     string
+  status?:      string
 }
 
 export interface OverviewStats {

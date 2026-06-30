@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 export function useGlobalShortcut(key: string, callback: () => void, ctrlOrCmd = true) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      if (!event.key || !key) return
       const matchKey = event.key.toLowerCase() === key.toLowerCase()
       const matchModifier = ctrlOrCmd ? (event.metaKey || event.ctrlKey) : true
       
