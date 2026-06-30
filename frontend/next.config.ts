@@ -11,11 +11,7 @@ const nextConfig: NextConfig = {
         source: '/api/:path*',
         destination: `${API_BASE}/api/:path*`,
       },
-      // Proxy WebSocket upgrade requests
-      {
-        source: '/ws/:path*',
-        destination: `${API_BASE}/ws/:path*`,
-      },
+
     ]
   },
 }
