@@ -28,8 +28,12 @@ def ingest_log(
         for tag in req.tags:
             verify_safe_input(tag, "tag")
 
+    # Guard: both content and terminal_output cannot be None
+    if req.terminal_output is None and req.content is None:
+        raise HTTPException(status_code=422, detail="Either content or terminal_output must be provided")
+
     # Guard: never pass None as timestamp — SQLAlchemy default only fires when field is omitted
-    ts = req.timestamp if req.timestamp is not None else datetime.datetime.utcnow()
+    ts = req.timestamp if req.timestamp is not None else datetime.datetime.now(datetime.timezone.utc)
 
     if req.content is not None:
         # File context ingestion from VS Code extension

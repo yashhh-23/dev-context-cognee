@@ -1,8 +1,24 @@
 import re
+import asyncio
 from app.models.session import SessionRecord
 from app.core.database import SessionLocal
 from app.core.ws_manager import manager
 import cognee
+
+_cognify_lock = asyncio.Lock()
+_needs_cognify = False
+
+async def _debounced_cognify():
+    global _needs_cognify
+    await asyncio.sleep(15)  # Wait 15s to batch multiple saves
+    async with _cognify_lock:
+        if _needs_cognify:
+            _needs_cognify = False
+            try:
+                await cognee.cognify()
+            except Exception as e:
+                print(f"[DEBUG] Debounced cognify failed: {e}")
+
 
 
 def clean_terminal_output(text: str) -> str:
@@ -50,9 +66,12 @@ async def process_ingest(session_id: str, payload: dict, byok_key: str = None):
 
         # Notify dashboard via WebSocket
         await manager.broadcast({
-            "type": "bug_ingested",
-            "session_id": session_id,
-            "project": project,
+            "type": "memory_stored",
+            "payload": {
+                "label": f"Log ingested for {project}",
+                "session_id": session_id,
+                "project": project,
+            }
         })
 
     except Exception as e:
@@ -83,16 +102,22 @@ async def process_file_ingest(session_id: str, payload: dict):
         formatted_content = f"File: {file_name}\nLanguage: {lang}\nSource: {source}\n{symbols_str}\nContent:\n{content}"
 
         await cognee.add(formatted_content, dataset_name="main_dataset")
-        await cognee.cognify()
+        
+        global _needs_cognify
+        _needs_cognify = True
+        asyncio.create_task(_debounced_cognify())
 
         record.status = "completed"
         db.commit()
 
         # Notify dashboard via WebSocket
         await manager.broadcast({
-            "type": "bug_ingested",
-            "session_id": session_id,
-            "project": file_name,
+            "type": "memory_stored",
+            "payload": {
+                "label": f"File ingested: {file_name}",
+                "session_id": session_id,
+                "project": file_name,
+            }
         })
 
     except Exception as e:
