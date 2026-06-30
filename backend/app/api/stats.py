@@ -8,6 +8,7 @@ import asyncio
 import datetime
 import httpx
 import os
+import math
 
 from app.core.config import settings
 
@@ -79,7 +80,6 @@ def _compute_health_score(
         bug_health_ratio = 1.0
     else:
         # Diminishing penalty: score halves every 10 open bugs
-        import math
         bug_health_ratio = max(0.0, 1.0 - math.log1p(open_bugs) / math.log1p(50))
 
     score = (
@@ -109,6 +109,24 @@ async def get_stats(db: Session = Depends(get_db)):
 
     health = _compute_health_score(sessions, open_bugs, memory_nodes)
 
+    # Compute dynamic metrics based on live data
+    # Code Quality: penalize based on open bugs (starts at 100, drops by 4 per open bug, minimum 40)
+    code_quality = max(40, 100 - (open_bugs * 4 if open_bugs >= 0 else 0))
+
+    # Test Coverage: ratio of completed/resolved sessions to total sessions, baseline 70
+    if total > 0:
+        resolved = sum(1 for s in sessions if s.status in ("resolved", "completed"))
+        test_coverage = round(50 + 50 * (resolved / total))
+    else:
+        test_coverage = 75  # default baseline
+
+    # Documentation: ratio of memory nodes relative to sessions, mapped to 70-100%
+    if total > 0:
+        doc_ratio = min(memory_nodes / total, 1.0)
+        documentation = round(70 + 30 * doc_ratio)
+    else:
+        documentation = 80
+
     last_session = ""
     if sessions:
         try:
@@ -124,7 +142,11 @@ async def get_stats(db: Session = Depends(get_db)):
         "recalled_today":  recalled_today,
         "last_session":    last_session,
         "health_score":    health,
+        "code_quality":    code_quality,
+        "test_coverage":   test_coverage,
+        "documentation":   documentation,
     }
+
 
 
 @router.get("/bug-trend")

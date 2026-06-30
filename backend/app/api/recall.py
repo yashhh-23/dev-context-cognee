@@ -1,4 +1,6 @@
 """Recall API — search, memify, and forget Cognee memory nodes."""
+import asyncio
+import difflib
 from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -15,6 +17,39 @@ class MemifyRequest(BaseModel):
     content: str
 
 
+def parse_item(item, idx: int, db: Session) -> dict:
+    text = extract_text(item)
+
+    # Extract structured metadata where available
+    if isinstance(item, dict):
+        score_val = item.get("score") or item.get("relevance") or 1.0
+        item_id   = item.get("id") or item.get("node_id") or str(idx)
+        source    = item.get("source", "cognee")
+        session_id = item.get("session_id")
+        created_at = item.get("created_at")
+    else:
+        score_val  = getattr(item, "score", None) or getattr(item, "relevance", 1.0) or 1.0
+        item_id    = str(getattr(item, "id", idx))
+        source     = getattr(item, "source", "cognee")
+        session_id = getattr(item, "session_id", None)
+        created_at = getattr(item, "created_at", None)
+
+    # Check if pinned in database
+    pinned_record = db.query(PinnedNode).filter(PinnedNode.node_id == item_id).first()
+    is_pinned = pinned_record.pinned if pinned_record else False
+
+    return {
+        "id":         item_id,
+        "content":    text,
+        "score":      float(score_val),
+        "source":     source,
+        "session_id": session_id,
+        "created_at": created_at,
+        "conflicts":  [],
+        "pinned":     is_pinned,
+    }
+
+
 @router.get("/")
 async def recall(
     q: str = Query("", description="Natural language query"),
@@ -29,62 +64,30 @@ async def recall(
         print(f"[recall] search_memory error: {e}")
         return []
 
-    async def process_item(item, idx):
-        text = extract_text(item)
+    if not raw:
+        return []
 
-        # Extract structured metadata where available
-        if isinstance(item, dict):
-            score_val = item.get("score") or item.get("relevance") or 1.0
-            item_id   = item.get("id") or item.get("node_id") or str(idx)
-            source    = item.get("source", "cognee")
-            session_id = item.get("session_id")
-            created_at = item.get("created_at")
-        else:
-            score_val  = getattr(item, "score", None) or getattr(item, "relevance", 1.0) or 1.0
-            item_id    = str(getattr(item, "id", idx))
-            source     = getattr(item, "source", "cognee")
-            session_id = getattr(item, "session_id", None)
-            created_at = getattr(item, "created_at", None)
+    items = raw if isinstance(raw, list) else [raw]
+    items_to_process = items[:limit]
 
-        conflicts = []
-        try:
-            dup_results = await cognee.recall(text)
-            if dup_results:
-                import difflib
-                dup_items = dup_results if isinstance(dup_results, list) else [dup_results]
-                for dup_item in dup_items:
-                    existing = extract_text(dup_item)
-                    if not existing:
-                        continue
-                    similarity = difflib.SequenceMatcher(None, text.strip().lower(), existing.strip().lower()).ratio()
-                    if 0.30 <= similarity < 0.85 and existing.strip().lower() != text.strip().lower():
-                        conflicts.append(existing[:100])
-        except Exception:
-            pass
+    # Parse all items to populate structure and check pins
+    results = [parse_item(item, idx, db) for idx, item in enumerate(items_to_process)]
 
-        # Check if pinned in database
-        pinned_record = db.query(PinnedNode).filter(PinnedNode.node_id == item_id).first()
-        is_pinned = pinned_record.pinned if pinned_record else False
+    # Compute conflicts in-memory
+    for i, item_a in enumerate(results):
+        text_a = (item_a["content"] or "").strip().lower()
+        if not text_a:
+            continue
+        for j, item_b in enumerate(results):
+            if i == j:
+                continue
+            text_b = (item_b["content"] or "").strip().lower()
+            if not text_b or text_a == text_b:
+                continue
 
-        return {
-            "id":         item_id,
-            "content":    text,
-            "score":      float(score_val),
-            "source":     source,
-            "session_id": session_id,
-            "created_at": created_at,
-            "conflicts":  conflicts,
-            "pinned":     is_pinned,
-        }
-
-    import asyncio
-    results = []
-    if isinstance(raw, list):
-        items_to_process = raw[:limit]
-        results = await asyncio.gather(*(process_item(item, idx) for idx, item in enumerate(items_to_process)))
-    elif raw:
-        processed = await process_item(raw, 0)
-        results.append(processed)
+            similarity = difflib.SequenceMatcher(None, text_a, text_b).ratio()
+            if 0.30 <= similarity < 0.85:
+                item_a["conflicts"].append(item_b["content"][:100])
 
     # Save actual context size for the latest active session
     try:
