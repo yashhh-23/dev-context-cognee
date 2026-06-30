@@ -1,6 +1,14 @@
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error('NEXTAUTH_SECRET environment variable is not set. Please configure it in your .env file.')
+}
+
+if (!process.env.DASHBOARD_PASSWORD) {
+  throw new Error('DASHBOARD_PASSWORD environment variable is not set. Please configure it in your .env file.')
+}
+
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
@@ -9,7 +17,7 @@ const handler = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        const expectedPassword = process.env.DASHBOARD_PASSWORD || 'devcontext'
+        const expectedPassword = process.env.DASHBOARD_PASSWORD!
         if (credentials?.password === expectedPassword) {
           // Return a dummy user object to indicate successful auth
           return { id: '1', name: 'Developer', email: 'dev@context.local' }
@@ -24,7 +32,7 @@ const handler = NextAuth({
   session: {
     strategy: 'jwt',
   },
-  secret: process.env.NEXTAUTH_SECRET || 'dev-context-cognee-super-secret-key-12345',
+  secret: process.env.NEXTAUTH_SECRET,
 })
 
 export { handler as GET, handler as POST }
