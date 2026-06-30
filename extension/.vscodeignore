@@ -1,0 +1,27 @@
+# Source files (only compiled output goes into .vsix)
+src/**
+
+# Dependencies (not needed in packaged extension)
+node_modules/**
+.vscode-test/**
+
+# Build artifacts and configs not needed at runtime
+.vscode/**
+tsconfig.json
+.eslintrc.json
+*.map
+
+# Test files
+test/**
+**/*.test.ts
+**/*.spec.ts
+
+# Misc
+.gitignore
+.npmignore
+*.md
+!README.md
+
+# Lock files
+package-lock.json
+yarn.lock
