@@ -1,0 +1,41 @@
+name: Update Live Contributors
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  update-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history so git log works correctly for all commits
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Generate Live Docs
+        run: python scripts/generate_live_docs.py
+
+      - name: Commit and Push Changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add doccs/LIVE_CONTRIBUTORS.md
+          
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "docs: auto-update LIVE_CONTRIBUTORS.md [skip ci]"
+            git push
+          fi
