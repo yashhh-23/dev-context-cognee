@@ -48,6 +48,7 @@ export function useWebSocket() {
       if (retryRef.current < MAX_RETRIES) {
         const delay = BASE_DELAY_MS * Math.pow(2, retryRef.current)
         retryRef.current += 1
+        // eslint-disable-next-line react-hooks/immutability -- reconnect intentionally schedules the stable callback.
         timerRef.current = setTimeout(connect, delay)
       }
     }
@@ -65,7 +66,9 @@ export function useWebSocket() {
 
   const subscribe = useCallback((handler: (msg: WsMessage) => void) => {
     handlersRef.current.add(handler)
-    return () => handlersRef.current.delete(handler)
+    return () => {
+      handlersRef.current.delete(handler)
+    }
   }, [])
 
   const send = useCallback((msg: WsMessage) => {
