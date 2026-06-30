@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     GITHUB_REPO:   Optional[str] = None   # e.g. "owner/repo" — now read from .env
     GROQ_API_KEY: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
-    LLM_MODEL:     Optional[str] = "gemini/gemini-1.5-pro"
+    LLM_MODEL:     Optional[str] = "gemini/gemini-1.5-flash"
 
     class Config:
         import os

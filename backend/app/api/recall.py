@@ -26,20 +26,31 @@ async def recall(
     if isinstance(raw, list):
         for item in raw[:limit]:
             if isinstance(item, dict):
+                score_val = item.get("score")
+                if score_val is None:
+                    score_val = item.get("relevance", 1.0)
+                if score_val is None:
+                    score_val = 1.0
+
                 results.append({
                     "id":         item.get("id", item.get("node_id", str(len(results)))),
                     "content":    item.get("content", item.get("text", str(item))),
-                    "score":      float(item.get("score", item.get("relevance", 1.0))),
+                    "score":      float(score_val),
                     "source":     item.get("source", "cognee"),
                     "session_id": item.get("session_id"),
                     "created_at": item.get("created_at"),
                 })
             elif hasattr(item, "__dict__"):
-                d = item.__dict__
+                score_val = getattr(item, "score", None)
+                if score_val is None:
+                    score_val = getattr(item, "relevance", 1.0)
+                if score_val is None:
+                    score_val = 1.0
+
                 results.append({
                     "id":         str(getattr(item, "id", len(results))),
                     "content":    getattr(item, "content", getattr(item, "text", str(item))),
-                    "score":      float(getattr(item, "score", 1.0)),
+                    "score":      float(score_val),
                     "source":     getattr(item, "source", "cognee"),
                     "session_id": getattr(item, "session_id", None),
                     "created_at": getattr(item, "created_at", None),
