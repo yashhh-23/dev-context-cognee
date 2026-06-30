@@ -226,7 +226,10 @@ class FeedbackRequest(BaseModel):
     score: int
 
 @router.post("/feedback")
-async def submit_feedback(body: FeedbackRequest):
+async def submit_feedback(body: FeedbackRequest, db: Session = Depends(get_db)):
+    session_record = db.query(SessionRecord).filter(SessionRecord.id == body.sessionId).first()
+    if not session_record:
+        raise HTTPException(status_code=400, detail="Invalid session ID")
     try:
         await cognee.session.add_feedback(
             session_id=body.sessionId,
@@ -237,4 +240,4 @@ async def submit_feedback(body: FeedbackRequest):
             await cognee.improve(node_name=[body.qaId])
         return {"status": "ok"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to submit feedback: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to submit feedback: {str(e)}")
