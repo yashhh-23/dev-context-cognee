@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import ingest, sessions, context, bugs
@@ -6,7 +7,7 @@ from app.core.database import Base, engine
 from app.core.config import settings
 from app.core.cognee_client import init_cognee
 
-Base.metadata.create_all(bind=engine)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -28,6 +29,15 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
+    # Attempt to create DB tables — non-fatal if DB is unreachable
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created/verified.")
+    except Exception as exc:
+        logger.warning(
+            "Could not connect to the database on startup: %s. "
+            "Cognee memory features will still work via SQLite.", exc
+        )
     init_cognee()
 
 
