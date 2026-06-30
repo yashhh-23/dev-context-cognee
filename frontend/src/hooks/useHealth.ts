@@ -14,7 +14,7 @@ export function useHealth() {
     const timeoutId = setTimeout(() => controller.abort(), 5000)
 
     try {
-      const res = await fetch(`${BASE}/api/health`, {
+      const res = await fetch(`${BASE}/health`, {
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
       })
