@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
+import { registerRememberContextCommand, ProviderBridge, StatusSetter } from './commands/rememberContext';
+import { registerRecallBugsCommand } from './commands/recallBugs';
+import { registerDraftIssueCommand } from './commands/draftIssue';
 
-// ─── Placeholder imports (filled in Groups 3–5) ───────────────────────────────
-// These will be replaced with real imports once those files are pushed.
-// For now, stub classes keep this file compilable standalone.
-
+// ─── Sidebar WebView Provider ──────────────────────────────────────────────────
 class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'devContextSidebar';
     private _view?: vscode.WebviewView;
@@ -28,7 +28,6 @@ class DevContextWebViewProvider implements vscode.WebviewViewProvider {
         // Placeholder HTML — replaced in Group 5
         webviewView.webview.html = this._getPlaceholderHtml();
 
-        // Track disposal
         webviewView.onDidDispose(() => {
             this.isOpen = false;
             this.dispose();
@@ -49,6 +48,12 @@ class DevContextWebViewProvider implements vscode.WebviewViewProvider {
                 isDirty: document.isDirty
             }
         });
+    }
+
+    /** Safe public bridge for commands — no private field access needed */
+    postMessageToWebview(message: unknown): void {
+        if (!this._view || !this.isOpen) { return; }
+        this._view.webview.postMessage(message);
     }
 
     private _getPlaceholderHtml(): string {
@@ -157,41 +162,6 @@ function setStatusBarError(): void {
     }, 4000);
 }
 
-// ─── Guards ────────────────────────────────────────────────────────────────────
-function getBackendUrl(): string | null {
-    const url = vscode.workspace
-        .getConfiguration('devContext')
-        .get<string>('backendUrl', '');
-    if (!url || url === 'https://your-backend.onrender.com') {
-        vscode.window.showErrorMessage(
-            'Dev-Context: Backend URL not configured. Go to Settings → Dev-Context Assistant → Backend URL.'
-        );
-        return null;
-    }
-    return url;
-}
-
-function requireActiveEditor(): vscode.TextEditor | null {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-        vscode.window.showWarningMessage(
-            'Dev-Context: No active file open. Open a file first.'
-        );
-        return null;
-    }
-    return editor;
-}
-
-function requireWorkspace(): boolean {
-    if (!vscode.workspace.workspaceFolders?.length) {
-        vscode.window.showErrorMessage(
-            'Dev-Context: No workspace folder open. Open a project folder first.'
-        );
-        return false;
-    }
-    return true;
-}
-
 // ─── Activate ──────────────────────────────────────────────────────────────────
 export function activate(context: vscode.ExtensionContext): void {
     console.log('Dev-Context Assistant: activating...');
@@ -210,159 +180,40 @@ export function activate(context: vscode.ExtensionContext): void {
         )
     );
 
-    // 3. Command: Save Current Context to Cognee
+    // 3. Status + provider bridge for command modules
+    const status: StatusSetter = {
+        syncing: setStatusBarSyncing,
+        done: setStatusBarDone,
+        error: setStatusBarError
+    };
+
+    const bridge: ProviderBridge = {
+        updateContextSummary: (doc) => provider.updateContextSummary(doc),
+        postMessageToWebview: (msg) => provider.postMessageToWebview(msg)
+    };
+
+    // 4. Commands — now delegated to command modules
     context.subscriptions.push(
-        vscode.commands.registerCommand('devContext.rememberContext', async () => {
-            const editor = requireActiveEditor();
-            if (!editor) { return; }
-            if (!requireWorkspace()) { return; }
-            const backendUrl = getBackendUrl();
-            if (!backendUrl) { return; }
-
-            setStatusBarSyncing();
-            try {
-                const response = await fetch(`${backendUrl}/api/ingest`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        content: editor.document.getText(),
-                        fileName: vscode.workspace.asRelativePath(editor.document.fileName),
-                        languageId: editor.document.languageId,
-                        source: 'vscode-extension'
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                setStatusBarDone('Saved ✓');
-                vscode.window.showInformationMessage(
-                    `Dev-Context: Context saved to Cognee (${editor.document.languageId})`
-                );
-                await provider.updateContextSummary(editor.document);
-            } catch (err: unknown) {
-                setStatusBarError();
-                const msg = err instanceof Error ? err.message : String(err);
-                vscode.window.showErrorMessage(`Dev-Context: Failed to save context — ${msg}`);
-            }
-        })
+        registerRememberContextCommand(context, bridge, status),
+        registerRecallBugsCommand(context, bridge, status),
+        registerDraftIssueCommand(context, bridge, status)
     );
 
-    // 4. Command: Recall Similar Bugs
-    context.subscriptions.push(
-        vscode.commands.registerCommand('devContext.recallSimilarBugs', async () => {
-            const editor = requireActiveEditor();
-            if (!editor) { return; }
-            const backendUrl = getBackendUrl();
-            if (!backendUrl) { return; }
-
-            const threshold = vscode.workspace
-                .getConfiguration('devContext')
-                .get<number>('similarityThreshold', 0.75);
-
-            setStatusBarSyncing();
-            try {
-                const response = await fetch(`${backendUrl}/api/memory/recall`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        query: editor.document.getText().slice(0, 2000),
-                        languageId: editor.document.languageId,
-                        similarityThreshold: threshold
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const data = await response.json() as { bugs?: unknown[] };
-                const bugCount = data.bugs?.length ?? 0;
-
-                setStatusBarDone(`${bugCount} bug(s) recalled`);
-                vscode.window.showInformationMessage(
-                    bugCount > 0
-                        ? `Dev-Context: ${bugCount} similar bug(s) recalled — check sidebar`
-                        : 'Dev-Context: No similar bugs found in memory'
-                );
-
-                // Push results to sidebar
-                provider['_view']?.webview.postMessage({
-                    type: 'bugsUpdate',
-                    bugs: data.bugs ?? []
-                });
-            } catch (err: unknown) {
-                setStatusBarError();
-                const msg = err instanceof Error ? err.message : String(err);
-                vscode.window.showErrorMessage(`Dev-Context: Recall failed — ${msg}`);
-            }
-        })
-    );
-
-    // 5. Command: Draft GitHub Issue
-    context.subscriptions.push(
-        vscode.commands.registerCommand('devContext.draftGitHubIssue', async () => {
-            const editor = requireActiveEditor();
-            if (!editor) { return; }
-            const backendUrl = getBackendUrl();
-            if (!backendUrl) { return; }
-
-            setStatusBarSyncing();
-            try {
-                const response = await fetch(`${backendUrl}/api/bugs/draft-issue`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        fileName: vscode.workspace.asRelativePath(editor.document.fileName),
-                        languageId: editor.document.languageId,
-                        codeSnippet: editor.document.getText(editor.selection) ||
-                                     editor.document.getText().slice(0, 1500)
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const data = await response.json() as { title?: string; body?: string };
-                const issueTitle = data.title ?? 'Bug Report';
-                const issueBody  = data.body  ?? 'No details returned.';
-
-                // Open draft in a new editor tab
-                const doc = await vscode.workspace.openTextDocument({
-                    language: 'markdown',
-                    content: `# ${issueTitle}\n\n${issueBody}\n`
-                });
-                await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
-
-                setStatusBarDone('Issue drafted ✓');
-                vscode.window.showInformationMessage(
-                    'Dev-Context: GitHub issue draft opened — review and submit manually'
-                );
-            } catch (err: unknown) {
-                setStatusBarError();
-                const msg = err instanceof Error ? err.message : String(err);
-                vscode.window.showErrorMessage(`Dev-Context: Draft failed — ${msg}`);
-            }
-        })
-    );
-
-    // 6. File watcher: auto-refresh context on text change
+    // 5. File watcher: auto-refresh context on text change
     context.subscriptions.push(
         vscode.workspace.onDidChangeTextDocument(async (event) => {
             const watcherEnabled = vscode.workspace
                 .getConfiguration('devContext')
                 .get<boolean>('watcherEnabled', true);
             if (!watcherEnabled) { return; }
-            if (event.document.uri.scheme !== 'file') { return; }  // Ignore output/git panels
+            if (event.document.uri.scheme !== 'file') { return; }
             if (provider.isOpen) {
                 await provider.updateContextSummary(event.document);
             }
         })
     );
 
-    // 7. Tab switch: refresh context when active editor changes
+    // 6. Tab switch: refresh context when active editor changes
     context.subscriptions.push(
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {
             if (editor && provider.isOpen) {
@@ -371,7 +222,7 @@ export function activate(context: vscode.ExtensionContext): void {
         })
     );
 
-    // 8. Set extension context flag
+    // 7. Set extension context flag
     vscode.commands.executeCommand('setContext', 'devContext.enabled', true);
 
     console.log('Dev-Context Assistant: activated successfully');
