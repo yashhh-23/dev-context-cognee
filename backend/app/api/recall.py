@@ -6,41 +6,24 @@ import numpy as np
 from typing import Optional
 from cognee.infrastructure.databases.vector.embeddings.get_embedding_engine import get_embedding_engine
 
-# Cache embeddings in-memory during a single recall search
-_embedding_cache: dict[str, list[float]] = {}
-
-async def _get_text_embedding(text: str) -> list[float] | None:
-    val = text.strip()
-    if not val:
-        return None
-    if val in _embedding_cache:
-        return _embedding_cache[val]
-    try:
-        engine = get_embedding_engine()
-        res = await engine.embed_text([val])
-        if res and len(res) > 0:
-            emb = res[0]
-            _embedding_cache[val] = emb
-            return emb
-    except Exception as e:
-        print("[DEBUG] Failed to get embedding in recall.py:", e)
-    return None
-
-def _calculate_cosine_similarity(v1: list[float], v2: list[float]) -> float:
-    arr1 = np.array(v1)
-    arr2 = np.array(v2)
-    norm1 = np.linalg.norm(arr1)
-    norm2 = np.linalg.norm(arr2)
-    if norm1 == 0 or norm2 == 0:
-        return 0.0
-    return float(np.dot(arr1, arr2) / (norm1 * norm2))
+from app.utils.embeddings import (
+    _get_text_embedding,
+    _calculate_cosine_similarity,
+    CONFLICT_MIN_THRESHOLD,
+    CONFLICT_MAX_THRESHOLD,
+    DIFFLIB_CONFLICT_MIN,
+    DIFFLIB_CONFLICT_MAX,
+)
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.session import PinnedNode, SessionRecord
+from app.models.session import PinnedNode, SessionRecord, MemoryFeedback
 from app.services.recall_service import search_memory, extract_text
 from app.core.security import verify_safe_input
 import cognee
+from app.utils.embeddings import sanitize_dataset_name
+import httpx
+from typing import Optional
 
 router = APIRouter()
 
@@ -49,7 +32,7 @@ class MemifyRequest(BaseModel):
     content: str
 
 
-def parse_item(item, idx: int, pinned_map: dict) -> dict:
+def parse_item(item, idx: int, pinned_map: dict, feedback_map: dict) -> dict:
     """Extract metadata from a Cognee recall result. Uses pre-fetched pinned_map to avoid N+1 queries."""
     text = extract_text(item)
     if isinstance(item, dict):
@@ -66,6 +49,7 @@ def parse_item(item, idx: int, pinned_map: dict) -> dict:
         created_at = getattr(item, "created_at", None)
     # O(1) lookup using pre-fetched map — no per-item DB query
     is_pinned = pinned_map.get(item_id, False)
+    thumbs, confidence = feedback_map.get(item_id, ("", 100))
     return {
         "id": item_id,
         "content": text,
@@ -75,6 +59,8 @@ def parse_item(item, idx: int, pinned_map: dict) -> dict:
         "created_at": created_at,
         "conflicts": [],
         "pinned": is_pinned,
+        "thumbs": thumbs,
+        "confidence_score": confidence,
     }
 
 
@@ -108,6 +94,9 @@ async def recall(
     pinned_records = db.query(PinnedNode).filter(PinnedNode.node_id.in_(all_ids)).all()
     pinned_map = {r.node_id: r.pinned for r in pinned_records}
 
+    feedback_records = db.query(MemoryFeedback).filter(MemoryFeedback.node_id.in_(all_ids)).all()
+    feedback_map = {f.node_id: (f.thumbs, f.confidence_score) for f in feedback_records}
+
     # Compute conflicts in-memory across result set (no extra Cognee calls)
     texts = [extract_text(item) for item in items_to_process]
     conflict_map: dict[int, list[str]] = {i: [] for i in range(len(texts))}
@@ -124,16 +113,16 @@ async def recall(
             if emb1 is not None and emb2 is not None:
                 sim = _calculate_cosine_similarity(emb1, emb2)
                 # Moderate similarity represents a potential semantic overlap/conflict
-                if 0.45 <= sim < 0.90:
+                if CONFLICT_MIN_THRESHOLD <= sim < CONFLICT_MAX_THRESHOLD:
                     conflict_map[i].append(texts[j][:100])
             else:
                 sim = difflib.SequenceMatcher(None, texts[i].strip().lower(), texts[j].strip().lower()).ratio()
-                if 0.30 <= sim < 0.85:
+                if DIFFLIB_CONFLICT_MIN <= sim < DIFFLIB_CONFLICT_MAX:
                     conflict_map[i].append(texts[j][:100])
 
     results = []
     for idx, item in enumerate(items_to_process):
-        parsed = parse_item(item, idx, pinned_map)
+        parsed = parse_item(item, idx, pinned_map, feedback_map)
         parsed["conflicts"] = conflict_map.get(idx, [])
         results.append(parsed)
 
@@ -241,3 +230,156 @@ async def submit_feedback(body: FeedbackRequest, db: Session = Depends(get_db)):
         return {"status": "ok"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to submit feedback: {str(e)}")
+
+class NodeFeedbackRequest(BaseModel):
+    thumbs: str
+    correction_note: Optional[str] = None
+
+@router.post("/{node_id}/feedback")
+async def submit_node_feedback(node_id: str, body: NodeFeedbackRequest, db: Session = Depends(get_db)):
+    record = db.query(MemoryFeedback).filter(MemoryFeedback.node_id == node_id).first()
+    if not record:
+        record = MemoryFeedback(node_id=node_id, thumbs=body.thumbs, correction_note=body.correction_note)
+        db.add(record)
+    else:
+        record.thumbs = body.thumbs
+        if body.correction_note:
+            record.correction_note = body.correction_note
+            
+    if body.thumbs == "up":
+        record.confidence_score = 100
+    else:
+        record.confidence_score = 50
+        
+    db.commit()
+    
+    try:
+        if body.correction_note:
+            sanitized_id = sanitize_dataset_name(node_id)
+            await cognee.remember(f"Correction for memory node {sanitized_id}: {body.correction_note}")
+            await cognee.improve(session_ids=[sanitized_id])
+    except Exception as e:
+        print(f"[feedback] Cognee improvement warning: {e}")
+        
+    return {
+        "success": True,
+        "node_id": node_id,
+        "thumbs": record.thumbs,
+        "confidence_score": record.confidence_score,
+        "correction_note": record.correction_note
+    }
+
+class ChatRequest(BaseModel):
+    message: str
+
+async def _query_llm_chat(prompt: str) -> str:
+    from app.core.config import settings
+    api_key = settings.GEMINI_API_KEY
+    if api_key:
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.post(
+                    url,
+                    params={"key": api_key},
+                    json={"contents": [{"parts": [{"text": prompt}]}]},
+                )
+            if resp.status_code == 200:
+                return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+        except Exception as e:
+            print("[chat] Gemini failed:", e)
+
+    api_key = settings.GROQ_API_KEY
+    if api_key:
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    json={
+                        "model": "llama-3.1-8b-instant",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "max_tokens": 1000,
+                        "temperature": 0.3,
+                    },
+                )
+            if resp.status_code == 200:
+                return resp.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            print("[chat] Groq failed:", e)
+
+    return "No LLM service available. Please set GEMINI_API_KEY or GROQ_API_KEY."
+
+@router.post("/chat")
+async def chat_memory(body: ChatRequest, db: Session = Depends(get_db)):
+    verify_safe_input(body.message, "message")
+    try:
+        # Sanitize query just in case it is used by Cognee internal tokens
+        sanitized_query = sanitize_dataset_name(body.message)
+        recalled = await cognee.recall(body.message)
+    except Exception as e:
+        print(f"[chat] recall error: {e}")
+        recalled = []
+        
+    context_str = ""
+    sources = []
+    if recalled:
+        items = recalled if isinstance(recalled, list) else [recalled]
+        all_ids = []
+        for idx, item in enumerate(items[:5]):
+            if isinstance(item, dict):
+                item_id = item.get("id") or item.get("node_id") or str(idx)
+            else:
+                item_id = str(getattr(item, "id", idx))
+            all_ids.append(item_id)
+            
+        feedback_records = db.query(MemoryFeedback).filter(MemoryFeedback.node_id.in_(all_ids)).all()
+        feedback_map = {f.node_id: (f.thumbs, f.confidence_score) for f in feedback_records}
+        
+        pinned_records = db.query(PinnedNode).filter(PinnedNode.node_id.in_(all_ids)).all()
+        pinned_map = {r.node_id: r.pinned for r in pinned_records}
+        
+        for idx, item in enumerate(items[:5]):
+            text = extract_text(item)
+            if isinstance(item, dict):
+                source = item.get("source", "cognee")
+                score_val = item.get("score") or item.get("relevance") or 1.0
+                item_id = item.get("id") or item.get("node_id") or str(idx)
+            else:
+                source = getattr(item, "source", "cognee")
+                score_val = getattr(item, "score", None) or getattr(item, "relevance", 1.0) or 1.0
+                item_id = str(getattr(item, "id", idx))
+                
+            thumbs, confidence = feedback_map.get(item_id, ("", 100))
+            is_pinned = pinned_map.get(item_id, False)
+            
+            context_str += f"Memory [{idx+1}] (Source: {source}, Confidence: {confidence}%, Pinned: {is_pinned}):\n{text}\n\n"
+            sources.append({
+                "id": item_id,
+                "content": text,
+                "score": float(score_val),
+                "source": source,
+                "pinned": is_pinned,
+                "thumbs": thumbs,
+                "confidence_score": confidence
+            })
+            
+    prompt = f"""You are a Principal Software Engineer and software architect pair-programming with the user.
+Answer the developer's question using the retrieved codebase memory context below.
+Always try to explicitly cite the source files or memory nodes (using markdown links [basename](file://...) or just naming them).
+Keep your answer professional, direct, and technically sound.
+
+Recalled Context:
+{context_str}
+
+Developer Question:
+{body.message}
+
+Response:"""
+    
+    answer = await _query_llm_chat(prompt)
+    return {
+        "content": answer,
+        "sources": sources
+    }
+>>>>>>> Stashed changes

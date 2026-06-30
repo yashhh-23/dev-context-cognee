@@ -182,6 +182,8 @@ export interface RecallResult {
   created_at?: string
   conflicts?: string[]
   pinned?: boolean
+  thumbs?: string
+  confidence_score?: number
 }
 export interface Session {
   id: string
@@ -240,6 +242,16 @@ export const api = {
     req<{ success: boolean; node_id: string; pinned: boolean }>(`/api/recall/${nodeId}/unpin`, { method: 'POST' }),
   autoCleanMemories: () =>
     req<{ status: string; cleaned_count: number; message: string }>('/api/memories/auto-clean', { method: 'POST' }),
+  submitFeedback: (nodeId: string, thumbs: 'up' | 'down', correctionNote?: string) =>
+    req<{ success: boolean; confidence_score: number }>('/api/recall/' + nodeId + '/feedback', {
+      method: 'POST',
+      body: JSON.stringify({ thumbs, correction_note: correctionNote }),
+    }),
+  chatMemory: (message: string) =>
+    req<{ content: string; sources: RecallResult[] }>('/api/recall/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    }),
   // Sessions
   getSessions: (limit = 10) => req<Session[]>(`/api/sessions?limit=${limit}`),
   getSession: (id: string) => req<Session>(`/api/sessions/${id}`),
