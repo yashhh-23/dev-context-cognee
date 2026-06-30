@@ -261,9 +261,10 @@ export default function RecallClient() {
           <button
             className={`btn btn-sm ${activeTab === 'ask' ? 'btn-primary' : 'btn-ghost'}`}
             onClick={() => setActiveTab('ask')}
-            style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', borderRadius: 'var(--radius-sm)' }}
+            style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', borderRadius: 'var(--radius-sm)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
           >
-            💬 Conversational Ask
+            <ChatBubbleIcon size={12} />
+            <span>Conversational Ask</span>
           </button>
           <button
             className={`btn btn-sm ${activeTab === 'search' ? 'btn-primary' : 'btn-ghost'}`}
@@ -298,8 +299,8 @@ export default function RecallClient() {
                 background: 'var(--color-bg)',
               }}>
                 {chatHistory.length === 0 && (
-                  <div className="empty-state" style={{ margin: 'auto', maxWidth: '360px' }}>
-                    <div style={{ fontSize: '2rem', opacity: 0.3 }}>💬</div>
+                  <div className="empty-state" style={{ margin: 'auto', maxWidth: '360px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-3)' }}>
+                    <ChatBubbleIcon size={32} className="nav-icon" style={{ opacity: 0.3 }} />
                     <h3>Conversational Context Search</h3>
                     <p>Ask natural language questions like &ldquo;What caused the auth bug?&rdquo; to retrieve grounded context and trace the memory path.</p>
                   </div>
@@ -375,16 +376,18 @@ export default function RecallClient() {
                         <button
                           className="btn btn-ghost btn-xs"
                           onClick={() => handleUpvote(msg.id)}
-                          style={{ fontSize: '10px' }}
+                          style={{ fontSize: '10px', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)' }}
                         >
-                          👍 Help
+                          <ThumbsUpIcon className="thumbs-up-icon" />
+                          <span>Help</span>
                         </button>
                         <button
                           className="btn btn-ghost btn-xs"
                           onClick={() => handleDownvote(msg.id)}
-                          style={{ fontSize: '10px', color: 'var(--color-error)' }}
+                          style={{ fontSize: '10px', color: 'var(--color-error)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)' }}
                         >
-                          👎 Incorrect
+                          <ThumbsDownIcon className="thumbs-down-icon" />
+                          <span>Incorrect</span>
                         </button>
                       </div>
                     )}
@@ -868,3 +871,30 @@ export default function RecallClient() {
     </div>
   )
 }
+
+/* ---- Icon Components for Recall & Ask ---- */
+
+function ThumbsUpIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+    </svg>
+  )
+}
+
+function ThumbsDownIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm12-3h3a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-3" />
+    </svg>
+  )
+}
+
+function ChatBubbleIcon({ className, size = 12 }: { className?: string; size?: number }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  )
+}
+
