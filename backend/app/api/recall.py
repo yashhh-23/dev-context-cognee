@@ -135,7 +135,6 @@ async def recall(
         latest = db.query(SessionRecord).order_by(SessionRecord.timestamp.desc()).first()
         if latest:
             latest.context_size = len(results)
-            db.commit()
     except Exception as e:
         print(f"[recall] Failed to save context_size to database: {e}")
     return results
@@ -149,6 +148,8 @@ class RecallRequestModel(BaseModel):
 @router.post("")
 async def recall_post(body: RecallRequestModel, db: Session = Depends(get_db)):
     results = await recall(q=body.query, limit=50, db=db)
+    if not results:
+        return {"bugs": [], "message": "No matching memory nodes found."}
     return {"bugs": results}
 
 
@@ -277,43 +278,7 @@ async def submit_node_feedback(node_id: str, body: NodeFeedbackRequest, db: Sess
 class ChatRequest(BaseModel):
     message: str
 
-async def _query_llm_chat(prompt: str) -> str:
-    from app.core.config import settings
-    api_key = settings.GEMINI_API_KEY
-    if api_key:
-        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
-        try:
-            async with httpx.AsyncClient(timeout=15) as client:
-                resp = await client.post(
-                    url,
-                    params={"key": api_key},
-                    json={"contents": [{"parts": [{"text": prompt}]}]},
-                )
-            if resp.status_code == 200:
-                return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
-        except Exception as e:
-            print("[chat] Gemini failed:", e)
 
-    api_key = settings.GROQ_API_KEY
-    if api_key:
-        try:
-            async with httpx.AsyncClient(timeout=15) as client:
-                resp = await client.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {api_key}"},
-                    json={
-                        "model": "llama-3.1-8b-instant",
-                        "messages": [{"role": "user", "content": prompt}],
-                        "max_tokens": 1000,
-                        "temperature": 0.3,
-                    },
-                )
-            if resp.status_code == 200:
-                return resp.json()["choices"][0]["message"]["content"]
-        except Exception as e:
-            print("[chat] Groq failed:", e)
-
-    return "No LLM service available. Please set GEMINI_API_KEY or GROQ_API_KEY."
 
 @router.post("/chat")
 async def chat_memory(body: ChatRequest, db: Session = Depends(get_db)):
@@ -382,7 +347,16 @@ Developer Question:
 
 Response:"""
     
-    answer = await _query_llm_chat(prompt)
+    from app.core.config import settings
+    from app.utils.llm_utils import ask_gemini, ask_groq
+    
+    answer = None
+    if settings.GEMINI_API_KEY:
+        answer = await ask_gemini(prompt, settings.GEMINI_API_KEY)
+    if not answer and settings.GROQ_API_KEY:
+        answer = await ask_groq(prompt, settings.GROQ_API_KEY)
+    if not answer:
+        answer = "No LLM service available or configured correctly."
     return {
         "content": answer,
         "sources": sources
