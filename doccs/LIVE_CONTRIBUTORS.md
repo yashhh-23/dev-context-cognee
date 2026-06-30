@@ -2,10 +2,11 @@
 
 > This document is automatically generated to track contributions to the project based on the Git commit history.
 
-## yashhh-23 (70 commits)
+## yashhh-23 (71 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `74117b0` | 2026-06-30 | bug  fixes in recall memory |
 | `ae85820` | 2026-06-30 | track file creation |
 | `8f8af27` | 2026-06-30 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
 | `d2766e3` | 2026-06-30 | fix: routing the memory ingest through a safe dataset name |
@@ -162,10 +163,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (11 commits)
+## github-actions[bot] (12 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `0336f54` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `9103f56` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `63c071b` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `8d0a219` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
