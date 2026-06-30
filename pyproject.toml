@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dev-context"
+version = "0.1.0"
+description = "CLI for dev-context-cognee memory management"
+dependencies = [
+    "requests",
+    "typer",
+    "rich"
+]
+
+[project.scripts]
+dev-context = "cli.cognee_cli:app"
+
+[tool.setuptools]
+packages = ["cli"]
