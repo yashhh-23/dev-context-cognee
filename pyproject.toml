@@ -9,7 +9,31 @@ description = "CLI for dev-context-cognee memory management"
 dependencies = [
     "requests",
     "typer",
-    "rich"
+    "rich",
+    "fastapi>=0.109.2",
+    "uvicorn[standard]",
+    "python-dotenv",
+    "pydantic",
+    "pydantic-settings",
+    "fastapi-users[sqlalchemy]",
+    "cognee[fastembed]==1.2.1",
+    "sqlalchemy",
+    "alembic",
+    "aiosqlite",
+    "psycopg2-binary>=2.9.9",
+    "httpx",
+    "aiohttp",
+    "PyGithub",
+    "watchdog",
+    "watchfiles",
+    "tenacity",
+    "python-multipart",
+    "numpy",
+    "filelock",
+    "websockets",
+    "cryptography>=42.0.5",
+    "fastmcp",
+    "python-dateutil"
 ]
 
 [project.scripts]
