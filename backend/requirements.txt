@@ -7,7 +7,7 @@ pydantic-settings==2.2.1
 fastapi-users[sqlalchemy]==13.0.0
 
 # Cognee — memory + graph + LLM orchestration
-cognee==0.1.17
+cognee[fastembed]==0.1.17
 
 # Database
 sqlalchemy==2.0.35

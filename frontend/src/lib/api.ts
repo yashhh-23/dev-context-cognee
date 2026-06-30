@@ -109,7 +109,7 @@ function getMockFallback(path: string): any {
 
 async function req<T>(path: string, opts?: RequestInit): Promise<T> {
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 5000)
+  const timeoutId = setTimeout(() => controller.abort(), 15000)
 
   try {
     const res = await fetch(`${BASE}${path}`, {
@@ -217,7 +217,7 @@ export const api = {
   getContextSummary: ()              => req<{ repo: string; branch: string; summary: string }>('/api/context/summary'),
   getMemoryStats: ()                 => req<{ total_memories: number; graph_nodes: number; graph_edges: number; last_updated: string }>('/api/overview/memory-stats'),
   getDependenciesHealth: ()          => req<{ total_dependencies: number; outdated_count: number; vulnerable_count: number; packages: any[] }>('/api/dependencies/health'),
-  getBugsTrend: (days = 7)           => req<{ labels: string[]; opened: number[]; closed: number[] }>(`/api/bugs/trend?days=${days}`),
+  getBugsTrend: (days = 7)           => req<{ labels: string[]; opened: number[]; closed: number[] }>('/api/overview/bug-trend'),
 
   // Bugs
   getBugs: (limit = 20)              => req<Bug[]>(`/api/bugs?limit=${limit}`),

@@ -16,8 +16,8 @@ class MemifyRequest(BaseModel):
 
 @router.get("/")
 async def recall(
-    q: str = Query(..., description="Natural language query"),
-    limit: int = Query(5, ge=1, le=20),
+    q: str = Query("", description="Natural language query"),
+    limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     """Recall relevant memory nodes — returns a list with pinned status."""
