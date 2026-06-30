@@ -110,8 +110,8 @@ async def get_stats(db: Session = Depends(get_db)):
     health = _compute_health_score(sessions, open_bugs, memory_nodes)
 
     # Compute dynamic metrics based on live data
-    # Code Quality: penalize based on open bugs
-    code_quality = max(0, min(100, 100 - int(math.log1p(max(0, open_bugs)) * 20)))
+    # Code Quality: penalize based on open bugs (less harsh penalty)
+    code_quality = max(0, min(100, 100 - int(math.log1p(max(0, open_bugs)) * 5)))
 
     # Test Coverage: ratio of completed/resolved sessions to total sessions, baseline 70
     if total > 0:
