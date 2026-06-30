@@ -80,43 +80,43 @@
 | `28ec7dc` | 2026-06-27 | fix(recall): replace N+1 DB queries with single bulk PinnedNode fetch using .in_() |
 | `e523516` | 2026-06-27 | fix(security): remove hardcoded NEXTAUTH_SECRET and DASHBOARD_PASSWORD fallbacks |
 | `f285481` | 2026-06-27 | fix: remove hardcoded fake data from main.py and stats.py |
-| `cfb35f8` | 2026-06-27 | fix(extension): correct recall route /api/memory/recall â†’ /api/recall to match backend router |
+| `cfb35f8` | 2026-06-27 | fix(extension): correct recall route /api/memory/recall → /api/recall to match backend router |
 | `cb2468b` | 2026-06-27 | fix(sessions): decrypt terminal_output with BYOK key before returning to client |
-| `74f3829` | 2026-06-27 | feat(auto-clean): LLM-powered supersede detection via Gemini 1.5 Flash â†’ Groq fallback |
+| `74f3829` | 2026-06-27 | feat(auto-clean): LLM-powered supersede detection via Gemini 1.5 Flash → Groq fallback |
 | `c4241ff` | 2026-06-27 | feat(dashboard): add Memory Health modal with Cognee stats, topic distribution, decay & auto-clean toggle |
 | `aeea670` | 2026-06-26 | feat: add /api/memories/auto-clean endpoint + frontend auto-clean on recall page load |
 | `4a4b3a3` | 2026-06-26 | fix: add filelock+websockets to requirements, fix variable shadowing in recall.py |
-| `c9367ad` | 2026-06-26 | docs: full README rewrite â€” accurate architecture, correct env vars, manual setup steps, extension install guide |
-| `445cb97` | 2026-06-26 | fix(extension): clean package.json â€” fix activationEvents, add maxRecallResults, remove stale cogneeApiKey ref, add secretStorage note |
+| `c9367ad` | 2026-06-26 | docs: full README rewrite — accurate architecture, correct env vars, manual setup steps, extension install guide |
+| `445cb97` | 2026-06-26 | fix(extension): clean package.json — fix activationEvents, add maxRecallResults, remove stale cogneeApiKey ref, add secretStorage note |
 | `4f92c5c` | 2026-06-26 | feat(backend): add missing __init__ files, bug_service, and updated requirements |
 | `e447e1b` | 2026-06-26 | Group 5: full sidebar WebView UI + provider.ts, update extension.ts to use it |
 | `e98ba0c` | 2026-06-26 | Group 4: extract commands into src/commands/, refactor extension.ts to use ApiClient + bridges |
 | `2f1777b` | 2026-06-26 | feat(extension): Group 2 - rewrite extension.ts with full activation logic |
 | `dacb8d4` | 2026-06-26 | feat(extension): Group 1 - upgrade package.json + add .vscodeignore |
 | `6505e8e` | 2026-06-24 | refactor(contribute): move import asyncio to top-level imports (PEP 8) |
-| `0dd8efa` | 2026-06-24 | refactor(bugs): inline _get_repo() helper â€” use settings.GITHUB_REPO directly |
+| `0dd8efa` | 2026-06-24 | refactor(bugs): inline _get_repo() helper — use settings.GITHUB_REPO directly |
 | `0bddde8` | 2026-06-24 | fix(bugs+recall): add /bugs/{id}/recall route, fix Cognee SearchResult str() dump |
 | `01720ad` | 2026-06-24 | fix(bugs): remove broken @property module-level aliases, clean up GITHUB_TOKEN/REPO exports |
 | `0aa182a` | 2026-06-24 | fix(contribute+bugs): fetch good-first-issues from cognee + OSS repos, fix env var loading |
 | `6def2fa` | 2026-06-23 | fix(topbar+graph+config): offline indicator, branch fallback, fix-node label, next.config rewrites |
 | `bd31174` | 2026-06-23 | fix(graph): align frontend node types + colors with backend graph_builder output |
-| `66a4071` | 2026-06-23 | fix(all): 7 bugs â€” recall routes, getSessions mapping, memify/forget/suggest endpoints, cognee config, GITHUB_REPO settings, timestamp null crash |
+| `66a4071` | 2026-06-23 | fix(all): 7 bugs — recall routes, getSessions mapping, memify/forget/suggest endpoints, cognee config, GITHUB_REPO settings, timestamp null crash |
 | `abfba3a` | 2026-06-23 | fix(stats+sessions): real memory_nodes from graph, dynamic recalled_today, fix session shape mismatch, batch bug-trend API calls |
 | `fa561be` | 2026-06-23 | fix(bugs,contribute): remove duplicate GITHUB_REPO, move _map_severity to top, align contribute schema to frontend |
-| `7b754f6` | 2026-06-23 | fix(conflicts): resolve merge conflicts with main â€” accept feature branch versions |
-| `c2c941f` | 2026-06-23 | fix(api): commit 6 â€” real GitHub bugs/contribute routes, live bug trend, fix hardcoded data |
+| `7b754f6` | 2026-06-23 | fix(conflicts): resolve merge conflicts with main — accept feature branch versions |
+| `c2c941f` | 2026-06-23 | fix(api): commit 6 — real GitHub bugs/contribute routes, live bug trend, fix hardcoded data |
 | `ad3b0bd` | 2026-06-23 | Merge pull request #6 from yashhh-23/feature/dashboard-v2 |
-| `ac5fb34` | 2026-06-23 | feat(polish): commit 4 â€” WS live events, chart, package deps, README |
+| `ac5fb34` | 2026-06-23 | feat(polish): commit 4 — WS live events, chart, package deps, README |
 | `e3c1377` | 2026-06-23 | Merge pull request #5 from yashhh-23/feature/dashboard-v2 |
-| `aba5526` | 2026-06-23 | feat(frontend): dashboard pages â€” overview, bugs, contribute, graph, recall |
+| `aba5526` | 2026-06-23 | feat(frontend): dashboard pages — overview, bugs, contribute, graph, recall |
 | `2c7c5be` | 2026-06-23 | Merge pull request #3 from yashhh-23/feature/dashboard-v2 |
 | `4230699` | 2026-06-23 | Merge pull request #4 from yashhh-23/main |
-| `98ef2ce` | 2026-06-23 | feat(frontend): dashboard shell â€” layout, design tokens, sidebar, topbar, routing |
+| `98ef2ce` | 2026-06-23 | feat(frontend): dashboard shell — layout, design tokens, sidebar, topbar, routing |
 | `f071d57` | 2026-06-23 | Merge pull request #2 from yashhh-23/feature/dashboard-v2 |
-| `85edc80` | 2026-06-23 | feat(frontend): complete dashboard-v2 â€” Overview, Bugs, Recall, MemoryGraph, Contribute panels + layout + API client + WebSocket + globals |
+| `85edc80` | 2026-06-23 | feat(frontend): complete dashboard-v2 — Overview, Bugs, Recall, MemoryGraph, Contribute panels + layout + API client + WebSocket + globals |
 | `66aa1ec` | 2026-06-23 | feat(backend): add recall, graph, stats, improve, forget, contribute routes + WebSocket + graph builder |
 | `c90a6ce` | 2026-06-22 | Merge pull request #1 from yashhh-23/ui-redesign |
-| `2e824fd` | 2026-06-22 | refactor(ui): complete dashboard redesign â€” Linear/Vercel-style system |
+| `2e824fd` | 2026-06-22 | refactor(ui): complete dashboard redesign — Linear/Vercel-style system |
 | `8a38ffe` | 2026-06-22 | phase 4: full dashboard redesign + bugs/stats backend endpoints |
 | `095edbc` | 2026-06-21 | fix: use cognee v1.0 remember/recall API, fix ingest_service indentation, clean up router and search endpoint |
 
@@ -151,10 +151,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## frag2win (5 commits)
+## frag2win (6 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `6b40f3a` | 2026-06-30 | feat: add health check command and JSON output options for API interactions |
 | `17284a3` | 2026-06-30 | docs: update LIVE_CONTRIBUTORS.md to include new contributor and contributions |
 | `d664045` | 2026-06-30 | docs: generate LIVE_CONTRIBUTORS.md to track project contributions |
 | `eb11ee9` | 2026-06-30 | docs: add automatically generated live contributors tracking document |
