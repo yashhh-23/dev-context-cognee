@@ -7,15 +7,18 @@ from app.models.session import SessionRecord
 
 router = APIRouter()
 
+import logging
+logger = logging.getLogger(__name__)
+
 @router.get("/summary")
 async def get_context_summary(db: Session = Depends(get_db)):
     """Retrieve the summary of the last active project/branch from memory."""
     # Get last active session from the database
     last_session = db.query(SessionRecord).order_by(SessionRecord.timestamp.desc()).first()
     repo = last_session.project if last_session else (settings.GITHUB_REPO or "")
-    branch = last_session.branch if last_session else "main"
+    branch = (last_session.branch if last_session else None) or "main"
 
-    query = f"what was I last working on in {repo}" if repo else "what was I last working on"
+    query = f"what was I last working on in {repo} on branch {branch}" if repo else "what was I last working on"
     try:
         texts = await recall_text(query, limit=1)
         summary = texts[0] if texts else "No context summary found in memory."
@@ -25,8 +28,9 @@ async def get_context_summary(db: Session = Depends(get_db)):
             "summary": summary
         }
     except Exception as e:
+        logger.error(f"Error recalling summary: {e}")
         return {
             "repo": repo,
             "branch": branch,
-            "summary": f"Error recalling summary: {str(e)}"
+            "summary": "Unable to retrieve context. Please try again."
         }

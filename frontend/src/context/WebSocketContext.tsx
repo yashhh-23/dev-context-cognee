@@ -16,6 +16,9 @@ interface WebSocketContextType {
 const WebSocketContext = createContext<WebSocketContextType | null>(null)
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000/ws/notifications'
+if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_WS_URL) {
+  console.warn("[WS] NEXT_PUBLIC_WS_URL not set")
+}
 
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<WSStatus>('disconnected')
@@ -23,7 +26,6 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const [reconnectAttempts, setReconnectAttempts] = useState(0)
   
   const wsRef = useRef<WebSocket | null>(null)
-  const historyRef = useRef<any[]>([]) // persist last 50 messages in ref
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const connect = () => {
@@ -47,9 +49,6 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         try {
           const data = JSON.parse(event.data)
           setLastMessage(data)
-          
-          // Persist in history (max 50)
-          historyRef.current = [data, ...historyRef.current].slice(0, 50)
         } catch (e) {
           console.error('[WS] parse message error:', e)
         }
@@ -73,6 +72,11 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   }
 
   const scheduleReconnect = () => {
+    if (reconnectAttempts >= 10) {
+      console.warn("[WS] Max reconnect reached")
+      return
+    }
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current)
     }

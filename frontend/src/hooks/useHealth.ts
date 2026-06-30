@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from 'react'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
+if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_API_URL) {
+  console.warn("[health] NEXT_PUBLIC_API_URL not set")
+}
 
 export function useHealth() {
   const [isHealthy, setIsHealthy] = useState<boolean>(true)

@@ -1,7 +1,7 @@
-"""GET /graph — return memory graph nodes + edges for visualisation."""
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Header, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
+from app.core.config import settings
 from app.core.graph_builder import build_graph, NODE_COLORS
 from app.services.recall_service import get_all_sessions
 from app.models.session import MemoryFeedback
@@ -106,8 +106,13 @@ async def get_graph(project: str = Query(None, description="Filter by project na
 
 @router.post("/build")
 def trigger_build_graph(project: str = Query(None, description="Filter by project name"),
-                        db: Session = Depends(get_db)):
+                        db: Session = Depends(get_db),
+                        authorization: str = Header(None)):
     """Trigger a graph rebuild (returns stats)."""
+    admin_key = getattr(settings, 'ADMIN_API_KEY', None)
+    if admin_key and authorization != f"Bearer {admin_key}":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
     sessions = get_all_sessions(db, skip=0, limit=200)
     if project:
         sessions = [s for s in sessions if s.project == project]

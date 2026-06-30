@@ -49,128 +49,52 @@ async def end_session(body: SessionEndRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to end session: {str(e)}")
 
-from app.utils.embeddings import (
-    _get_text_embedding,
-    _calculate_cosine_similarity,
+from app.utils.embedding_utils import (
+    get_text_embedding,
+    cosine_similarity,
     EXACT_MATCH_THRESHOLD,
     SUPERSEDE_MIN_THRESHOLD,
     SUPERSEDE_MAX_THRESHOLD,
     DIFFLIB_FAST_RATIO,
     sanitize_dataset_name,
 )
-
-# ---------------------------------------------------------------------------
-# LLM helper — Gemini 1.5 Flash → Groq llama-3.1-8b fallback
-# ---------------------------------------------------------------------------
-
-_SUPERSEDE_PROMPT = """You are a memory deduplication assistant.
-Below are two memory entries stored in a developer's context memory system.
-
-Memory A (OLDER):
-{mem_a}
-
-Memory B (NEWER):
-{mem_b}
-
-Does Memory B supersede (replace / make obsolete) Memory A?
-A supersedes B only when B represents an UPDATED state of the same fact (e.g. 'bug fixed' supersedes 'bug exists', 'PR merged' supersedes 'PR open').
-Do NOT answer YES if both could be true at the same time, or if they describe different things.
-
-Answer with exactly one word: YES or NO."""
-
-
-async def _ask_gemini(mem_a: str, mem_b: str) -> Optional[bool]:
-    """Returns True=supersede, False=not, None=skip (uncertain/error)."""
-    api_key = settings.GEMINI_API_KEY
-    if not api_key:
-        return None
-    prompt = _SUPERSEDE_PROMPT.format(mem_a=mem_a[:400], mem_b=mem_b[:400])
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        "gemini-1.5-flash:generateContent"
-    )
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(
-                url,
-                params={"key": api_key},
-                json={"contents": [{"parts": [{"text": prompt}]}]},
-            )
-        if resp.status_code != 200:
-            return None
-        text = (
-            resp.json()
-            .get("candidates", [{}])[0]
-            .get("content", {})
-            .get("parts", [{}])[0]
-            .get("text", "")
-            .strip()
-            .upper()
-        )
-        if text.startswith("YES"):
-            return True
-        if text.startswith("NO"):
-            return False
-        return None
-    except Exception:
-        return None
-
-
-async def _ask_groq(mem_a: str, mem_b: str) -> Optional[bool]:
-    """Groq llama-3.1-8b-instant fallback."""
-    api_key = settings.GROQ_API_KEY
-    if not api_key:
-        return None
-    prompt = _SUPERSEDE_PROMPT.format(mem_a=mem_a[:400], mem_b=mem_b[:400])
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}"},
-                json={
-                    "model": "llama-3.1-8b-instant",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 4,
-                    "temperature": 0,
-                },
-            )
-        if resp.status_code != 200:
-            return None
-        text = (
-            resp.json()
-            .get("choices", [{}])[0]
-            .get("message", {})
-            .get("content", "")
-            .strip()
-            .upper()
-        )
-        if text.startswith("YES"):
-            return True
-        if text.startswith("NO"):
-            return False
-        return None
-    except Exception:
-        return None
-
+from app.utils.llm_utils import ask_gemini, ask_groq, SUPERSEDE_PROMPT
+import logging
+logger = logging.getLogger(__name__)
 
 async def _is_superseded_by_llm(mem_a: str, mem_b: str) -> bool:
     """
     Ask LLM whether mem_b supersedes mem_a.
     Chain: Gemini Flash → Groq → skip (return False = don't delete).
     """
-    result = await _ask_gemini(mem_a, mem_b)
+    prompt = SUPERSEDE_PROMPT.format(mem_a=mem_a[:400], mem_b=mem_b[:400])
+    api_key = settings.GEMINI_API_KEY
+    result = await ask_gemini(prompt, api_key) if api_key else None
     if result is None:
-        result = await _ask_groq(mem_a, mem_b)
-    return result is True  # None or False both mean "don't delete"
+        api_key = settings.GROQ_API_KEY
+        result = await ask_groq(prompt, api_key) if api_key else None
+        
+    if result is None:
+        logger.warning("Skipping supersede check: LLM unavailable")
+        return False
+        
+    return result.strip().upper().startswith("YES")
 
 
-async def _forget_session_helper(s: SessionRecord, pinned_ids: set[str]) -> bool:
+async def _forget_session_helper(s: SessionRecord, pinned_ids: set[str], db: Session) -> bool:
     """Call cognee.forget + mark DB. Returns True on success."""
     if str(s.id) in pinned_ids:
+        logger.info(f"Session {s.id} is protected by pin")
         return False  # safety guard
     try:
-        dataset_name = sanitize_dataset_name(f"{s.project}_{s.branch}")
-        await cognee.forget(dataset_name=dataset_name)
+        count = db.query(SessionRecord).filter(
+            SessionRecord.project == s.project,
+            SessionRecord.branch == s.branch,
+            SessionRecord.status.in_(["completed", "resolved"])
+        ).count()
+        if count <= 1:
+            dataset_name = sanitize_dataset_name(f"{s.project}_{s.branch}")
+            await cognee.forget(dataset_name=dataset_name)
         s.status = "forgotten"
         return True
     except Exception as exc:
@@ -231,8 +155,14 @@ async def forget_session(session_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Session not found")
 
     try:
-        dataset_name = sanitize_dataset_name(f"{record.project}_{record.branch}")
-        await cognee.forget(dataset_name=dataset_name)
+        count = db.query(SessionRecord).filter(
+            SessionRecord.project == record.project,
+            SessionRecord.branch == record.branch,
+            SessionRecord.status.in_(["completed", "resolved"])
+        ).count()
+        if count <= 1:
+            dataset_name = sanitize_dataset_name(f"{record.project}_{record.branch}")
+            await cognee.forget(dataset_name=dataset_name)
         record.status = "forgotten"
         db.commit()
     except Exception as e:
@@ -260,6 +190,7 @@ async def auto_clean_memories(db: Session = Depends(get_db)):
         .order_by(SessionRecord.timestamp.asc())
         .all()
     )
+    sessions = sessions[-50:]
 
     # Build pinned id set for fast O(1) lookup
     pinned_ids = {
@@ -293,11 +224,11 @@ async def auto_clean_memories(db: Session = Depends(get_db)):
                     continue
 
                 # ── Step 1: Try high-precision semantic embedding similarity ──
-                emb1 = await _get_text_embedding(text)
-                emb2 = await _get_text_embedding(kept_text)
+                emb1 = await get_text_embedding(text)
+                emb2 = await get_text_embedding(kept_text)
 
                 if emb1 is not None and emb2 is not None:
-                    sim = _calculate_cosine_similarity(emb1, emb2)
+                    sim = cosine_similarity(emb1, emb2)
                 else:
                     # Fallback to difflib SequenceMatcher if embedding fails
                     # Optimize: quick check on length ratio first
@@ -313,7 +244,7 @@ async def auto_clean_memories(db: Session = Depends(get_db)):
 
                 # ── Phase 1: exact-ish duplicate ──────────────────────────────
                 if sim >= EXACT_MATCH_THRESHOLD or text.lower() in kept_text.lower() or kept_text.lower() in text.lower():
-                    if await _forget_session_helper(session, pinned_ids):
+                    if await _forget_session_helper(session, pinned_ids, db):
                         cleaned_exact += 1
                         removed = True
                         break
@@ -328,7 +259,7 @@ async def auto_clean_memories(db: Session = Depends(get_db)):
                     )
                     if superseded:
                         # Newer (session) supersedes older (kept_session): drop the older one
-                        if await _forget_session_helper(kept_session, pinned_ids):
+                        if await _forget_session_helper(kept_session, pinned_ids, db):
                             kept.remove(kept_session)
                             cleaned_supersede += 1
                         kept.append(session)
