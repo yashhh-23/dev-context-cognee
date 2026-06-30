@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.session import PinnedNode
 from app.services.recall_service import search_memory, extract_text
+from app.core.security import verify_safe_input
 import cognee
 
 router = APIRouter()
@@ -21,6 +22,7 @@ async def recall(
     db: Session = Depends(get_db),
 ):
     """Recall relevant memory nodes — returns a list with pinned status."""
+    verify_safe_input(q, "query")
     try:
         raw = await search_memory(q)
     except Exception as e:
@@ -90,6 +92,7 @@ async def recall(
 @router.post("/memify")
 async def memify(body: MemifyRequest):
     """Store arbitrary text into Cognee memory graph."""
+    verify_safe_input(body.content, "content")
     if not body.content.strip():
         raise HTTPException(status_code=400, detail="content cannot be empty")
     try:

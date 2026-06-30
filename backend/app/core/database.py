@@ -17,3 +17,9 @@ def get_db():
         yield db
     finally:
         db.close()
+
+def init_db():
+    # Import models so they are registered with Base
+    from app.models.session import SessionRecord, PinnedNode
+    Base.metadata.create_all(bind=engine)
+

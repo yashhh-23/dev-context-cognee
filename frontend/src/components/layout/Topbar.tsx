@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { signOut, useSession } from 'next-auth/react'
 import ConnectionStatus from '@/components/shared/ConnectionStatus'
 
 const API_BASE =
@@ -11,6 +12,22 @@ const API_BASE =
 export default function Topbar() {
   const [repo,   setRepo]   = useState<string>('dev-context-cognee')
   const [branch, setBranch] = useState<string>('main')
+  const { data: session } = useSession()
+  const [byokKey, setByokKey] = useState<string>('')
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('byok_key') || ''
+      setByokKey(saved)
+    }
+  }, [])
+
+  const handleByokChange = (val: string) => {
+    setByokKey(val)
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('byok_key', val)
+    }
+  }
 
   useEffect(() => {
     fetch(`${API_BASE}/api/context/summary`)
@@ -46,8 +63,55 @@ export default function Topbar() {
       </div>
 
       <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }} htmlFor="byok-input">
+            BYOK Key:
+          </label>
+          <input
+            id="byok-input"
+            type="password"
+            value={byokKey}
+            onChange={(e) => handleByokChange(e.target.value)}
+            placeholder="Enter Key"
+            style={{
+              padding: '2px var(--space-2)',
+              fontSize: '11px',
+              backgroundColor: 'var(--color-surface-offset)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--color-text)',
+              width: '120px',
+              fontFamily: 'var(--font-mono)',
+              outline: 'none',
+            }}
+          />
+        </div>
         <ConnectionStatus />
         <ThemeToggle />
+        {session && (
+          <button
+            onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+            style={{
+              padding: '2px var(--space-3)',
+              fontSize: '11px',
+              backgroundColor: 'var(--color-surface-offset)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--color-error)',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'var(--transition)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--color-error-dim)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--color-surface-offset)'
+            }}
+          >
+            Sign Out
+          </button>
+        )}
       </div>
     </header>
   )
