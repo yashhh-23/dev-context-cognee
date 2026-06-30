@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { ApiClient } from '../utils/apiClient';
 import { summarizeDocumentStructure, isSupportedLanguage } from '../utils/languageDetector';
 import { StatusSetter, ProviderBridge } from './rememberContext';
+import { applyBugDecorations } from '../decorations/bugDecorator';
 
 export function registerRecallBugsCommand(
   context: vscode.ExtensionContext,
@@ -54,6 +55,9 @@ export function registerRecallBugsCommand(
           threshold
         }
       });
+
+      // Apply inline editor decorations
+      applyBugDecorations(editor, bugs as any);
 
       status.done(`${bugs.length} bug(s)`);
 

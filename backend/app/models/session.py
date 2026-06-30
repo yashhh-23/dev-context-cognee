@@ -25,7 +25,7 @@ class SessionRecord(Base):
     error_message = Column(Text, nullable=True)
     cognee_response_id = Column(String, nullable=True)
 
-    @hybrid_property
+    @property
     def terminal_output(self) -> str:
         key = byok_key_var.get()
         return decrypt_data(self._terminal_output, key)
