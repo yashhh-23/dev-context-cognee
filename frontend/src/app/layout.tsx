@@ -5,6 +5,7 @@ import { WebSocketProvider } from '@/context/WebSocketContext'
 import BackendStatusBanner from '@/components/shared/BackendStatusBanner'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/context/AuthProvider'
+import CommandPalette from '@/components/shared/CommandPalette'
 
 export const metadata: Metadata = {
   title: 'Dev·Context — Cognee Memory Dashboard',
@@ -27,6 +28,7 @@ export default function RootLayout({
           <WebSocketProvider>
             <BackendStatusBanner />
             <DashboardShell>{children}</DashboardShell>
+            <CommandPalette />
             <Toaster theme="dark" closeButton position="top-right" />
           </WebSocketProvider>
         </AuthProvider>

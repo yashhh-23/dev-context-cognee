@@ -19,7 +19,7 @@ def _decrypt_session(s, byok_key: Optional[str]) -> dict:
         "branch":          s.branch or "main",
         "started_at":      s.timestamp.isoformat() if s.timestamp else "",
         "last_active":     s.timestamp.isoformat() if s.timestamp else "",
-        "context_size":    1,
+        "context_size":    s.context_size if getattr(s, "context_size", None) is not None else 1,
         "summary":         None,
         "terminal_output": terminal_output,
         "status":          getattr(s, "status", None),

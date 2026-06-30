@@ -192,6 +192,8 @@ async def analyze_bug(request: AnalyzeRequest, db: Session = Depends(get_db)):
             for item in (raw if isinstance(raw, list) else [])
             if extract_text(item)
         ]
+        session_record.context_size = len(similar_bugs)
+        db.commit()
     except Exception:
         similar_bugs = []
 

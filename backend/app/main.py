@@ -52,6 +52,7 @@ app.include_router(sessions.router,   prefix="/api/sessions",  tags=["sessions"]
 app.include_router(context.router,    prefix="/api/context",   tags=["context"])
 app.include_router(bugs.router,       prefix="/api/bugs",      tags=["bugs"])
 app.include_router(recall.router,     prefix="/api/recall",    tags=["recall"])
+app.include_router(recall.router,     prefix="/api/memory",    tags=["recall"])
 app.include_router(graph.router,      prefix="/api/graph",     tags=["graph"])
 app.include_router(stats.router,      prefix="/api/overview",  tags=["stats"])
 app.include_router(lifecycle.router,  prefix="/api",           tags=["lifecycle"])

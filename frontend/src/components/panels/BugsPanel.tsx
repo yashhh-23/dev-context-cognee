@@ -91,8 +91,34 @@ export default function BugsPanel() {
                   {s.tags.map(t => <TagPill key={t} label={t} />)}
                 </div>
               )}
-              {s.error_message && (
+              {s.error_message && s.status !== 'resolved' && (
                 <p className="bug-error">{s.error_message}</p>
+              )}
+              {s.status === 'resolved' && (
+                <div style={{
+                  marginTop: 'var(--space-2)',
+                  padding: 'var(--space-3)',
+                  background: 'var(--color-surface-offset)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--color-border)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '11px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--space-2)',
+                }}>
+                  <div style={{ fontWeight: 'bold', color: 'var(--color-success)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    ⚡ Memory Improved (Before vs. After)
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ color: 'var(--color-error)', textDecoration: 'line-through', padding: '4px 6px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', textOutline: 'none', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      - Log: {s.terminal_output ? s.terminal_output.slice(0, 100) : 'Original log content'}...
+                    </div>
+                    <div style={{ color: 'var(--color-success)', padding: '4px 6px', background: 'rgba(34, 197, 94, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                      + Fix Applied: {s.error_message || 'Marked session resolved.'}
+                    </div>
+                  </div>
+                </div>
               )}
               {s.status !== 'resolved' && s.status !== 'forgotten' && (
                 <div className="bug-actions">

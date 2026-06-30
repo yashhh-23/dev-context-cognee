@@ -3,7 +3,7 @@ from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.session import PinnedNode
+from app.models.session import PinnedNode, SessionRecord
 from app.services.recall_service import search_memory, extract_text
 from app.core.security import verify_safe_input
 import cognee
@@ -86,7 +86,26 @@ async def recall(
         processed = await process_item(raw, 0)
         results.append(processed)
 
+    # Save actual context size for the latest active session
+    try:
+        latest = db.query(SessionRecord).order_by(SessionRecord.timestamp.desc()).first()
+        if latest:
+            latest.context_size = len(results)
+            db.commit()
+    except Exception as e:
+        print(f"[recall] Failed to save context_size to database: {e}")
+
     return results
+
+
+@router.get("/search")
+async def search_memory_api(
+    q: str = Query("", description="Natural language query"),
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """Retrieve memory search results matching the query."""
+    return await recall(q, limit, db)
 
 
 @router.post("/memify")
