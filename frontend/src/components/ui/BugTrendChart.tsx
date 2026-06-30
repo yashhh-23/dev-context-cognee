@@ -88,7 +88,7 @@ export default function BugTrendChart({ labels, opened, closed }: BugTrendChartP
   }
 
   return (
-    <div style={{ position: 'relative', height: 140 }}>
+    <div style={{ position: 'relative', height: 140, width: '100%' }}>
       <Line options={options} data={data} />
     </div>
   )

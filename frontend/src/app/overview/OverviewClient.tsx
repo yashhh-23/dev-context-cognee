@@ -126,13 +126,15 @@ export default function OverviewClient() {
               <LegendDot color="#4ade80" label="closed" />
             </div>
           </div>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: 'var(--space-2) 0' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: 'var(--space-2) 0', width: '100%' }}>
             {trendData && trendData.labels && trendData.labels.length > 0 ? (
-              <BugTrendChart
-                labels={trendData.labels}
-                opened={trendData.opened}
-                closed={trendData.closed}
-              />
+              <div style={{ width: '100%' }}>
+                <BugTrendChart
+                  labels={trendData.labels}
+                  opened={trendData.opened}
+                  closed={trendData.closed}
+                />
+              </div>
             ) : (
               <div className="empty-state" style={{ width: '100%', padding: 'var(--space-4)' }}>
                 <p>No issue data yet — configure your repo details</p>
