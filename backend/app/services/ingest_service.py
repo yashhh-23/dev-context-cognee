@@ -2,18 +2,18 @@ import re
 import asyncio
 from app.models.session import SessionRecord
 from app.core.database import SessionLocal
+from app.core.config import settings
 from app.core.ws_manager import manager
 import cognee
 
 _cognify_lock = asyncio.Lock()
-_needs_cognify = False
+_cognify_event = asyncio.Event()
 
 async def _debounced_cognify():
-    global _needs_cognify
     await asyncio.sleep(15)  # Wait 15s to batch multiple saves
     async with _cognify_lock:
-        if _needs_cognify:
-            _needs_cognify = False
+        if _cognify_event.is_set():
+            _cognify_event.clear()
             try:
                 await cognee.cognify()
             except Exception as e:
@@ -23,20 +23,22 @@ async def _debounced_cognify():
 
 def clean_terminal_output(text: str) -> str:
     text = re.sub(
-        r"(api[_\-]?key|secret|token|password)[\s:=]+['\x22]?[A-Za-z0-9_\-\.]+['\x22]?",
+        r"(api[_\-]?key|secret|token|password|access[_\-]?key|private[_\-]?key|client[_\-]?secret|db[_\-]?password)[\s:=]+['\x22]?[A-Za-z0-9_\-\.]+['\x22]?",
         r'\1: [REDACTED]',
         text,
         flags=re.IGNORECASE,
     )
     ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
     text = ansi_escape.sub('', text)
-    if len(text) > 50000:
-        text = text[:50000] + "\n...[TRUNCATED]"
+    max_chars = getattr(settings, 'MAX_LOG_CHARS', 50000)
+    if len(text) > max_chars:
+        text = text[:max_chars] + "\n...[TRUNCATED]"
     return text
 
 
 async def process_ingest(session_id: str, payload: dict, byok_key: str = None):
     db = SessionLocal()
+    record = None
     try:
         record = db.query(SessionRecord).filter(SessionRecord.id == session_id).first()
         if not record:
@@ -75,15 +77,17 @@ async def process_ingest(session_id: str, payload: dict, byok_key: str = None):
         })
 
     except Exception as e:
-        record.status = "failed"
-        record.error_message = str(e)[:500]
-        db.commit()
+        if record:
+            record.status = "failed"
+            record.error_message = str(e)[:500]
+            db.commit()
     finally:
         db.close()
 
 
-async def process_file_ingest(session_id: str, payload: dict):
+async def process_file_ingest(session_id: str, payload: dict, byok_key: str = None):
     db = SessionLocal()
+    record = None
     try:
         record = db.query(SessionRecord).filter(SessionRecord.id == session_id).first()
         if not record:
@@ -103,8 +107,7 @@ async def process_file_ingest(session_id: str, payload: dict):
 
         await cognee.add(formatted_content, dataset_name="main_dataset")
         
-        global _needs_cognify
-        _needs_cognify = True
+        _cognify_event.set()
         asyncio.create_task(_debounced_cognify())
 
         record.status = "completed"
@@ -121,8 +124,9 @@ async def process_file_ingest(session_id: str, payload: dict):
         })
 
     except Exception as e:
-        record.status = "failed"
-        record.error_message = str(e)[:500]
-        db.commit()
+        if record:
+            record.status = "failed"
+            record.error_message = str(e)[:500]
+            db.commit()
     finally:
         db.close()

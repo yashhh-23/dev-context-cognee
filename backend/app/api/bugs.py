@@ -8,7 +8,7 @@ from app.services.recall_service import get_session, search_memory, recall_text,
 import httpx
 import re
 
-from app.core.github_utils import _gh_headers
+from app.utils.github_utils import get_github_headers, parse_repo_from_url, search_github
 
 router = APIRouter()
 
@@ -47,55 +47,35 @@ def extract_error_keyword(terminal_output: str) -> str:
 
 
 async def search_github_issues(keyword: str) -> list:
-    headers = _gh_headers()
+    headers = get_github_headers(settings.GITHUB_TOKEN)
     query = f"{keyword} in:title,body is:issue is:open"
-    try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            resp = await client.get(
-                "https://api.github.com/search/issues",
-                params={"q": query, "per_page": 5, "sort": "relevance"},
-                headers=headers,
-            )
-        if resp.status_code == 200:
-            return [
-                {
-                    "title":      item["title"],
-                    "html_url":   item["html_url"],
-                    "repository": item["repository_url"].split("/")[-2] + "/" + item["repository_url"].split("/")[-1],
-                    "state":      item["state"],
-                    "labels":     [l["name"] for l in item.get("labels", [])],
-                }
-                for item in resp.json().get("items", [])
-            ]
-    except Exception as e:
-        print(f"[bugs] search_github_issues error: {e}")
-    return []
+    items = await search_github(query, headers, label="issues")
+    return [
+        {
+            "title":      item["title"],
+            "html_url":   item["html_url"],
+            "repository": parse_repo_from_url(item["repository_url"]),
+            "state":      item["state"],
+            "labels":     [l["name"] for l in item.get("labels", [])],
+        }
+        for item in items
+    ]
 
 
 async def search_github_contributions(keyword: str) -> list:
-    headers = _gh_headers()
+    headers = get_github_headers(settings.GITHUB_TOKEN)
     query = f'{keyword} label:"good first issue" is:open is:issue'
-    try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            resp = await client.get(
-                "https://api.github.com/search/issues",
-                params={"q": query, "per_page": 5, "sort": "relevance"},
-                headers=headers,
-            )
-        if resp.status_code == 200:
-            return [
-                {
-                    "title":      item["title"],
-                    "html_url":   item["html_url"],
-                    "repository": item["repository_url"].split("/")[-2] + "/" + item["repository_url"].split("/")[-1],
-                    "labels":     [l["name"] for l in item.get("labels", [])],
-                    "stars":      0,
-                }
-                for item in resp.json().get("items", [])
-            ]
-    except Exception as e:
-        print(f"[bugs] search_github_contributions error: {e}")
-    return []
+    items = await search_github(query, headers, label="contributions")
+    return [
+        {
+            "title":      item["title"],
+            "html_url":   item["html_url"],
+            "repository": parse_repo_from_url(item["repository_url"]),
+            "labels":     [l["name"] for l in item.get("labels", [])],
+            "stars":      0,
+        }
+        for item in items
+    ]
 
 
 @router.get("")
@@ -106,7 +86,7 @@ async def list_bugs(limit: int = 30):
         print("[bugs] GITHUB_REPO not set — returning empty list")
         return []
 
-    headers = _gh_headers()
+    headers = get_github_headers(settings.GITHUB_TOKEN)
     print(f"[bugs] fetching issues from {repo}")
 
     try:
@@ -151,7 +131,7 @@ async def recall_bug_context(bug_id: int):
             async with httpx.AsyncClient(timeout=6) as client:
                 r = await client.get(
                     f"https://api.github.com/repos/{repo}/issues/{bug_id}",
-                    headers=_gh_headers(),
+                    headers=get_github_headers(settings.GITHUB_TOKEN),
                 )
             if r.status_code == 200:
                 issue_title = r.json().get("title", "")
@@ -192,7 +172,7 @@ async def analyze_bug(request: AnalyzeRequest, db: Session = Depends(get_db)):
             for item in (raw if isinstance(raw, list) else [])
             if extract_text(item)
         ]
-        session_record.context_size = len(similar_bugs)
+        # session_record.context_size = len(similar_bugs) # Removed overloaded context_size update
         db.commit()
     except Exception:
         similar_bugs = []
@@ -228,9 +208,12 @@ async def get_opportunities(db: Session = Depends(get_db)):
             break
 
     for kw in keywords:
-        for opp in await search_github_contributions(kw):
+        results = await search_github_contributions(kw)
+        for opp in results:
             if opp["html_url"] not in seen_urls:
                 seen_urls.add(opp["html_url"])
                 all_opps.append(opp)
+        if len(all_opps) >= 3:
+            break
 
     return {"opportunities": all_opps[:20]}

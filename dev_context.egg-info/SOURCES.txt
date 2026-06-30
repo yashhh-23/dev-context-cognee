@@ -1,9 +1,0 @@
-README.md
-pyproject.toml
-cli/cognee_cli.py
-dev_context.egg-info/PKG-INFO
-dev_context.egg-info/SOURCES.txt
-dev_context.egg-info/dependency_links.txt
-dev_context.egg-info/entry_points.txt
-dev_context.egg-info/requires.txt
-dev_context.egg-info/top_level.txt
