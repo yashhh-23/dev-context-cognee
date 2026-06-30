@@ -12,10 +12,9 @@ async def improve_context(
     Uses cognee.add() + cognee.cognify() to update the stored memory.
     """
     try:
-        # Add updated content to the existing dataset (overwrites if same name)
         await cognee.add(
             content,
-            dataset_name=filename,
+            dataset_name="main_dataset",
         )
 
         # Re-process to extract entities and relationships
