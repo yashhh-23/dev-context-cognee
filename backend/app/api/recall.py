@@ -47,9 +47,9 @@ async def recall(
             if dup_results:
                 from app.services.recall_service import extract_text
                 import difflib
-                items = dup_results if isinstance(dup_results, list) else [dup_results]
-                for item in items:
-                    existing = extract_text(item)
+                dup_items = dup_results if isinstance(dup_results, list) else [dup_results]
+                for dup_item in dup_items:
+                    existing = extract_text(dup_item)
                     if not existing:
                         continue
                     similarity = difflib.SequenceMatcher(None, text.strip().lower(), existing.strip().lower()).ratio()

@@ -26,3 +26,9 @@ watchdog==4.0.1
 # Utilities
 tenacity==8.3.0
 python-multipart==0.0.9
+
+# Cross-platform process lock (guards Cognee/KuzuDB init)
+filelock
+
+# WebSocket support
+websockets
