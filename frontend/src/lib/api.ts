@@ -51,7 +51,7 @@ function getMockFallback(path: string): any {
   if (cleanPath.startsWith('/api/dependencies/health')) {
     return dependenciesHealthMock
   }
-  if (cleanPath.startsWith('/api/overview/memory-stats')) {
+  if (cleanPath.startsWith('/api/stats/memory-health')) {
     return memoryStatsMock
   }
   if (cleanPath.startsWith('/api/recall/memify')) {
@@ -227,7 +227,7 @@ export const api = {
   getHealth: ()                      => req<{ status: string; version: string }>('/health'),
   getStats: ()                       => req<OverviewStats>('/api/overview/stats'),
   getContextSummary: ()              => req<{ repo: string; branch: string; summary: string }>('/api/context/summary'),
-  getMemoryStats: ()                 => req<{ total_memories: number; graph_nodes: number; graph_edges: number; last_updated: string }>('/api/overview/memory-stats'),
+  getMemoryStats: ()                 => req<{ total_memories: number; graph_nodes: number; graph_edges: number; last_updated: string }>('/api/stats/memory-health'),
   getDependenciesHealth: ()          => req<{ total_dependencies: number; outdated_count: number; vulnerable_count: number; packages: any[] }>('/api/dependencies/health'),
   getBugsTrend: ()           => req<{ labels: string[]; opened: number[]; closed: number[] }>('/api/overview/bug-trend'),
 
@@ -247,7 +247,7 @@ export const api = {
   recall: (query: string, limit = 10) =>
     req<RecallResult[]>(`/api/recall?q=${encodeURIComponent(query)}&limit=${limit}`),
   searchMemory: (query: string, limit = 10) =>
-    req<RecallResult[]>(`/api/memory/search?q=${encodeURIComponent(query)}&limit=${limit}`),
+    req<RecallResult[]>(`/api/recall/search?q=${encodeURIComponent(query)}&limit=${limit}`),
   forget: (nodeId: string)            => req<{ success: boolean }>(`/api/recall/${nodeId}`, { method: 'DELETE' }),
   memify: (content: string)           =>
     req<{ node_id: string }>('/api/recall/memify', {
