@@ -124,4 +124,13 @@ export const api = {
   // Sessions — backend returns correct shape directly
   getSessions: (limit = 10)          => req<Session[]>(`/api/sessions?limit=${limit}`),
   getSession:  (id: string)          => req<Session>(`/api/sessions/${id}`),
+  improveSession: (id: string, fixText?: string) =>
+    req<{ status: string; session_id: string }>(`/api/improve/${id}`, {
+      method: 'POST',
+      body: JSON.stringify({ fix_text: fixText }),
+    }),
+  forgetSession: (id: string)        =>
+    req<{ status: string; session_id: string }>(`/api/forget/${id}`, {
+      method: 'DELETE',
+    }),
 }
