@@ -1,0 +1,22 @@
+[
+  {
+    "id": "node-1",
+    "content": "The auth bug was resolved by wrapping the JWT validation function in a try-except block and returning an explicit 401 response instead of allowing the promise to reject silently.",
+    "score": 0.942,
+    "source": "bug_fix",
+    "session_id": "sess-02",
+    "created_at": "2026-06-26T16:45:00Z",
+    "conflicts": [],
+    "pinned": true
+  },
+  {
+    "id": "node-2",
+    "content": "JWT minting requires the OPENAI_API_KEY and GITHUB_TOKEN variables to be defined in the backend/.env file. Missing variables cause the provider initialization to fail.",
+    "score": 0.815,
+    "source": "config",
+    "session_id": "sess-01",
+    "created_at": "2026-06-26T15:30:00Z",
+    "conflicts": ["JWT validation keys are rotated every 24 hours"],
+    "pinned": false
+  }
+]

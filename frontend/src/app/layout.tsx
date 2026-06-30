@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import DashboardShell from '@/components/layout/DashboardShell'
+import { WebSocketProvider } from '@/context/WebSocketContext'
+import BackendStatusBanner from '@/components/shared/BackendStatusBanner'
+import { Toaster } from 'sonner'
 
 export const metadata: Metadata = {
   title: 'Dev·Context — Cognee Memory Dashboard',
@@ -19,7 +22,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body>
-        <DashboardShell>{children}</DashboardShell>
+        <WebSocketProvider>
+          <BackendStatusBanner />
+          <DashboardShell>{children}</DashboardShell>
+          <Toaster theme="dark" closeButton position="top-right" />
+        </WebSocketProvider>
       </body>
     </html>
   )

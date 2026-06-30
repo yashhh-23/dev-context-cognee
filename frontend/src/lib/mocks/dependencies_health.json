@@ -1,0 +1,10 @@
+{
+  "total_dependencies": 34,
+  "outdated_count": 5,
+  "vulnerable_count": 2,
+  "packages": [
+    { "name": "next", "current": "16.2.0", "latest": "16.2.9", "status": "outdated" },
+    { "name": "react", "current": "19.2.0", "latest": "19.2.4", "status": "outdated" },
+    { "name": "highlight.js", "current": "11.10.0", "latest": "11.11.1", "status": "outdated" }
+  ]
+}
