@@ -61,3 +61,22 @@ app.include_router(ws.router, tags=["ws"])
 @app.get("/health", tags=["health"])
 def health_check():
     return {"status": "ok", "version": "2.0.0"}
+
+
+@app.get("/db-check", tags=["health"])
+def db_check():
+    import urllib.parse
+    try:
+        url = settings.DATABASE_URL
+        parsed = urllib.parse.urlparse(url)
+        return {
+            "scheme": parsed.scheme,
+            "hostname": parsed.hostname,
+            "port": parsed.port,
+            "username": parsed.username,
+            "path": parsed.path,
+            "raw_len": len(url),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
