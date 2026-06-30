@@ -34,3 +34,4 @@ filelock
 
 # WebSocket support
 websockets
+cryptography==42.0.5

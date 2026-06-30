@@ -7,6 +7,10 @@ import Topbar from './Topbar'
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
+  if (pathname === '/auth/signin') {
+    return <>{children}</>
+  }
+
   return (
     <div className="dashboard-shell">
       <Sidebar activePath={pathname} />

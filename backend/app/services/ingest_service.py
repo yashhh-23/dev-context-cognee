@@ -19,7 +19,7 @@ def clean_terminal_output(text: str) -> str:
     return text
 
 
-async def process_ingest(session_id: str, payload: dict):
+async def process_ingest(session_id: str, payload: dict, byok_key: str = None):
     db = SessionLocal()
     try:
         record = db.query(SessionRecord).filter(SessionRecord.id == session_id).first()

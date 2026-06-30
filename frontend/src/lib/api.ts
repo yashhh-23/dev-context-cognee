@@ -111,9 +111,17 @@ async function req<T>(path: string, opts?: RequestInit): Promise<T> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 15000)
 
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (typeof window !== 'undefined') {
+    const key = sessionStorage.getItem('byok_key')
+    if (key) {
+      headers['X-BYOK-Key'] = key
+    }
+  }
+
   try {
     const res = await fetch(`${BASE}${path}`, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...headers, ...(opts?.headers as Record<string, string>) },
       signal: controller.signal,
       ...opts,
     })
