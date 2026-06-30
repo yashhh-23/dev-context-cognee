@@ -1,12 +1,11 @@
-"""GET /contribute — list good-first-issues and help-wanted from GITHUB_REPO."""
+"""GET /contribute — list good-first-issues and help-wanted from Cognee + OSS repos."""
 from fastapi import APIRouter, Query, HTTPException
 from app.api.bugs import (
     extract_error_keyword,
     search_github_issues,
     search_github_contributions,
-    GITHUB_TOKEN,
-    GITHUB_REPO,
 )
+from app.core.config import settings
 from app.core.database import get_db
 from app.services.recall_service import get_session, search_memory
 from fastapi import Depends
@@ -15,39 +14,67 @@ import httpx
 
 router = APIRouter()
 
+# OSS repos to surface contribution opportunities from.
+# topoteretes/cognee is always first (hackathon context).
+OSS_REPOS = [
+    "topoteretes/cognee",
+    "BerriAI/litellm",
+    "tiangolo/fastapi",
+    "vercel/next.js",
+    "sqlalchemy/sqlalchemy",
+]
+
+
+def _gh_headers() -> dict:
+    h = {"Accept": "application/vnd.github+json"}
+    token = settings.GITHUB_TOKEN
+    if token:
+        h["Authorization"] = f"Bearer {token}"
+    return h
+
 
 @router.get("")
 async def list_contribute():
-    """Return good-first-issues and help-wanted from the configured GITHUB_REPO."""
-    if not GITHUB_REPO:
-        return []
+    """Return good-first-issues and help-wanted from Cognee + OSS repos."""
+    headers = _gh_headers()
 
-    headers = {"Accept": "application/vnd.github+json"}
-    if GITHUB_TOKEN:
-        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+    repos = list(OSS_REPOS)
+    user_repo = settings.GITHUB_REPO
+    if user_repo and user_repo not in repos:
+        repos.append(user_repo)
 
     results, seen = [], set()
-    for label in ["good first issue", "help wanted"]:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(
-                f"https://api.github.com/repos/{GITHUB_REPO}/issues",
-                params={"state": "open", "labels": label, "per_page": 15},
-                headers=headers,
-            )
-        if resp.status_code == 200:
-            for item in resp.json():
-                if "pull_request" not in item and item["number"] not in seen:
-                    seen.add(item["number"])
+
+    for repo in repos:
+        for label in ["good first issue", "help wanted"]:
+            try:
+                async with httpx.AsyncClient(timeout=10) as client:
+                    resp = await client.get(
+                        f"https://api.github.com/repos/{repo}/issues",
+                        params={"state": "open", "labels": label, "per_page": 10},
+                        headers=headers,
+                    )
+                if resp.status_code != 200:
+                    continue
+                for item in resp.json():
+                    uid = f"{repo}#{item['number']}"
+                    if "pull_request" in item or uid in seen:
+                        continue
+                    seen.add(uid)
                     results.append({
                         "id":         item["number"],
                         "title":      item["title"],
                         "url":        item["html_url"],
-                        "repo":       GITHUB_REPO,
-                        "type":       "good-first-issue" if "good first issue" in label else "help-wanted",
-                        "difficulty": "easy" if "good first issue" in label else "medium",
+                        "repo":       repo,
+                        "type":       "good-first-issue" if label == "good first issue" else "help-wanted",
+                        "difficulty": "easy" if label == "good first issue" else "medium",
                         "suggestion": "",
                         "labels":     [l["name"] for l in item.get("labels", [])],
                     })
+            except Exception as e:
+                print(f"[contribute] error fetching {repo} / {label}: {e}")
+                continue
+
     return results
 
 

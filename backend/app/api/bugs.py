@@ -3,15 +3,37 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.core.database import get_db
+from app.core.config import settings
 from app.services.recall_service import get_session, search_memory
 import httpx
-import os
 import re
 
 router = APIRouter()
 
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
-GITHUB_REPO  = os.getenv("GITHUB_REPO", "")
+# Lazy accessors — read from Pydantic settings so .env is always loaded first
+def _get_token() -> str:
+    return settings.GITHUB_TOKEN or ""
+
+def _get_repo() -> str:
+    return settings.GITHUB_REPO or ""
+
+
+def _gh_headers() -> dict:
+    h = {"Accept": "application/vnd.github+json"}
+    tok = _get_token()
+    if tok:
+        h["Authorization"] = f"Bearer {tok}"
+    return h
+
+
+# Keep these as module-level aliases for backward compatibility with any direct imports
+@property
+def GITHUB_TOKEN(_=None) -> str:  # type: ignore[misc]
+    return _get_token()
+
+@property
+def GITHUB_REPO(_=None) -> str:  # type: ignore[misc]
+    return _get_repo()
 
 
 class AnalyzeRequest(BaseModel):
@@ -50,9 +72,7 @@ def extract_error_keyword(terminal_output: str) -> str:
 
 async def search_github_issues(keyword: str) -> list:
     """Search GitHub public issues matching the error keyword."""
-    headers = {"Accept": "application/vnd.github+json"}
-    if GITHUB_TOKEN:
-        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+    headers = _gh_headers()
     query = f"{keyword} in:title,body is:issue is:open"
     try:
         async with httpx.AsyncClient(timeout=8) as client:
@@ -80,9 +100,7 @@ async def search_github_issues(keyword: str) -> list:
 
 async def search_github_contributions(keyword: str) -> list:
     """Search GitHub for good-first-issue / help-wanted matching the keyword."""
-    headers = {"Accept": "application/vnd.github+json"}
-    if GITHUB_TOKEN:
-        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+    headers = _gh_headers()
     query = f"{keyword} label:\"good first issue\" is:open is:issue"
     try:
         async with httpx.AsyncClient(timeout=8) as client:
@@ -111,16 +129,15 @@ async def search_github_contributions(keyword: str) -> list:
 @router.get("")
 async def list_bugs(limit: int = 30):
     """Return open issues from the configured GITHUB_REPO."""
-    if not GITHUB_REPO:
+    repo = _get_repo()
+    if not repo:
         return []
 
-    headers = {"Accept": "application/vnd.github+json"}
-    if GITHUB_TOKEN:
-        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+    headers = _gh_headers()
 
     async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.get(
-            f"https://api.github.com/repos/{GITHUB_REPO}/issues",
+            f"https://api.github.com/repos/{repo}/issues",
             params={"state": "open", "per_page": limit, "sort": "created", "direction": "desc"},
             headers=headers,
         )
@@ -179,10 +196,6 @@ async def get_opportunities(db: Session = Depends(get_db)):
     sessions = get_all_sessions(db, skip=0, limit=10)
     all_opps: list = []
     seen_urls: set = set()
-
-    headers = {"Accept": "application/vnd.github+json"}
-    if GITHUB_TOKEN:
-        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
 
     keywords: list[str] = []
     for s in sessions:
