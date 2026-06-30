@@ -8,6 +8,17 @@
 
 dev·context is a full-stack developer context engine that captures your coding sessions, ingests them into Cognee's knowledge graph, and surfaces relevant memory exactly when you need it — across debugging, bug triage, and open-source contribution.
 
+## 🚀 One-Click Quick Start (Local Demo)
+
+To boot the entire persistent-memory developer context engine with seeded mock data, run these two commands in your terminal:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+> [!IMPORTANT]
+> Please ensure you populate the `NEXTAUTH_SECRET` and `DASHBOARD_PASSWORD` inside your new `.env` file, as our production-grade security middleware will explicitly block runtime execution if they are missing.
+
 ---
 
 ## What it does

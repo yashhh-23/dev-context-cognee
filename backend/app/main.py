@@ -23,6 +23,7 @@ if os.getenv("GEMINI_API_KEY"):
 
 
 from app.core.database import init_db
+from app.seed import seed_db
 from app.api import ingest, sessions, context, bugs, recall, graph, stats, lifecycle, contribute, ws, memory_health
 from app.core.byok import byok_key_var
 
@@ -31,8 +32,9 @@ from app.core.byok import byok_key_var
 async def lifespan(app: FastAPI):
     try:
         init_db()
+        seed_db()
     except Exception as e:
-        print(f"[startup] DB init failed (non-fatal): {e}")
+        print(f"[startup] DB init/seeding failed (non-fatal): {e}")
     yield
 
 

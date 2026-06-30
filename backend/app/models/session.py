@@ -39,3 +39,11 @@ class PinnedNode(Base):
 
     node_id = Column(String, primary_key=True, index=True)
     pinned = Column(Boolean, default=True)
+
+class MemoryFeedback(Base):
+    __tablename__ = "memory_feedback"
+
+    node_id = Column(String, primary_key=True, index=True)
+    thumbs = Column(String, default="")  # "up" or "down"
+    correction_note = Column(Text, nullable=True)
+    confidence_score = Column(Integer, default=100)

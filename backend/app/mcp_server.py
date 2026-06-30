@@ -10,27 +10,14 @@ from pathlib import Path
 from fastmcp import FastMCP
 from cognee.infrastructure.databases.vector.embeddings.get_embedding_engine import get_embedding_engine
 
-async def _get_text_embedding(text: str) -> list[float] | None:
-    val = text.strip()
-    if not val:
-        return None
-    try:
-        engine = get_embedding_engine()
-        res = await engine.embed_text([val])
-        if res and len(res) > 0:
-            return res[0]
-    except Exception as e:
-        print("[DEBUG] Failed to get embedding in mcp_server.py:", e)
-    return None
-
-def _calculate_cosine_similarity(v1: list[float], v2: list[float]) -> float:
-    arr1 = np.array(v1)
-    arr2 = np.array(v2)
-    norm1 = np.linalg.norm(arr1)
-    norm2 = np.linalg.norm(arr2)
-    if norm1 == 0 or norm2 == 0:
-        return 0.0
-    return float(np.dot(arr1, arr2) / (norm1 * norm2))
+from app.utils.embeddings import (
+    _get_text_embedding,
+    _calculate_cosine_similarity,
+    CONFLICT_MIN_THRESHOLD,
+    CONFLICT_MAX_THRESHOLD,
+    DIFFLIB_CONFLICT_MIN,
+    DIFFLIB_CONFLICT_MAX,
+)
 
 # Add backend directory to sys.path to allow absolute imports of app
 backend_dir = Path(__file__).resolve().parent.parent
@@ -72,10 +59,10 @@ async def remember_context(text: str) -> str:
                     if emb1 is not None and emb2 is not None:
                         similarity = _calculate_cosine_similarity(emb1, emb2)
                         # Moderate similarity represents a conflict/overlap
-                        is_conflict = 0.45 <= similarity < 0.90
+                        is_conflict = CONFLICT_MIN_THRESHOLD <= similarity < CONFLICT_MAX_THRESHOLD
                     else:
                         similarity = difflib.SequenceMatcher(None, text.strip().lower(), existing_text.strip().lower()).ratio()
-                        is_conflict = 0.30 <= similarity < 0.85
+                        is_conflict = DIFFLIB_CONFLICT_MIN <= similarity < DIFFLIB_CONFLICT_MAX
                     
                     if is_conflict and existing_text.strip().lower() != text.strip().lower():
                         contradictions.append(existing_text[:100])

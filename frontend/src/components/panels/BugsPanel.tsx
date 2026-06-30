@@ -59,7 +59,7 @@ export default function BugsPanel() {
   }
 
   return (
-    <div className="panel">
+    <div className="panel max-w-7xl mx-auto p-6 md:p-8 w-full" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
       <Topbar title="Bugs" subtitle="All ingested sessions and their memory status" />
       {loading ? (
         <div className="skeleton-list">
@@ -68,9 +68,9 @@ export default function BugsPanel() {
       ) : sessions.length === 0 ? (
         <EmptyState icon="◎" title="No sessions yet" body="Ingest a terminal session to start tracking bugs and context." />
       ) : (
-        <div className="bug-list">
+        <div className="bug-list" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           {sessions.map(s => (
-            <div key={s.id} className="bug-card">
+            <div key={s.id} className="bug-card" style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
               <div className="bug-card-header">
                 <div className="bug-meta">
                   <span className="bug-project">{s.project}</span>

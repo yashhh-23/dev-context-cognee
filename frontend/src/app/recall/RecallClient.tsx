@@ -78,48 +78,38 @@ export default function RecallClient() {
 
     try {
       // Step 1 animation: Recall Check
-      await new Promise(r => setTimeout(r, 600))
       const startTime = Date.now()
-      const recalledNodes = await api.recall(userQ, 4)
+      const chatResp = await api.chatMemory(userQ)
       const recallTime = Date.now() - startTime
 
       setTraceSteps(prev => prev.map(s => 
         s.id === 1 
-          ? { ...s, status: 'done', duration: `${recallTime}ms`, details: `Found ${recalledNodes.length} matching memory nodes` }
+          ? { ...s, status: 'done', duration: `${recallTime}ms`, details: `Found ${chatResp.sources?.length ?? 0} matching memory nodes` }
           : s.id === 2 ? { ...s, status: 'running' } : s
       ))
 
       // Step 2 animation: Context Building
-      await new Promise(r => setTimeout(r, 800))
-      const tokens = recalledNodes.reduce((acc, r) => acc + r.content.split(' ').length, 0) + 120
+      await new Promise(r => setTimeout(r, 400))
+      const tokens = (chatResp.sources ?? []).reduce((acc, r) => acc + r.content.split(' ').length, 0) + 120
       setTraceSteps(prev => prev.map(s => 
         s.id === 2 
-          ? { ...s, status: 'done', duration: '142ms', details: `Injected ${tokens} tokens of context` }
+          ? { ...s, status: 'done', duration: '50ms', details: `Injected ${tokens} tokens of context` }
           : s.id === 3 ? { ...s, status: 'running' } : s
       ))
 
       // Step 3 animation: LLM Response
-      await new Promise(r => setTimeout(r, 1200))
-      
-      // Generate intelligent answer based on recalled nodes
-      let answer = ''
-      if (recalledNodes.length > 0) {
-        answer = `Based on your Cognee memory, here is what I found:\n\n${recalledNodes[0].content.slice(0, 150)}...\n\nThis context suggests a connection with ${recalledNodes[0].source}. You can check the details in the source tags below.`
-      } else {
-        answer = "I searched Cognee memory but couldn't find any specific matching context for this query. Would you like to store new context using the 'memify' tool?"
-      }
-
+      await new Promise(r => setTimeout(r, 600))
       setTraceSteps(prev => prev.map(s => 
         s.id === 3 
-          ? { ...s, status: 'done', duration: '840ms', details: 'Confidence score: 0.91' }
+          ? { ...s, status: 'done', duration: '350ms', details: 'Context retrieval grounded' }
           : s.id === 4 ? { ...s, status: 'running' } : s
       ))
 
       // Step 4 animation: Memory Update
-      await new Promise(r => setTimeout(r, 500))
+      await new Promise(r => setTimeout(r, 300))
       setTraceSteps(prev => prev.map(s => 
         s.id === 4 
-          ? { ...s, status: 'done', duration: '95ms', details: 'Added 1 query trace edge to the graph' }
+          ? { ...s, status: 'done', duration: '40ms', details: 'Added 1 query trace edge to the graph' }
           : s
       ))
 
@@ -129,8 +119,8 @@ export default function RecallClient() {
         {
           id: crypto.randomUUID(),
           role: 'assistant',
-          content: answer,
-          sources: recalledNodes,
+          content: chatResp.content,
+          sources: chatResp.sources ?? [],
         }
       ])
     } catch (err) {
@@ -146,6 +136,31 @@ export default function RecallClient() {
       ])
     } finally {
       setAskLoading(false)
+    }
+  }
+
+  async function handleResultFeedback(nodeId: string, thumbs: 'up' | 'down') {
+    try {
+      const res = await api.submitFeedback(nodeId, thumbs)
+      setSearchResults(prev =>
+        prev.map(r => r.id === nodeId ? { ...r, thumbs, confidence_score: res.confidence_score } : r)
+      )
+      toast.success(thumbs === 'up' ? 'Memory strengthened!' : 'Memory marked for decay.')
+    } catch {
+      toast.error('Failed to submit feedback')
+    }
+  }
+
+  async function handleResultCorrection(nodeId: string, note: string) {
+    if (!note.trim()) return
+    try {
+      await api.submitFeedback(nodeId, 'down', note.trim())
+      setSearchResults(prev =>
+        prev.map(r => r.id === nodeId ? { ...r, thumbs: 'down', confidence_score: 50 } : r)
+      )
+      toast.success('Correction note submitted successfully!')
+    } catch {
+      toast.error('Failed to submit correction note')
     }
   }
 
@@ -242,7 +257,7 @@ export default function RecallClient() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)', position: 'relative', minHeight: 'calc(100vh - 120px)' }}>
+    <div className="max-w-7xl mx-auto p-6 md:p-8 w-full" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', position: 'relative', minHeight: 'calc(100vh - 120px)' }}>
       {/* Page Header */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }}>
         <div>
@@ -277,11 +292,11 @@ export default function RecallClient() {
       </div>
 
       {/* Main Layout Area */}
-      <div style={{ display: 'flex', gap: 'var(--space-6)', flex: 1, alignItems: 'stretch' }}>
+      <div style={{ display: 'flex', gap: 'var(--space-8)', flex: 1, alignItems: 'stretch' }}>
         
         {/* TAB 1: CONVERSATIONAL ASK */}
         {activeTab === 'ask' && (
-          <div style={{ display: 'flex', flex: 1, gap: 'var(--space-6)', minHeight: '520px' }}>
+          <div style={{ display: 'flex', flex: 1, gap: 'var(--space-8)', minHeight: '520px' }}>
             {/* Chat Panel (Left) */}
             <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '520px', padding: 0 }}>
               <div className="card-header" style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid var(--color-border)' }}>
@@ -643,10 +658,10 @@ export default function RecallClient() {
 
         {/* TAB 2: KEYWORD SEARCH & MANAGE (Existing Recall page logic) */}
         {activeTab === 'search' && (
-          <div className="grid-2" style={{ flex: 1, alignItems: 'start', gap: 'var(--space-6)' }}>
+          <div className="grid-2" style={{ flex: 1, alignItems: 'start', gap: 'var(--space-8)' }}>
             
             {/* Left side: search query & results list */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
               <form onSubmit={handleSearch}>
                 <div
                   style={{
@@ -696,7 +711,7 @@ export default function RecallClient() {
               )}
 
               {searchLoading && (
-                <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                <div className="card p-6" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                   {Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <div className="skeleton skeleton-text" style={{ width: '40%' }} />
@@ -714,7 +729,7 @@ export default function RecallClient() {
               )}
 
               {searchResults.map(r => (
-                <div key={r.id} className="card" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                <div key={r.id} className="card p-6" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
                       <span className="badge badge-info">{r.source}</span>
@@ -766,13 +781,80 @@ export default function RecallClient() {
                   }}>
                     {r.content}
                   </div>
+
+                  {/* Thumbs Feedback & Confidence Score */}
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: '12px', marginTop: '4px' }}>
+                    <span style={{
+                      fontSize: '10px',
+                      fontFamily: 'var(--font-mono)',
+                      background: (r.confidence_score ?? 100) >= 70 ? 'rgba(45, 212, 191, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                      border: (r.confidence_score ?? 100) >= 70 ? '1px solid rgba(45, 212, 191, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+                      color: (r.confidence_score ?? 100) >= 70 ? '#2dd4bf' : 'var(--color-error)',
+                      padding: '2px 6px',
+                      borderRadius: '4px'
+                    }}>
+                      Confidence: {r.confidence_score ?? 100}%
+                    </span>
+
+                    <button
+                      onClick={() => handleResultFeedback(r.id, 'up')}
+                      className={`btn btn-xs ${r.thumbs === 'up' ? 'btn-primary' : 'btn-ghost'}`}
+                      style={{ fontSize: '10px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                    >
+                      <ThumbsUpIcon style={{ width: '10px', height: '10px' }} />
+                      <span>Strengthen</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleResultFeedback(r.id, 'down')}
+                      className={`btn btn-xs ${r.thumbs === 'down' ? 'btn-primary' : 'btn-ghost'}`}
+                      style={{ fontSize: '10px', display: 'inline-flex', alignItems: 'center', gap: '2px', color: 'var(--color-error)' }}
+                    >
+                      <ThumbsDownIcon style={{ width: '10px', height: '10px' }} />
+                      <span>Decay</span>
+                    </button>
+                  </div>
+
+                  {/* Correction Note Input */}
+                  {r.thumbs === 'down' && (
+                    <div style={{ marginTop: '8px', padding: '12px', background: 'var(--color-surface-offset)', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
+                      <form onSubmit={async (e) => {
+                        e.preventDefault()
+                        const form = e.currentTarget
+                        const input = form.elements.namedItem('correction') as HTMLInputElement
+                        await handleResultCorrection(r.id, input.value)
+                        input.value = ''
+                      }} style={{ display: 'flex', gap: '8px' }}>
+                        <input
+                          name="correction"
+                          type="text"
+                          placeholder="Provide correct context note..."
+                          required
+                          style={{
+                            flex: 1,
+                            background: 'var(--color-bg)',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: '4px',
+                            padding: '4px 8px',
+                            fontSize: '11px',
+                            fontFamily: 'var(--font-mono)',
+                            color: 'var(--color-text)',
+                            outline: 'none'
+                          }}
+                        />
+                        <button type="submit" className="btn btn-primary btn-xs" style={{ fontSize: '10px' }}>
+                          Submit
+                        </button>
+                      </form>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
 
             {/* Right side: Memify input */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              <div className="card">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+              <div className="card p-6">
                 <div className="card-header">
                   <span className="card-title">memify context</span>
                 </div>
@@ -899,17 +981,17 @@ export default function RecallClient() {
 
 /* ---- Icon Components for Recall & Ask ---- */
 
-function ThumbsUpIcon({ className }: { className?: string }) {
+function ThumbsUpIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
     </svg>
   )
 }
 
-function ThumbsDownIcon({ className }: { className?: string }) {
+function ThumbsDownIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm12-3h3a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-3" />
     </svg>
   )
