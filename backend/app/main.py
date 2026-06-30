@@ -62,3 +62,13 @@ app.include_router(ws.router, tags=["ws"])
 def health_check():
     return {"status": "ok", "version": "2.0.0"}
 
+@app.get("/api/dependencies/health", tags=["health"])
+def dependencies_health():
+    # Return dummy data to satisfy the frontend until implemented
+    return {
+        "total_dependencies": 42,
+        "outdated_count": 3,
+        "vulnerable_count": 0,
+        "packages": []
+    }
+
