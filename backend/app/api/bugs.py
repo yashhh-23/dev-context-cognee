@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.config import settings
-from app.services.recall_service import get_session, search_memory
+from app.services.recall_service import get_session, search_memory, recall_text, extract_text
 import httpx
 import re
 
@@ -12,12 +12,10 @@ router = APIRouter()
 
 
 def _get_token() -> str:
-    """Always read from Pydantic settings — safe after .env reload + restart."""
     return settings.GITHUB_TOKEN or ""
 
 
 def _get_repo() -> str:
-    """Always read from Pydantic settings — safe after .env reload + restart."""
     return settings.GITHUB_REPO or ""
 
 
@@ -63,7 +61,6 @@ def extract_error_keyword(terminal_output: str) -> str:
 
 
 async def search_github_issues(keyword: str) -> list:
-    """Search GitHub public issues matching the error keyword."""
     headers = _gh_headers()
     query = f"{keyword} in:title,body is:issue is:open"
     try:
@@ -90,7 +87,6 @@ async def search_github_issues(keyword: str) -> list:
 
 
 async def search_github_contributions(keyword: str) -> list:
-    """Search GitHub for good-first-issue / help-wanted matching the keyword."""
     headers = _gh_headers()
     query = f'{keyword} label:"good first issue" is:open is:issue'
     try:
@@ -159,6 +155,42 @@ async def list_bugs(limit: int = 30):
         return []
 
 
+@router.get("/{bug_id}/recall")
+async def recall_bug_context(bug_id: int):
+    """Use Cognee memory to recall context relevant to a specific GitHub issue."""
+    # Try to fetch the issue title from GitHub for a richer query
+    issue_title = ""
+    repo = _get_repo()
+    if repo:
+        try:
+            async with httpx.AsyncClient(timeout=6) as client:
+                r = await client.get(
+                    f"https://api.github.com/repos/{repo}/issues/{bug_id}",
+                    headers=_gh_headers(),
+                )
+            if r.status_code == 200:
+                issue_title = r.json().get("title", "")
+        except Exception:
+            pass
+
+    query = f"bug #{bug_id}: {issue_title}" if issue_title else f"GitHub issue #{bug_id}"
+    print(f"[bugs] recall query: {query}")
+
+    texts = await recall_text(query, limit=5)
+
+    if texts:
+        # Join multiple results into a readable block
+        context = "\n\n".join(f"— {t}" for t in texts)
+    else:
+        context = (
+            f"No related memory found for issue #{bug_id}.\n\n"
+            "Tip: ingest a session where you worked on a similar error — "
+            "Cognee will then surface relevant context here automatically."
+        )
+
+    return {"context": context}
+
+
 @router.post("/analyze")
 async def analyze_bug(request: AnalyzeRequest, db: Session = Depends(get_db)):
     """Analyze a session: recall similar bugs from Cognee + search GitHub."""
@@ -170,8 +202,12 @@ async def analyze_bug(request: AnalyzeRequest, db: Session = Depends(get_db)):
     keyword = extract_error_keyword(terminal_output)
 
     try:
-        similar = await search_memory(f"bug error: {keyword}")
-        similar_bugs = similar if isinstance(similar, list) else []
+        raw = await search_memory(f"bug error: {keyword}")
+        similar_bugs = [
+            extract_text(item)
+            for item in (raw if isinstance(raw, list) else [])
+            if extract_text(item)
+        ]
     except Exception:
         similar_bugs = []
 
@@ -179,10 +215,10 @@ async def analyze_bug(request: AnalyzeRequest, db: Session = Depends(get_db)):
     contribution_opportunities = await search_github_contributions(keyword)
 
     return {
-        "session_id":               request.session_id,
-        "keyword":                  keyword,
-        "similar_past_bugs":        similar_bugs,
-        "github_issues":            github_issues,
+        "session_id":                 request.session_id,
+        "keyword":                    keyword,
+        "similar_past_bugs":          similar_bugs,
+        "github_issues":              github_issues,
         "contribution_opportunities": contribution_opportunities,
     }
 
@@ -212,38 +248,3 @@ async def get_opportunities(db: Session = Depends(get_db)):
                 all_opps.append(opp)
 
     return {"opportunities": all_opps[:20]}
-
-
-@router.get("/{bug_id}/recall")
-async def recall_bug_context(bug_id: int):
-    """Use Cognee recall to find past session context related to a GitHub bug."""
-    try:
-        query = f"context for GitHub bug #{bug_id}"
-        raw = await search_memory(query)
-
-        context_text = ""
-        if isinstance(raw, list) and raw:
-            first = raw[0]
-            if isinstance(first, dict):
-                context_text = first.get("content", first.get("text", ""))
-            elif hasattr(first, "content"):
-                context_text = first.content
-            else:
-                context_text = str(first)
-        elif raw:
-            context_text = str(raw)
-
-        if not context_text:
-            context_text = (
-                f"No specific memory found for bug #{bug_id}. "
-                "Try exploring similar past sessions or check the global knowledge graph."
-            )
-
-        return {"context": context_text}
-    except Exception as e:
-        return {
-            "context": (
-                f"Could not recall context from Cognee memory (reason: {str(e)}). "
-                "Try ingesting a related session first."
-            )
-        }
