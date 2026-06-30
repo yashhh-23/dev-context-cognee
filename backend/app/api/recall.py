@@ -50,7 +50,7 @@ def parse_item(item, idx: int, db: Session) -> dict:
     }
 
 
-@router.get("/")
+@router.get("")
 async def recall(
     q: str = Query("", description="Natural language query"),
     limit: int = Query(50, ge=1, le=100),
