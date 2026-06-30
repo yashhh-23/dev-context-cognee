@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { api, type Bug } from '@/lib/api'
-import { formatRelative } from '@/lib/dateUtils'
+import { formatRelative } from '@/lib/utils'
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'] as const
 

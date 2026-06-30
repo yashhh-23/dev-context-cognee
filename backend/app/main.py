@@ -87,6 +87,11 @@ def health():
     return {"status": "ok"}
 
 
+import time
+
+_health_cache: dict = {}
+_CACHE_TTL = 300  # 5 minutes
+
 @app.get("/api/dependencies/health")
 async def dependencies_health():
     """
@@ -94,6 +99,10 @@ async def dependencies_health():
     subprocess and parses the JSON output. Falls back gracefully if
     pip is unavailable or the environment is restricted.
     """
+    now = time.time()
+    if _health_cache.get("ts") and now - _health_cache["ts"] < _CACHE_TTL:
+        return _health_cache["data"]
+
     try:
         proc = await asyncio.create_subprocess_exec(
             sys.executable, "-m", "pip", "list", "--outdated", "--format=json",
@@ -117,7 +126,8 @@ async def dependencies_health():
     except Exception:
         all_packages = []
 
-    return {
+    result = {
+        "status": "healthy" if not outdated_packages else "outdated",
         "total_dependencies": len(all_packages),
         "outdated_count": len(outdated_packages),
         "vulnerable_count": 0,  # Reserved: integrate pip-audit for real CVE scanning
@@ -125,9 +135,14 @@ async def dependencies_health():
             {
                 "name": pkg["name"],
                 "current_version": pkg["version"],
-                "latest_version": pkg["latest_version"],
+                "latest_version": pkg.get("latest_version", ""),
+                "status": "outdated"
             }
             for pkg in outdated_packages
         ],
     }
+    
+    _health_cache["ts"] = now
+    _health_cache["data"] = result
+    return result
 
