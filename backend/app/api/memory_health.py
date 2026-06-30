@@ -7,18 +7,51 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.recall_service import get_all_sessions
 from app.core.graph_builder import build_graph
+from cognee.infrastructure.databases.graph import get_graph_engine
 import importlib.metadata
 import datetime
 from dateutil.parser import isoparse
+import traceback
 
 router = APIRouter()
 
 
 @router.get("/memory-health")
 async def memory_health(db: Session = Depends(get_db)):
-    sessions = get_all_sessions(db, skip=0, limit=2000)
-    graph_data = build_graph(sessions)
-    nodes = graph_data.get("nodes", [])
+    nodes = []
+    graph_nodes_count = 0
+    graph_edges_count = 0
+    
+    try:
+        graph_engine = await get_graph_engine()
+        data = await graph_engine.get_graph_data()
+        
+        if data and len(data) >= 2 and data[0]:
+            cognee_nodes, cognee_edges = data
+            node_ids = set()
+            for node in cognee_nodes:
+                nid = str(node[0])
+                props = node[1]
+                if nid not in node_ids:
+                    node_ids.add(nid)
+                    nodes.append(props)
+            
+            graph_nodes_count = len(node_ids)
+            graph_edges_count = len(cognee_edges)
+        else:
+            # Fallback
+            sessions = get_all_sessions(db, skip=0, limit=2000)
+            graph_data = build_graph(sessions)
+            nodes = graph_data.get("nodes", [])
+            graph_nodes_count = len(nodes)
+            graph_edges_count = len(graph_data.get("edges", []))
+    except Exception as e:
+        traceback.print_exc()
+        sessions = get_all_sessions(db, skip=0, limit=2000)
+        graph_data = build_graph(sessions)
+        nodes = graph_data.get("nodes", [])
+        graph_nodes_count = len(nodes)
+        graph_edges_count = len(graph_data.get("edges", []))
 
     total_nodes = len(nodes)
 
@@ -72,4 +105,9 @@ async def memory_health(db: Session = Depends(get_db)):
         "topics": topics,
         "health_score": health_score,
         "cognee_version": cognee_version,
+        # Fields expected by the frontend GraphClient component
+        "total_memories": graph_nodes_count,
+        "graph_nodes": graph_nodes_count,
+        "graph_edges": graph_edges_count,
+        "last_updated": datetime.datetime.utcnow().isoformat() + "Z"
     }
