@@ -1,4 +1,6 @@
+import difflib
 import cognee
+from app.services.recall_service import extract_text
 
 async def is_duplicate(new_text: str, threshold: float = 0.85) -> tuple[bool, str]:
     """
@@ -6,15 +8,19 @@ async def is_duplicate(new_text: str, threshold: float = 0.85) -> tuple[bool, st
     Returns (is_dup, existing_content_snippet).
     """
     try:
-        results = await cognee.search(new_text, query_type="SUMMARIES")
+        results = await cognee.recall(new_text)
         if not results:
             return False, ""
-        # results is a list of ScoredResult or dicts with .score or ['score']
-        for item in results:
-            score = item.score if hasattr(item, "score") else item.get("score", 0)
-            if score >= threshold:
-                text = item.text if hasattr(item, "text") else item.get("text", "")
-                return True, text[:200]
+        
+        items = results if isinstance(results, list) else [results]
+        for item in items:
+            existing_text = extract_text(item)
+            if not existing_text:
+                continue
+            similarity = difflib.SequenceMatcher(None, new_text.strip().lower(), existing_text.strip().lower()).ratio()
+            if similarity >= threshold or new_text.strip().lower() in existing_text.strip().lower() or existing_text.strip().lower() in new_text.strip().lower():
+                return True, existing_text
         return False, ""
-    except Exception:
+    except Exception as e:
+        print("[DEBUG] is_duplicate inner exception:", e)
         return False, ""
