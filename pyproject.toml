@@ -16,7 +16,7 @@ dependencies = [
     "pydantic",
     "pydantic-settings",
     "fastapi-users[sqlalchemy]",
-    "cognee[fastembed]==1.2.1",
+    "cognee==1.2.1",
     "sqlalchemy",
     "alembic",
     "aiosqlite",
