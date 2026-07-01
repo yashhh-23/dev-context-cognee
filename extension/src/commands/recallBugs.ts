@@ -43,7 +43,7 @@ export function registerRecallBugsCommand(
       });
 
       const bugs = Array.isArray(result.bugs) ? result.bugs : [];
-      const mappedBugs = bugs.map(bug => ({
+      const mappedBugs = bugs.map((bug: any) => ({
         ...bug,
         qa_id: bug.id || bug.qa_id || bug.node_id
       }));
