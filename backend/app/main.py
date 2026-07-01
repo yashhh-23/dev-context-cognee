@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
 import asyncio
-import subprocess
 import sys
 import json
 
