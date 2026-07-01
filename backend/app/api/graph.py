@@ -8,7 +8,7 @@ from app.services.recall_service import get_all_sessions
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("")
 def get_graph(project: str = Query(None, description="Filter by project name"),
              db: Session = Depends(get_db)):
     """Return force-graph compatible nodes and edges."""
