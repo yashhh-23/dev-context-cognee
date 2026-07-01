@@ -231,14 +231,20 @@ def recall(
         console.print(panel)
         
         if interactive:
-            feedback = typer.confirm(f"  Was result #{i} helpful?")
-            if feedback is not None:
-                try:
-                    requests.post(f"{cfg['api_url']}/recall/feedback",
-                                  json={"session_id": r.get('id'), "score": 1 if feedback else -1},
-                                  headers=get_auth_headers(cfg))
-                except Exception:
-                    pass
+            from rich.prompt import Prompt
+            
+            score_input = Prompt.ask(
+                "Was this context block helpful?", 
+                choices=["y", "n"], 
+                default="y"
+            )
+            
+            try:
+                requests.post(f"{cfg['api_url']}/recall/feedback",
+                              json={"qa_id": r.get('id'), "score": 1 if score_input == 'y' else -1},
+                              headers=get_auth_headers(cfg))
+            except Exception:
+                pass
 
 @app.command()
 def improve(

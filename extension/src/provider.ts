@@ -30,8 +30,9 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
         // Handle messages from webview
         const api = new ApiClient({ context: this._context });
         webviewView.webview.onDidReceiveMessage(
-            (message: { type: string; payload?: any }) => {
-                switch (message.type) {
+            (message: { type?: string; command?: string; payload?: any; qaId?: string; score?: number }) => {
+                const action = message.type || message.command;
+                switch (action) {
                     case 'copyToClipboard':
                         vscode.env.clipboard.writeText(String(message.payload ?? ''))
                             .then(() => vscode.window.showInformationMessage('Dev-Context: Copied to clipboard.'));
@@ -51,13 +52,16 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
                     case 'submitFeedback':
                         const currentSession = this._context.globalState.get<string>('currentSessionId') || '';
                         api.submitFeedback({
-                            qaId: message.payload.qaId,
-                            score: message.payload.score,
+                            qaId: message.qaId || (message.payload && message.payload.qaId),
+                            score: message.score || (message.payload && message.payload.score),
                             sessionId: currentSession
                         }).then(() => {
                             this.postMessageToWebview({
                                 type: 'feedbackSuccess',
-                                payload: { btnId: message.payload.btnId, score: message.payload.score }
+                                payload: { 
+                                    qaId: message.qaId || (message.payload && message.payload.qaId), 
+                                    score: message.score || (message.payload && message.payload.score) 
+                                }
                             });
                         }).catch(err => {
                             vscode.window.showErrorMessage(`Dev-Context: Failed to submit feedback — ${err.message}`);
@@ -563,10 +567,13 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
         const summary = b.summary || b.description || b.body || '';
         const score   = b.score   !== undefined ? (Math.round(b.score * 100) + '%') : '';
         const snippet = b.snippet || b.code || b.codeSnippet || '';
-        const id      = b.id      || '';
+        const qa_id   = b.qa_id   || b.id || '';
 
         const card = document.createElement('div');
         card.className = 'bug-card';
+        if (qa_id) {
+          card.setAttribute('data-qa-id', qa_id);
+        }
         card.innerHTML = [
           score ? '<div class="bug-score">' + score + '</div>' : '',
           '<div class="bug-title">' + esc(title) + '</div>',
@@ -579,10 +586,10 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
             snippet ? '<button class="pill-btn" onclick="post(\'copyToClipboard\', \'' + esc(snippet.replace(/'/g,'\\x27')) + '\')" >Copy snippet</button>' : '',
             '<button class="pill-btn" onclick="post(\'runDraft\')">Draft issue</button>',
           '</div>',
-          id ? [
+          qa_id ? [
             '<div class="feedback-row" style="margin-top: 6px; display: flex; gap: 8px;">',
-              '<button class="pill-btn feedback-btn up" onclick="post(\'submitFeedback\', { qaId: \'' + id + '\', score: 1, btnId: \'fb-up-' + id + '\' })" id="fb-up-' + id + '">👍 Helpful</button>',
-              '<button class="pill-btn feedback-btn down" onclick="post(\'submitFeedback\', { qaId: \'' + id + '\', score: -1, btnId: \'fb-down-' + id + '\' })" id="fb-down-' + id + '">👎 Not relevant</button>',
+              '<button class="pill-btn feedback-btn up" data-score="1">[👍 Helpful]</button>',
+              '<button class="pill-btn feedback-btn down" data-score="-1">[👎 Unhelpful]</button>',
             '</div>'
           ].join('') : ''
         ].join('');
@@ -611,26 +618,45 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
       .replace(/"/g,'&quot;');
   }
 
+  // ── Event Delegation for Feedback ──
+  document.addEventListener('click', (e) => {
+    if (e.target.matches('.feedback-btn')) {
+      const btn = e.target;
+      const card = btn.closest('.bug-card');
+      if (card) {
+        const targetQaId = card.getAttribute('data-qa-id');
+        const selectedScore = parseInt(btn.getAttribute('data-score'), 10);
+        
+        vscode.postMessage({
+          command: 'submitFeedback',
+          qaId: targetQaId,
+          score: selectedScore
+        });
+      }
+    }
+  });
+
   // ── Message handler ──
   window.addEventListener('message', (event) => {
     const msg = event.data;
-    if (!msg || !msg.type) { return; }
+    if (!msg || (!msg.type && !msg.command)) { return; }
 
-    switch (msg.type) {
+    const action = msg.type || msg.command;
+    switch (action) {
       case 'contextUpdate':
         updateContext(msg.context);
         break;
 
       case 'feedbackSuccess':
-        const btn = document.getElementById(msg.payload.btnId);
-        if (btn) {
-          btn.textContent = msg.payload.score === 1 ? '✓ Helpful' : '✓ Noted';
-          btn.disabled = true;
-          const otherId = msg.payload.score === 1 
-            ? msg.payload.btnId.replace('fb-up-', 'fb-down-') 
-            : msg.payload.btnId.replace('fb-down-', 'fb-up-');
-          const otherBtn = document.getElementById(otherId);
-          if (otherBtn) { otherBtn.style.display = 'none'; }
+        const qaId = msg.payload?.qaId;
+        if (qaId) {
+          const card = document.querySelector(\`.bug-card[data-qa-id="\${qaId}"]\`);
+          if (card) {
+            const row = card.querySelector('.feedback-row');
+            if (row) {
+              row.innerHTML = '<span style="font-size: 10px; color: var(--success);">✓ Feedback submitted</span>';
+            }
+          }
         }
         break;
 

@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type GraphData, type RecallResult } from '@/lib/api'
 import { toast } from 'sonner'
+import { useWebSocketContext } from '@/context/WebSocketContext'
 
 // Must match graph_builder.py NODE_COLORS keys exactly
 const NODE_COLORS: Record<string, string> = {
@@ -32,6 +33,7 @@ const LEGEND: [string, string][] = [
 ]
 
 export default function GraphClient() {
+  const { lastMessage } = useWebSocketContext()
   const [viewMode, setViewMode] = useState<'graph' | 'grid'>('graph')
   
   // Graph States
@@ -51,6 +53,7 @@ export default function GraphClient() {
 
   const containerRef = useRef<HTMLDivElement>(null)
   const networkRef = useRef<any>(null)
+  const nodesDatasetRef = useRef<any>(null)
 
   // Fetch memory statistics
   const fetchStats = async () => {
@@ -168,6 +171,45 @@ export default function GraphClient() {
     }
   }
 
+  // Handle incoming websocket messages to dynamically adjust memory node weights
+  useEffect(() => {
+    if (!lastMessage || !nodesDatasetRef.current) return
+    
+    // Intercept memory feedback updates
+    if (lastMessage.type === 'MEMORY_IMPROVED' || lastMessage.type === 'FEEDBACK_APPLIED' || lastMessage.score !== undefined) {
+      const targetQaId = lastMessage.qa_id || lastMessage.node_id || lastMessage.id
+      const score = lastMessage.score
+      
+      if (targetQaId && score !== undefined) {
+        try {
+          const nodesDataset = nodesDatasetRef.current
+          const targetNode = nodesDataset.get(targetQaId)
+          
+          if (targetNode) {
+            const scaleAdjustment = score > 0 ? 5 : -5
+            const newSize = Math.max(5, (targetNode.size || 18) + scaleAdjustment)
+            
+            nodesDataset.update({
+              id: targetQaId,
+              size: newSize,
+              // Visually highlight that it was adjusted
+              color: {
+                background: targetNode.color?.background || '#7a7874',
+                border: score > 0 ? '#4ade80' : '#f87171',
+                highlight: targetNode.color?.highlight
+              },
+              borderWidth: 2
+            })
+            
+            toast.success(`Node ${targetQaId.substring(0,8)} reinforced dynamically via WS`)
+          }
+        } catch (e) {
+          console.error("Failed to dynamically update node size:", e)
+        }
+      }
+    }
+  }, [lastMessage])
+
   // Mount vis.js network when viewMode is 'graph' and data is ready
   useEffect(() => {
     if (viewMode !== 'graph' || !graphData || !containerRef.current) return
@@ -228,6 +270,7 @@ export default function GraphClient() {
       }
       const network = new vis.Network(containerRef.current, { nodes, edges }, options)
       networkRef.current = network
+      nodesDatasetRef.current = nodes
 
       network.on('selectNode', (params: any) => {
         const selectedId = params.nodes[0]
