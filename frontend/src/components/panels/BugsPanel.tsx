@@ -8,10 +8,10 @@ import EmptyState from '@/components/shared/EmptyState';
 
 const STATUS_COLOR: Record<string, string> = {
   completed: '#3fb950',
-  failed:    '#f85149',
-  queued:    '#d29922',
-  processing:'#58a6ff',
-  resolved:  '#3fb950',
+  failed: '#f85149',
+  queued: '#d29922',
+  processing: '#58a6ff',
+  resolved: '#3fb950',
   forgotten: '#8b949e',
 };
 

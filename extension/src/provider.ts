@@ -148,7 +148,8 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src https://fonts.gstatic.com; style-src 'unsafe-inline' https://fonts.googleapis.com; script-src 'unsafe-inline';">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0,0" rel="stylesheet" />
   <title>Dev-Context Assistant</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -160,6 +161,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
       --radius: 8px; --radius-sm: 5px;
     }
     html, body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; line-height: 1.5; height: 100%; overflow-x: hidden; }
+    .material-symbols-outlined { font-size: inherit; vertical-align: middle; }
     .shell { display: flex; flex-direction: column; min-height: 100vh; padding: 12px 10px 20px; gap: 10px; }
 
     /* Header */
@@ -185,7 +187,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
 
     /* Action buttons */
     .actions { display: flex; flex-direction: column; gap: 6px; }
-    .btn { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 11px; cursor: pointer; color: var(--text); font-size: 11.5px; font-weight: 500; transition: background 120ms, border-color 120ms, transform 80ms; text-align: left; width: 100%; }
+    .btn { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 11px; cursor: pointer; color: var(--text); font-size: 11.5px; font-weight: 500; transition: background 120ms, border-color 120ms, transform 80ms, box-shadow 120ms; text-align: left; width: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
     .btn:hover { background: var(--surface2); border-color: #3a3a3a; }
     .btn:active { transform: scale(0.98); }
     .btn .btn-icon { font-size: 14px; flex-shrink: 0; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 5px; }
@@ -200,7 +202,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     .btn-kbd { font-size: 9.5px; color: var(--faint); background: #1e1e1e; border: 1px solid #333; border-radius: 3px; padding: 1px 5px; font-family: monospace; flex-shrink: 0; }
 
     /* Sections */
-    .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
     .section-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--surface2); }
     .section-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
     .section-count { font-size: 10px; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 99px; padding: 1px 7px; }
@@ -208,7 +210,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
 
     /* Bug cards */
     .bug-list { display: flex; flex-direction: column; gap: 7px; }
-    .bug-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 10px; position: relative; }
+    .bug-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 10px; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
     .bug-card:hover { border-color: #3a3a3a; }
     .bug-score { position: absolute; top: 8px; right: 9px; font-size: 9.5px; color: var(--accent); background: var(--accent-dim); border-radius: 99px; padding: 1px 6px; }
     .bug-title { font-size: 11.5px; font-weight: 500; color: var(--text); margin-bottom: 3px; padding-right: 48px; line-height: 1.4; }
@@ -220,7 +222,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
 
     /* Memory graph */
     .graph-nodes { display: flex; flex-direction: column; gap: 0; }
-    .graph-node { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; cursor: pointer; transition: background 0.15s; }
+    .graph-node { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; cursor: pointer; transition: background 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
     .graph-node:hover { background: #222; border-color: var(--accent); }
     .graph-node-header { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
     .graph-node-file { font-size: 12px; font-weight: 600; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -269,16 +271,16 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
   <!-- Header -->
   <div class="header">
     <div class="header-left">
-      <div class="logo-icon">🧠</div>
+      <div class="logo-icon"><span class="material-symbols-outlined" style="font-size:16px;">psychology</span></div>
       <div>
         <div class="logo-text">Dev-Context</div>
         <div class="logo-sub">Cognee memory assistant</div>
       </div>
     </div>
     <div class="header-right">
-      <span class="score-badge" id="score-badge">🏆 0 pts</span>
-      <button class="icon-btn" title="End Session &amp; Distill" onclick="post('endSession')">⏹</button>
-      <button class="icon-btn" title="Open Settings" onclick="post('openSettings')">⚙</button>
+      <span class="score-badge" id="score-badge"><span class="material-symbols-outlined" style="font-size:12px; margin-right:2px;">emoji_events</span>0 pts</span>
+      <button class="icon-btn" title="End Session &amp; Distill" onclick="post('endSession')"><span class="material-symbols-outlined" style="font-size:16px;">stop_circle</span></button>
+      <button class="icon-btn" title="Open Settings" onclick="post('openSettings')"><span class="material-symbols-outlined" style="font-size:16px;">settings</span></button>
     </div>
   </div>
 
@@ -295,7 +297,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
   <!-- Action buttons -->
   <div class="actions">
     <button class="btn btn-remember" onclick="post('runRemember')">
-      <div class="btn-icon">💾</div>
+      <div class="btn-icon"><span class="material-symbols-outlined" style="font-size:16px;">save</span></div>
       <div class="btn-text">
         <div class="btn-label">Save Context</div>
         <div class="btn-hint">Ingest current file into Cognee</div>
@@ -303,7 +305,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
       <div class="btn-kbd">⌃⇧M</div>
     </button>
     <button class="btn btn-recall" onclick="post('runRecall')">
-      <div class="btn-icon">🔍</div>
+      <div class="btn-icon"><span class="material-symbols-outlined" style="font-size:16px;">search</span></div>
       <div class="btn-text">
         <div class="btn-label">Recall Similar Bugs</div>
         <div class="btn-hint">Search Cognee memory for this file</div>
@@ -311,7 +313,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
       <div class="btn-kbd">⌃⇧R</div>
     </button>
     <button class="btn btn-draft" onclick="post('runDraft')">
-      <div class="btn-icon">📝</div>
+      <div class="btn-icon"><span class="material-symbols-outlined" style="font-size:16px;">edit_document</span></div>
       <div class="btn-text">
         <div class="btn-label">Draft GitHub Issue</div>
         <div class="btn-hint">Auto-draft from recalled context</div>
@@ -319,7 +321,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
       <div class="btn-kbd">⌃⇧I</div>
     </button>
     <button class="btn btn-improve" onclick="post('runImprove')">
-      <div class="btn-icon">🔄</div>
+      <div class="btn-icon"><span class="material-symbols-outlined" style="font-size:16px;">update</span></div>
       <div class="btn-text">
         <div class="btn-label">Improve Context</div>
         <div class="btn-hint">Re-ingest with better context</div>
@@ -327,7 +329,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
       <div class="btn-kbd">⌃⇧U</div>
     </button>
     <button class="btn btn-forget" onclick="post('runForget')">
-      <div class="btn-icon">🗑</div>
+      <div class="btn-icon"><span class="material-symbols-outlined" style="font-size:16px;">delete</span></div>
       <div class="btn-text">
         <div class="btn-label">Forget Context</div>
         <div class="btn-hint">Delete this file's memory</div>
@@ -344,7 +346,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     </div>
     <div class="section-body">
       <div class="empty-state" id="bugs-empty">
-        <div class="empty-icon">🔎</div>
+        <div class="empty-icon"><span class="material-symbols-outlined" style="font-size:24px;">search</span></div>
         <div class="empty-label">No bugs recalled yet</div>
         <div class="empty-sub">Run Recall Similar Bugs to search memory</div>
       </div>
@@ -360,7 +362,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     </div>
     <div class="section-body" id="graph-body">
       <div class="empty-state" id="graph-empty">
-        <div class="empty-icon">🔗</div>
+        <div class="empty-icon"><span class="material-symbols-outlined" style="font-size:24px;">link</span></div>
         <div class="empty-label">No connections yet</div>
         <div class="empty-sub">Run Recall to see memory connections</div>
       </div>
@@ -375,7 +377,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     </div>
     <div class="section-body">
       <div class="empty-state" id="saved-empty">
-        <div class="empty-icon">📁</div>
+        <div class="empty-icon"><span class="material-symbols-outlined" style="font-size:24px;">folder</span></div>
         <div class="empty-label">Nothing saved yet</div>
         <div class="empty-sub">Save Context to record a file</div>
       </div>
@@ -386,6 +388,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
             <span id="saved-lang"></span>
             <span id="saved-symbols"></span>
             <span id="saved-lines"></span>
+            <span id="saved-time" style="color:var(--faint)"></span>
           </div>
         </div>
       </div>
@@ -400,7 +403,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     </div>
     <div class="section-body">
       <div class="empty-state" id="enhanced-empty">
-        <div class="empty-icon">✨</div>
+        <div class="empty-icon"><span class="material-symbols-outlined" style="font-size:24px;">auto_awesome</span></div>
         <div class="empty-label">No improvements yet</div>
         <div class="empty-sub">Improve a context to see it here</div>
       </div>
@@ -458,12 +461,12 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   function updateScore(pts) {
-    document.getElementById('score-badge').textContent = '\uD83C\uDFC6 ' + pts + ' pts';
+    document.getElementById('score-badge').innerHTML = '<span class="material-symbols-outlined" style="font-size:12px; margin-right:2px;">emoji_events</span>' + pts + ' pts';
   }
 
   function updateStats(filesSaved, bugsRecalled) {
-    document.getElementById('session-stats').textContent =
-      '\uD83D\uDCBE ' + (filesSaved || 0) + ' saved \u00B7 \uD83D\uDD0D ' + (bugsRecalled || 0) + ' recalled';
+    document.getElementById('session-stats').innerHTML =
+      '<span class="material-symbols-outlined" style="font-size:10px; margin-right:2px;">save</span> ' + (filesSaved || 0) + ' saved \u00B7 <span class="material-symbols-outlined" style="font-size:10px; margin-right:2px;">search</span> ' + (bugsRecalled || 0) + ' recalled';
   }
 
   function relativeTime(isoStr) {
@@ -521,7 +524,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
       var edge  = i < bugs.length - 1 ? '<div class="graph-edge">\u2502</div>' : '';
       return '<div class="graph-node" onclick="post(\'openFile\', \'' + esc(file) + '\')" title="' + esc(title) + '">'
         + '<div class="graph-node-header">'
-        + '<span>\uD83D\uDCC4</span>'
+        + '<span class="material-symbols-outlined" style="font-size:14px; margin-right:2px;">description</span>'
         + '<span class="graph-node-file">' + esc(shortFile(file)) + '</span>'
         + '<span class="graph-node-score ' + cls + '">' + pct + '%</span>'
         + '</div>'
@@ -582,13 +585,13 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
           snippet ? '<button class="pill-btn" onclick="post(\'copyToClipboard\', \'' + esc(snippet.replace(/'/g, '\\x27')) + '\')" >Copy snippet</button>' : '',
           '<button class="pill-btn" onclick="post(\'runDraft\')">Draft issue</button>',
         '</div>',
-        qa_id ? '<div class="feedback-row" style="margin-top:6px;display:flex;gap:8px;"><button class="pill-btn feedback-btn up" data-score="1">[\uD83D\uDC4D Helpful]</button><button class="pill-btn feedback-btn down" data-score="-1">[\uD83D\uDC4E Unhelpful]</button></div>' : ''
+        qa_id ? '<div class="feedback-row" style="margin-top:6px;display:flex;gap:8px;"><button class="pill-btn feedback-btn up" data-score="1"><span class="material-symbols-outlined" style="font-size:12px; pointer-events:none;">thumb_up</span> Helpful</button><button class="pill-btn feedback-btn down" data-score="-1"><span class="material-symbols-outlined" style="font-size:12px; pointer-events:none;">thumb_down</span> Unhelpful</button></div>' : ''
       ].join('');
       list.appendChild(card);
     });
   }
 
-  function renderSaved(payload) {
+  function renderSaved(payload, timestamp) {
     if (!payload) { return; }
     document.getElementById('saved-empty').style.display = 'none';
     document.getElementById('saved-info').style.display  = '';
@@ -596,6 +599,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     document.getElementById('saved-lang').textContent    = payload.languageId   || '';
     document.getElementById('saved-symbols').textContent = payload.symbolsCount != null ? payload.symbolsCount + ' symbols' : '';
     document.getElementById('saved-lines').textContent   = payload.lineCount    != null ? payload.lineCount    + ' lines'   : '';
+    document.getElementById('saved-time').textContent    = timestamp || new Date().toLocaleTimeString();
   }
 
   function shortFile(p) { return p ? (p.split('/').pop() || p) : ''; }
@@ -644,8 +648,9 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
         }
         break;
       case 'rememberSuccess':
-        renderSaved(msg.payload);
-        showToast('Context saved to Cognee \u2713', 'success');
+        var timestamp = (msg.payload && msg.payload.timestamp) ? new Date(msg.payload.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+        renderSaved(msg.payload, timestamp);
+        showToast('Context saved to Cognee for ' + (msg.payload ? msg.payload.fileName : 'file'), 'success');
         setConn(true);
         break;
       case 'bugsUpdate': {
