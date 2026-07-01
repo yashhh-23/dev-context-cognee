@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { toast } from 'sonner'
 import healthMock from './mocks/health.json'
 import statsMock from './mocks/stats.json'
@@ -11,6 +10,7 @@ import memorySearchMock from './mocks/memory_search.json'
 import memoryGraphMock from './mocks/memory_graph.json'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
+
 if (!process.env.NEXT_PUBLIC_API_URL && typeof window !== 'undefined') {
   console.warn('NEXT_PUBLIC_API_URL not set, using localhost fallback')
 }
@@ -30,23 +30,15 @@ function showFallbackToast() {
 
 function getMockFallback(path: string): any {
   const cleanPath = path.split('?')[0]
-  
+
   if (cleanPath.startsWith('/health')) {
     return healthMock
   }
   if (cleanPath.startsWith('/api/overview/stats')) {
     return statsMock
   }
-  if (cleanPath.startsWith('/api/bugs/trend')) {
+  if (cleanPath.startsWith('/api/overview/bug-trend')) {
     return bugsTrendMock
-  }
-  if (cleanPath.startsWith('/api/sessions/')) {
-    const parts = cleanPath.split('/')
-    const id = parts[parts.length - 1]
-    return sessionsMock.find(s => s.id === id) || sessionsMock[0]
-  }
-  if (cleanPath.startsWith('/api/sessions')) {
-    return sessionsMock
   }
   if (cleanPath.startsWith('/api/dependencies/health')) {
     return dependenciesHealthMock
@@ -54,6 +46,15 @@ function getMockFallback(path: string): any {
   if (cleanPath.startsWith('/api/stats/memory-health')) {
     return memoryStatsMock
   }
+  // Session routes — specific before general
+  if (cleanPath.match(/^\/api\/sessions\/[^/]+$/)) {
+    const id = cleanPath.split('/').pop()
+    return (sessionsMock as any[]).find((s: any) => s.id === id) || sessionsMock[0]
+  }
+  if (cleanPath.startsWith('/api/sessions')) {
+    return sessionsMock
+  }
+  // Recall / memory routes — specific routes BEFORE the broad /api/recall prefix
   if (cleanPath.startsWith('/api/recall/memify')) {
     return { node_id: 'mock-node-' + Math.random().toString(36).substr(2, 9) }
   }
@@ -67,7 +68,8 @@ function getMockFallback(path: string): any {
     const nodeId = parts[parts.length - 2]
     return { success: true, node_id: nodeId, pinned: false }
   }
-  if (cleanPath.startsWith('/api/recall')) {
+  // Generic recall search — must come after all specific /api/recall/* routes
+  if (cleanPath.startsWith('/api/recall') || cleanPath.startsWith('/api/memory')) {
     return memorySearchMock
   }
   if (cleanPath.startsWith('/api/graph/build')) {
@@ -75,6 +77,9 @@ function getMockFallback(path: string): any {
   }
   if (cleanPath.startsWith('/api/graph')) {
     return memoryGraphMock
+  }
+  if (cleanPath.startsWith('/api/bugs/trend')) {
+    return bugsTrendMock
   }
   if (cleanPath.startsWith('/api/bugs')) {
     return [
@@ -103,14 +108,12 @@ function getMockFallback(path: string): any {
     const id = parts[parts.length - 1]
     return { status: 'success', session_id: id }
   }
-
   return { success: true }
 }
 
 async function req<T>(path: string, opts?: RequestInit): Promise<T> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 15000)
-
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (typeof window !== 'undefined') {
     const key = sessionStorage.getItem('byok_key')
@@ -118,21 +121,19 @@ async function req<T>(path: string, opts?: RequestInit): Promise<T> {
       headers['X-BYOK-Key'] = key
     }
   }
-
   try {
     const res = await fetch(`${BASE}${path}`, {
       headers: { ...headers, ...(opts?.headers as Record<string, string>) },
       signal: controller.signal,
       ...opts,
     })
-    
-    clearTimeout(timeoutId)
 
+    clearTimeout(timeoutId)
     if (!res.ok) {
       const body = await res.text().catch(() => '')
       throw new Error(`API ${res.status}: ${body}`)
     }
-    
+
     return await res.json() as T
   } catch (err: any) {
     clearTimeout(timeoutId)
@@ -143,133 +144,118 @@ async function req<T>(path: string, opts?: RequestInit): Promise<T> {
 }
 
 /* ---- Types ---- */
-
 export interface Bug {
-  id:       number
-  title:    string
-  url:      string
+  id: number
+  title: string
+  url: string
   severity: 'critical' | 'high' | 'medium' | 'low'
-  labels:   string[]
-  created:  string
-  author:   string
+  labels: string[]
+  created: string
+  author: string
   recalled_context?: string
 }
-
 export interface ContributeIssue {
-  id:         number
-  title:      string
-  url:        string
-  type:       'good-first-issue' | 'stale-pr' | 'help-wanted'
-  repo:       string
+  id: number
+  title: string
+  url: string
+  type: 'good-first-issue' | 'stale-pr' | 'help-wanted'
+  repo: string
   difficulty: 'easy' | 'medium' | 'hard'
   suggestion: string
 }
-
 export interface GraphNode {
-  id:    string
+  id: string
   label: string
-  // Types match graph_builder.py NODE_COLORS keys exactly
-  type:  'project' | 'bug' | 'dependency' | 'fix' | 'github_issue'
+  type: 'project' | 'bug' | 'dependency' | 'fix' | 'github_issue'
   color?: string
   size?: number
 }
-
 export interface GraphEdge {
   source: string
   target: string
   label?: string
   weight?: number
 }
-
 export interface GraphData {
   nodes: GraphNode[]
   edges: GraphEdge[]
 }
-
 export interface RecallResult {
-  id:         string
-  content:    string
-  score:      number
-  source:     string
+  id: string
+  content: string
+  score: number
+  source: string
   session_id?: string
   created_at?: string
-  conflicts?:  string[]
-  pinned?:     boolean
+  conflicts?: string[]
+  pinned?: boolean
 }
-
 export interface Session {
-  id:           string
-  repo:         string
-  branch:       string
-  started_at:   string
-  last_active:  string
+  id: string
+  repo: string
+  branch: string
+  started_at: string
+  last_active: string
   context_size: number
-  summary?:     string
-  status?:      string
+  summary?: string
+  status?: string
 }
-
 export interface OverviewStats {
-  total_sessions:   number
-  open_bugs:        number
-  memory_nodes:     number
-  recalled_today:   number
-  last_session:     string
-  health_score:     number
-  code_quality?:    number
-  test_coverage?:   number
-  documentation?:   number
+  total_sessions: number
+  open_bugs: number
+  memory_nodes: number
+  recalled_today: number
+  last_session: string
+  health_score: number
+  code_quality?: number
+  test_coverage?: number
+  documentation?: number
 }
 
 /* ---- API methods ---- */
-
 export const api = {
   // Overview
-  getHealth: ()                      => req<{ status: string; version: string }>('/health'),
-  getStats: ()                       => req<OverviewStats>('/api/overview/stats'),
-  getContextSummary: ()              => req<{ repo: string; branch: string; summary: string }>('/api/context/summary'),
-  getMemoryStats: ()                 => req<{ total_memories: number; graph_nodes: number; graph_edges: number; last_updated: string }>('/api/stats/memory-health'),
-  getDependenciesHealth: ()          => req<{ total_dependencies: number; outdated_count: number; vulnerable_count: number; packages: any[] }>('/api/dependencies/health'),
-  getBugsTrend: ()           => req<{ labels: string[]; opened: number[]; closed: number[] }>('/api/overview/bug-trend'),
-
+  getHealth: () => req<{ status: string; version: string }>('/health'),
+  getStats: () => req<OverviewStats>('/api/overview/stats'),
+  getContextSummary: () => req<{ repo: string; branch: string; summary: string }>('/api/context/summary'),
+  getMemoryStats: () => req<{ total_memories: number; graph_nodes: number; graph_edges: number; last_updated: string }>('/api/stats/memory-health'),
+  getDependenciesHealth: () => req<{ total_dependencies: number; outdated_count: number; vulnerable_count: number; packages: any[] }>('/api/dependencies/health'),
+  getBugsTrend: () => req<{ labels: string[]; opened: number[]; closed: number[] }>('/api/overview/bug-trend'),
   // Bugs
-  getBugs: (limit = 20)              => req<Bug[]>(`/api/bugs?limit=${limit}`),
-  recallBugContext: (bugId: number)  => req<{ context: string }>(`/api/bugs/${bugId}/recall`),
-
+  getBugs: (limit = 20) => req<Bug[]>(`/api/bugs?limit=${limit}`),
+  recallBugContext: (bugId: number) => req<{ context: string }>(`/api/bugs/${bugId}/recall`),
   // Contribute
-  getContributions: ()               => req<ContributeIssue[]>('/api/contribute'),
-  suggestContribution: (id: number)  => req<{ suggestion: string }>(`/api/contribute/${id}/suggest`),
-
+  getContributions: () => req<ContributeIssue[]>('/api/contribute'),
+  suggestContribution: (id: number) => req<{ suggestion: string }>(`/api/contribute/${id}/suggest`),
   // Graph
-  buildGraph: ()                     => req<{ message: string; node_count: number }>('/api/graph/build', { method: 'POST' }),
-  getGraph: ()                       => req<GraphData>('/api/graph'),
-
+  buildGraph: () => req<{ message: string; node_count: number }>('/api/graph/build', { method: 'POST' }),
+  getGraph: () => req<GraphData>('/api/graph'),
   // Recall / Memory
   recall: (query: string, limit = 10) =>
     req<RecallResult[]>(`/api/recall?q=${encodeURIComponent(query)}&limit=${limit}`),
   searchMemory: (query: string, limit = 10) =>
     req<RecallResult[]>(`/api/recall/search?q=${encodeURIComponent(query)}&limit=${limit}`),
-  forget: (nodeId: string)            => req<{ success: boolean }>(`/api/recall/${nodeId}`, { method: 'DELETE' }),
-  memify: (content: string)           =>
+  forget: (nodeId: string) => req<{ success: boolean }>(`/api/recall/${nodeId}`, { method: 'DELETE' }),
+  memify: (content: string) =>
     req<{ node_id: string }>('/api/recall/memify', {
       method: 'POST',
       body: JSON.stringify({ content }),
     }),
-  pin: (nodeId: string)               =>
+  pin: (nodeId: string) =>
     req<{ success: boolean; node_id: string; pinned: boolean }>(`/api/recall/${nodeId}/pin`, { method: 'POST' }),
-  unpin: (nodeId: string)             =>
+  unpin: (nodeId: string) =>
     req<{ success: boolean; node_id: string; pinned: boolean }>(`/api/recall/${nodeId}/unpin`, { method: 'POST' }),
   autoCleanMemories: () =>
     req<{ status: string; cleaned_count: number; message: string }>('/api/memories/auto-clean', { method: 'POST' }),
-
-  // Sessions — backend returns correct shape directly
-  getSessions: (limit = 10)          => req<Session[]>(`/api/sessions?limit=${limit}`),
-  getSession:  (id: string)          => req<Session>(`/api/sessions/${id}`),
+  // Sessions
+  getSessions: (limit = 10) => req<Session[]>(`/api/sessions?limit=${limit}`),
+  getSession: (id: string) => req<Session>(`/api/sessions/${id}`),
   improveSession: (id: string, fixText?: string) =>
     req<{ status: string; session_id: string }>(`/api/improve/${id}`, {
       method: 'POST',
       body: JSON.stringify({ fix_text: fixText }),
     }),
-  forgetSession: (id: string)        =>
+  forgetSession: (id: string) =>
     req<{ status: string; session_id: string }>(`/api/forget/${id}`, {
       method: 'DELETE',
     }),
