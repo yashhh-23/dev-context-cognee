@@ -24,10 +24,12 @@ PyGithub==2.3.0
 
 # File watching (background indexing)
 watchdog==4.0.1
+watchfiles==1.0.0
 
 # Utilities
 tenacity
 python-multipart==0.0.9
+numpy
 
 # Cross-platform process lock (guards Cognee/KuzuDB init)
 filelock
@@ -35,3 +37,6 @@ filelock
 # WebSocket support
 websockets
 cryptography==42.0.5
+
+# MCP Server
+fastmcp
