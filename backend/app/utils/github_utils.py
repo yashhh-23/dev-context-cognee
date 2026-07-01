@@ -16,7 +16,7 @@ def parse_repo_from_url(url: str) -> str:
     parts = [p for p in parsed.path.split("/") if p]
     if len(parts) >= 2:
         return f"{parts[-2]}/{parts[-1]}"
-    return url  # fallback to raw if unparseable
+    raise ValueError(f"Invalid GitHub URL: {url}")
 
 async def search_github(query: str, headers: dict, label: str = "") -> list[dict]:
     """Single reusable GitHub search helper with error propagation."""

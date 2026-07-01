@@ -3,10 +3,10 @@ from fastapi import HTTPException
 
 # Regex patterns for detecting common prompt injection techniques.
 PROMPT_INJECTION_PATTERNS = [
-    r"(?i)ignore\s+(?:all\s+)?(?:previous\s+)?instructions",
+    r"(?i)ignore\s+(?:all\s+)?(?:your\s+)?(?:previous\s+)?instructions?",
     r"(?i)system\s+prompt",
-    r"(?i)you\s+are\s+now\s+a",
-    r"(?i)forget\s+all\s+previous",
+    r"(?i)you\s+are\s+(?:now\s+)?a",
+    r"(?i)forget\s+(?:all\s+)?(?:about\s+)?(?:previous\s+)?",
     r"(?i)instead\s+of\s+doing",
     r"(?i)developer\s+mode",
     r"(?i)new\s+rule",

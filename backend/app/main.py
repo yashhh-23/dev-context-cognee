@@ -18,8 +18,6 @@ if os.getenv("GEMINI_API_KEY"):
     os.environ["LLM_API_KEY"] = os.getenv("GEMINI_API_KEY").strip()
     os.environ["LLM_PROVIDER"] = "gemini"
     os.environ["LLM_MODEL"] = "gemini/gemini-2.5-flash"
-    if "OPENAI_API_KEY" in os.environ:
-        del os.environ["OPENAI_API_KEY"]
 
 
 from app.core.database import init_db
@@ -82,6 +80,10 @@ app.include_router(ws.router,         tags=["ws"])
 app.include_router(memory_health.router, prefix="/api/stats",   tags=["memory_health"])
 
 
+@app.get("/")
+def root_endpoint():
+    return {"message": "Welcome to dev-context-cognee API. Status: healthy."}
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -90,6 +92,7 @@ def health():
 import time
 
 _health_cache: dict = {}
+_health_cache_lock = asyncio.Lock()
 _CACHE_TTL = 300  # 5 minutes
 
 @app.get("/api/dependencies/health")
@@ -100,8 +103,9 @@ async def dependencies_health():
     pip is unavailable or the environment is restricted.
     """
     now = time.time()
-    if _health_cache.get("ts") and now - _health_cache["ts"] < _CACHE_TTL:
-        return _health_cache["data"]
+    async with _health_cache_lock:
+        if _health_cache.get("ts") and now - _health_cache["ts"] < _CACHE_TTL:
+            return _health_cache["data"]
 
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -142,7 +146,8 @@ async def dependencies_health():
         ],
     }
     
-    _health_cache["ts"] = now
-    _health_cache["data"] = result
+    async with _health_cache_lock:
+        _health_cache["ts"] = now
+        _health_cache["data"] = result
     return result
 
