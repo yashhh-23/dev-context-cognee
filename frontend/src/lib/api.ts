@@ -235,12 +235,12 @@ export const api = {
   suggestContribution: (id: number) => req<{ suggestion: string }>(`/api/contribute/${id}/suggest`),
   // Graph
   buildGraph: () => req<{ message: string; node_count: number }>('/api/graph/build', { method: 'POST' }),
-  getGraph: () => req<GraphData>('/graph'),
+  getGraph: () => req<GraphData>('/api/graph'),
   // Recall / Memory
   recall: (query: string, limit = 10) =>
-    req<RecallResult[]>('/recall', { method: 'POST', body: JSON.stringify({ query, limit }) }),
+    req<RecallResult[]>('/api/recall', { method: 'POST', body: JSON.stringify({ query, limit }) }),
   searchMemory: (query: string, limit = 10) =>
-    req<RecallResult[]>('/recall', { method: 'POST', body: JSON.stringify({ query, limit }) }),
+    req<RecallResult[]>('/api/recall', { method: 'POST', body: JSON.stringify({ query, limit }) }),
   forget: (nodeId: string) => req<{ success: boolean }>(`/api/recall/${nodeId}`, { method: 'DELETE' }),
   memify: (content: string) =>
     req<{ node_id: string }>('/api/recall/memify', {

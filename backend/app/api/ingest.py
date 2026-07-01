@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.ingest import IngestRequest, IngestResponse
+from pydantic import BaseModel
 from app.models.session import SessionRecord
-from app.services.ingest_service import process_ingest, process_file_ingest
+from app.services.ingest_service import process_ingest, process_file_ingest, process_github_ingest
 from app.core.security import verify_safe_input
 from app.core.byok import encrypt_data
 from typing import Optional
@@ -11,6 +12,10 @@ import datetime
 
 router = APIRouter()
 
+class GithubIngestRequest(BaseModel):
+    repo_url: str
+    branch: str = "main"
+    ingestType: str = "full"
 
 @router.post("", response_model=IngestResponse)
 def ingest_log(
@@ -79,6 +84,37 @@ def ingest_log(
     db.refresh(new_session)
 
     background_tasks.add_task(process_ingest, new_session.id, req.model_dump(), x_byok_key)
+
+    return {"session_id": new_session.id, "status": "queued"}
+
+
+@router.post("/github")
+def ingest_github(
+    req: GithubIngestRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    x_byok_key: Optional[str] = Header(None),
+):
+    verify_safe_input(req.repo_url, "repo_url")
+    verify_safe_input(req.branch, "branch")
+    
+    repo_url = req.repo_url.strip()
+    if not repo_url.startswith("http://") and not repo_url.startswith("https://"):
+        repo_url = f"https://{repo_url}"
+
+    ts = datetime.datetime.now(datetime.timezone.utc)
+    new_session = SessionRecord(
+        project=repo_url.split("/")[-1],
+        branch=req.branch,
+        github_url=repo_url,
+        timestamp=ts,
+        status="queued",
+    )
+    db.add(new_session)
+    db.commit()
+    db.refresh(new_session)
+
+    background_tasks.add_task(process_github_ingest, new_session.id, req.model_dump(), x_byok_key)
 
     return {"session_id": new_session.id, "status": "queued"}
 

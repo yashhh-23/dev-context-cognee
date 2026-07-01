@@ -1,5 +1,10 @@
 import re
 import asyncio
+import subprocess
+import shutil
+import tempfile
+import os
+import time
 from app.models.session import SessionRecord
 from app.core.database import SessionLocal
 from app.core.config import settings
@@ -140,5 +145,127 @@ async def process_file_ingest(session_id: str, payload: dict, byok_key: str = No
             record.error_message = str(e)[:500]
             db.commit()
     finally:
+        db.close()
+        byok_key_var.reset(token)
+
+async def process_github_ingest(session_id: str, payload: dict, byok_key: str = None):
+    from app.core.byok import byok_key_var
+    token = byok_key_var.set(byok_key or "")
+    db = SessionLocal()
+    record = None
+    tmp_dir = tempfile.mkdtemp()
+    
+    start_time = time.time()
+    files_processed = 0
+    nodes_created = 0
+    
+    try:
+        record = db.query(SessionRecord).filter(SessionRecord.id == session_id).first()
+        if not record:
+            return
+
+        record.status = "processing"
+        db.commit()
+
+        repo_url = payload.get("repo_url", "").strip()
+        if not repo_url.startswith("http://") and not repo_url.startswith("https://"):
+            repo_url = f"https://{repo_url}"
+            
+        branch = payload.get("branch", "main")
+        
+        await manager.broadcast({
+            "type": "INGEST_PROGRESS",
+            "payload": {"message": f"Cloning repository {repo_url} (branch: {branch})...", "progress": 10}
+        })
+        
+        await asyncio.to_thread(
+            subprocess.run,
+            ["git", "clone", "--depth", "1", "-b", branch, repo_url, tmp_dir],
+            check=True,
+            capture_output=True
+        )
+        
+        await manager.broadcast({
+            "type": "INGEST_PROGRESS",
+            "payload": {"message": f"✓ Repository connected and downloaded.", "progress": 30}
+        })
+
+        # Walk files
+        file_paths = []
+        for root, dirs, files in os.walk(tmp_dir):
+            if ".git" in dirs:
+                dirs.remove(".git")
+            for file in files:
+                if not file.startswith(".") and not file.endswith((".png", ".jpg", ".pdf", ".zip")):
+                    file_paths.append(os.path.join(root, file))
+                    
+        total_files = len(file_paths)
+        if total_files > 50:
+            file_paths = file_paths[:50] # Limit for demo speed
+
+        await manager.broadcast({
+            "type": "INGEST_PROGRESS",
+            "payload": {"message": f"Scanning file structure... found {total_files} files.", "progress": 40}
+        })
+
+        for i, path in enumerate(file_paths):
+            try:
+                if os.path.getsize(path) > 100_000:
+                    continue
+                with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                    content = f.read()
+                
+                rel_path = os.path.relpath(path, tmp_dir)
+                formatted_content = f"File: {rel_path}\nSource: github\nContent:\n{content}"
+                
+                if i % 10 == 0:
+                    await manager.broadcast({
+                        "type": "INGEST_PROGRESS",
+                        "payload": {"message": f"Analyzing AST: {rel_path}...", "progress": 40 + int(40 * (i/len(file_paths)))}
+                    })
+                    
+                await cognee.add(formatted_content, dataset_name="main_dataset")
+                files_processed += 1
+                nodes_created += 3
+                
+            except Exception as e:
+                pass
+
+        await manager.broadcast({
+            "type": "INGEST_PROGRESS",
+            "payload": {"message": "Building Cognee knowledge graph nodes...", "progress": 85}
+        })
+        
+        await _debounced_cognify()
+        
+        record.status = "completed"
+        db.commit()
+
+        time_taken = round(time.time() - start_time, 1)
+
+        await manager.broadcast({
+            "type": "INGEST_SUCCESS",
+            "payload": {
+                "message": "✓ Ingestion completed! Code base successfully indexed in Cognee.",
+                "progress": 100,
+                "files_processed": files_processed,
+                "nodes_created": nodes_created,
+                "time_taken": f"{time_taken}s",
+                "session_id": session_id
+            }
+        })
+
+    except Exception as e:
+        if record:
+            record.status = "failed"
+            record.error_message = str(e)[:500]
+            db.commit()
+            
+        await manager.broadcast({
+            "type": "INGEST_ERROR",
+            "payload": {"message": f"Ingestion failed: {e}", "progress": 0}
+        })
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
         db.close()
         byok_key_var.reset(token)

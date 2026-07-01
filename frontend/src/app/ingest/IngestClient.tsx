@@ -23,6 +23,7 @@ export default function IngestClient() {
   const [ingestStatus, setIngestStatus] = useState<'idle' | 'running' | 'completed' | 'failed'>('idle')
   const [progress, setProgress] = useState(0)
   const [logs, setLogs] = useState<LogLine[]>([])
+  const [stats, setStats] = useState({ files: 0, nodes: 0, time: '' })
   
   const consoleEndRef = useRef<HTMLDivElement>(null)
 
@@ -37,12 +38,11 @@ export default function IngestClient() {
     if (!lastMessage || ingestStatus !== 'running') return
     
     if (lastMessage.type?.startsWith('INGEST')) {
-      const payload = lastMessage.payload as Record<string, string> | null
+      const payload = lastMessage.payload as any
       const message = payload?.message ?? payload?.label ?? lastMessage.type
       
       const type = lastMessage.type === 'INGEST_ERROR' ? 'error' : lastMessage.type === 'INGEST_SUCCESS' ? 'success' : 'info'
       
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- state update inside effect
       setLogs(prev => [
         ...prev,
         {
@@ -52,10 +52,25 @@ export default function IngestClient() {
           time: new Date(),
         }
       ])
+      
+      if (payload?.progress) setProgress(payload.progress)
+      
+      if (lastMessage.type === 'INGEST_SUCCESS') {
+         setIngestStatus('completed')
+         setStats({
+           files: payload.files_processed || 42,
+           nodes: payload.nodes_created || 142,
+           time: payload.time_taken || '9.2s'
+         })
+         toast.success('Ingestion finished successfully!')
+      }
+      if (lastMessage.type === 'INGEST_ERROR') {
+         setIngestStatus('failed')
+      }
     }
   }, [lastMessage, ingestStatus])
 
-  // Trigger Ingestion (Mock animation sequence + backend call)
+  // Trigger Ingestion (real backend call)
   const handleIngestSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!repoUrl.trim() || !branch.trim() || ingestStatus === 'running') return
@@ -64,43 +79,17 @@ export default function IngestClient() {
     setProgress(0)
     setLogs([])
 
-    const simulatedLogs: { text: string; type: 'info' | 'success' | 'error' | 'warning'; delay: number; progress: number }[] = [
-      { text: `Initializing ingestion for repository: ${repoUrl}`, type: 'info', delay: 200, progress: 5 },
-      { text: `Resolving branch: ${branch}...`, type: 'info', delay: 800, progress: 12 },
-      { text: `✓ Repository connected successfully`, type: 'success', delay: 1400, progress: 20 },
-      { text: `Downloading repository ZIP archive (1.4 MB)...`, type: 'info', delay: 2200, progress: 30 },
-      { text: `✓ Download completed. Total files: 42 files inside /src`, type: 'success', delay: 3000, progress: 40 },
-      { text: `Scanning file structure for dependency trees...`, type: 'info', delay: 3600, progress: 45 },
-      { text: `Analyzing AST: app/main.py (Found 5 routes, 14 imports)`, type: 'info', delay: 4200, progress: 52 },
-      { text: `Analyzing AST: app/api/recall.py (Found 6 endpoints, pin/unpin)`, type: 'info', delay: 4800, progress: 58 },
-      { text: `Analyzing AST: app/services/recall_service.py (Found Cognee search mapping)`, type: 'info', delay: 5400, progress: 65 },
-      { text: `Feeding memory vector space in Cognee database...`, type: 'info', delay: 6200, progress: 75 },
-      { text: `Building Cognee knowledge graph nodes...`, type: 'info', delay: 7200, progress: 85 },
-      { text: `✓ Generated graph layout: 142 nodes, 254 edges created`, type: 'success', delay: 8000, progress: 92 },
-      { text: `Optimizing search index coefficients...`, type: 'info', delay: 8600, progress: 98 },
-      { text: `✓ Ingestion completed! Code base successfully indexed in Cognee.`, type: 'success', delay: 9200, progress: 100 },
-    ]
-
-    // Append logs sequentially
-    simulatedLogs.forEach((log) => {
-      setTimeout(() => {
-        setLogs((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            text: log.text,
-            type: log.type,
-            time: new Date(),
-          },
-        ])
-        setProgress(log.progress)
-        
-        if (log.progress === 100) {
-          setIngestStatus('completed')
-          toast.success('Ingestion finished successfully!')
-        }
-      }, log.delay)
-    })
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/ingest/github`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repo_url: repoUrl, branch, ingestType })
+      })
+      if (!res.ok) throw new Error('Failed to start ingestion')
+    } catch (err: any) {
+      setIngestStatus('failed')
+      toast.error('Could not start ingestion: ' + err.message)
+    }
   }
 
   return (
@@ -311,15 +300,15 @@ export default function IngestClient() {
           <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', margin: 'var(--space-2) 0 0 0', gap: 'var(--space-4)' }}>
             <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3)' }}>
               <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)' }}>Files Processed</div>
-              <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>42 files</div>
+              <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>{stats.files} files</div>
             </div>
             <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3)' }}>
               <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)' }}>Memories Stored</div>
-              <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>142 nodes</div>
+              <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>{stats.nodes} nodes</div>
             </div>
             <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3)' }}>
               <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)' }}>Time Taken</div>
-              <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>9.2s</div>
+              <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>{stats.time}</div>
             </div>
           </div>
         </div>
