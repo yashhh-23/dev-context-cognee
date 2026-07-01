@@ -95,7 +95,8 @@ export class ApiClient {
   }
 
   async recallSimilarBugs(payload: RecallRequest) {
-    return this.request<{ bugs?: unknown[] }>('/api/memory/recall', {
+    // route matches backend: app.include_router(recall.router, prefix="/api/recall")
+    return this.request<{ bugs?: unknown[] }>('/api/recall', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
