@@ -76,7 +76,7 @@ export class ApiClient {
       return text ? (JSON.parse(text) as T) : ({} as T);
     } catch (error) {
       if (retryCount < 2 && this.shouldRetry(error)) {
-        await this.delay(1000 * (retryCount + 1));
+        await this.delay(300 * (retryCount + 1));
         return this.request<T>(path, init, retryCount + 1);
       }
       if (this.shouldRetry(error)) {
