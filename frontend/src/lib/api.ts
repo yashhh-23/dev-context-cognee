@@ -31,7 +31,7 @@ function showFallbackToast() {
 function getMockFallback(path: string): any {
   const cleanPath = path.split('?')[0]
   
-  if (cleanPath.startsWith('/api/health')) {
+  if (cleanPath.startsWith('/health')) {
     return healthMock
   }
   if (cleanPath.startsWith('/api/overview/stats')) {
@@ -212,7 +212,7 @@ export interface OverviewStats {
 
 export const api = {
   // Overview
-  getHealth: ()                      => req<{ status: string; version: string }>('/api/health'),
+  getHealth: ()                      => req<{ status: string; version: string }>('/health'),
   getStats: ()                       => req<OverviewStats>('/api/overview/stats'),
   getContextSummary: ()              => req<{ repo: string; branch: string; summary: string }>('/api/context/summary'),
   getMemoryStats: ()                 => req<{ total_memories: number; graph_nodes: number; graph_edges: number; last_updated: string }>('/api/overview/memory-stats'),
