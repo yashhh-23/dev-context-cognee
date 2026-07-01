@@ -140,7 +140,7 @@ export default function OverviewClient() {
   const healthScore = stats?.health_score ?? 85
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+    <div className="max-w-7xl mx-auto p-6 md:p-8 w-full" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
       <MemoryHealthModal
         open={healthOpen}
         onClose={() => setHealthOpen(false)}
