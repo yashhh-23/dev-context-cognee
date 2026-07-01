@@ -95,52 +95,50 @@ async def process_ingest(session_id: str, payload: dict, byok_key: str = None):
 async def process_file_ingest(session_id: str, payload: dict, byok_key: str = None):
     from app.core.byok import byok_key_var
     token = byok_key_var.set(byok_key or "")
+    db = SessionLocal()
+    record = None
     try:
-        db = SessionLocal()
-        record = None
-        try:
-            record = db.query(SessionRecord).filter(SessionRecord.id == session_id).first()
-            if not record:
-                return
+        record = db.query(SessionRecord).filter(SessionRecord.id == session_id).first()
+        if not record:
+            return
 
-            record.status = "processing"
+        record.status = "processing"
+        db.commit()
+
+        content = payload.get("content", "")
+        file_name = payload.get("fileName", "")
+        lang = payload.get("languageId", "")
+        source = payload.get("source", "vscode-extension")
+        symbols = payload.get("symbols", [])
+
+        symbols_str = f"Symbols: {', '.join(symbols)}" if symbols else ""
+        formatted_content = f"File: {file_name}\nLanguage: {lang}\nSource: {source}\n{symbols_str}\nContent:\n{content}"
+
+        # Log to terminal_output as well to respect BYOK encryption
+        record.terminal_output = f"[File Context: {file_name}]\n{content}"
+
+        result = await cognee.add(formatted_content, dataset_name="main_dataset")
+        record.cognee_response_id = str(result.id) if hasattr(result, 'id') else None
+        await _debounced_cognify()
+
+        record.status = "completed"
+        db.commit()
+
+        # Notify dashboard via WebSocket
+        await manager.broadcast({
+            "type": "memory_stored",
+            "payload": {
+                "label": f"File ingested: {file_name}",
+                "session_id": session_id,
+                "project": file_name,
+            }
+        })
+
+    except Exception as e:
+        if record:
+            record.status = "failed"
+            record.error_message = str(e)[:500]
             db.commit()
-
-            content = payload.get("content", "")
-            file_name = payload.get("fileName", "")
-            lang = payload.get("languageId", "")
-            source = payload.get("source", "vscode-extension")
-            symbols = payload.get("symbols", [])
-
-            symbols_str = f"Symbols: {', '.join(symbols)}" if symbols else ""
-            formatted_content = f"File: {file_name}\nLanguage: {lang}\nSource: {source}\n{symbols_str}\nContent:\n{content}"
-
-            # Log to terminal_output as well to respect BYOK encryption
-            record.terminal_output = f"[File Context: {file_name}]\n{content}"
-
-            result = await cognee.add(formatted_content, dataset_name="main_dataset")
-            record.cognee_response_id = str(result.id) if hasattr(result, 'id') else None
-            await _debounced_cognify()
-
-            record.status = "completed"
-            db.commit()
-
-            # Notify dashboard via WebSocket
-            await manager.broadcast({
-                "type": "memory_stored",
-                "payload": {
-                    "label": f"File ingested: {file_name}",
-                    "session_id": session_id,
-                    "project": file_name,
-                }
-            })
-
-        except Exception as e:
-            if record:
-                record.status = "failed"
-                record.error_message = str(e)[:500]
-                db.commit()
-        finally:
-            db.close()
     finally:
+        db.close()
         byok_key_var.reset(token)
