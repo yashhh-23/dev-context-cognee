@@ -1,4 +1,5 @@
-export function formatRelative(iso: string): string {
+export function formatRelativeSafe(iso: string | number | Date | undefined | null): string {
+  if (!iso) return "unknown";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "unknown";
   const diff = Date.now() - d.getTime();
@@ -9,7 +10,7 @@ export function formatRelative(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export function repoShortName(repo: string): string {
+export function safeRepoName(repo: string | undefined | null): string {
   if (!repo) return "unknown";
   const parts = repo.split("/");
   return parts.length >= 2 ? parts[1] : repo;

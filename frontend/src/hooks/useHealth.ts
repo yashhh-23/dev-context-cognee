@@ -2,9 +2,15 @@
 
 import { useCallback, useEffect, useState } from 'react'
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
+const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
+  if (process.env.NODE_ENV === 'production') return ''
+  return 'http://localhost:8000'
+}
+const BASE = getBaseUrl()
+
 if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_API_URL) {
-  console.warn("[health] NEXT_PUBLIC_API_URL not set")
+  console.warn("[health] NEXT_PUBLIC_API_URL not set" + (process.env.NODE_ENV !== 'production' ? ", using localhost fallback" : ""))
 }
 
 export function useHealth() {
