@@ -15,6 +15,9 @@ export default function BugsPage() {
   const [recallResult, setRecallResult] = useState<string | null>(null)
   const [filter,       setFilter]       = useState<'all' | typeof SEVERITY_ORDER[number]>('all')
   const [feedbackApplied, setFeedbackApplied] = useState<Record<string, boolean>>({})
+  
+  const [page,         setPage]         = useState(1)
+  const [hasMore,      setHasMore]      = useState(true)
 
   async function submitBugFeedback(e: React.MouseEvent, bugId: string, score: number) {
     e.stopPropagation()
@@ -32,11 +35,15 @@ export default function BugsPage() {
   }
 
   useEffect(() => {
-    api.getBugs(30)
-      .then(setBugs)
+    setLoading(true)
+    api.getBugs(100, page)
+      .then(res => {
+        setBugs(res)
+        setHasMore(res.length > 0)
+      })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [page])
 
   async function handleRecall(bug: Bug) {
     setSelectedBug(bug)
@@ -139,19 +146,19 @@ export default function BugsPage() {
                     
                     {/* Feedback Rating Bar */}
                     <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-                      {feedbackApplied[bug.id] ? (
+                      {feedbackApplied[String(bug.id)] ? (
                         <span style={{ fontSize: '10px', color: 'var(--success)', fontWeight: 500 }}>✓ Feedback applied</span>
                       ) : (
                         <>
                           <button
-                            onClick={(e) => submitBugFeedback(e, bug.id, 1)}
+                            onClick={(e) => submitBugFeedback(e, String(bug.id), 1)}
                             className="btn btn-ghost btn-xs"
                             style={{ fontSize: '10px', padding: '2px 6px', fontFamily: 'var(--font-mono)' }}
                           >
                             [👍 Helpful]
                           </button>
                           <button
-                            onClick={(e) => submitBugFeedback(e, bug.id, -1)}
+                            onClick={(e) => submitBugFeedback(e, String(bug.id), -1)}
                             className="btn btn-ghost btn-xs"
                             style={{ fontSize: '10px', padding: '2px 6px', fontFamily: 'var(--font-mono)' }}
                           >
@@ -164,6 +171,31 @@ export default function BugsPage() {
                   <SeverityBadge severity={bug.severity} />
                 </div>
               ))
+            )}
+            
+            {/* Pagination Controls */}
+            {!loading && !error && (filtered.length > 0 || page > 1) && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-4) 0', marginTop: 'var(--space-2)', borderTop: '1px solid var(--color-border)' }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  style={{ fontFamily: 'var(--font-mono)' }}
+                >
+                  &larr; Previous Page
+                </button>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', alignSelf: 'center' }}>
+                  Page {page}
+                </span>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setPage(p => p + 1)}
+                  disabled={!hasMore}
+                  style={{ fontFamily: 'var(--font-mono)' }}
+                >
+                  Next Page &rarr;
+                </button>
+              </div>
             )}
           </div>
         </div>
