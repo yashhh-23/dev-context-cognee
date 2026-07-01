@@ -75,12 +75,17 @@ async function getMockFallback(path: string): Promise<any> {
     return (await import('./mocks/bugs_trend.json')).default
   }
   if (cleanPath.startsWith('/api/bugs')) {
-    return [
+    const mockBugs = [
       { id: 1, title: "Uncaught TypeError: Cannot read properties of undefined (reading 'status') in WebSocketContext", url: "https://github.com/yashhh-23/dev-context-cognee/issues/101", severity: "critical", labels: ["bug", "websocket"], created: "2026-06-26T12:00:00Z", author: "yashhh" },
       { id: 2, title: "Render free tier cold start timeout (>5s) on /api/health", url: "https://github.com/yashhh-23/dev-context-cognee/issues/102", severity: "high", labels: ["bug", "api"], created: "2026-06-26T13:30:00Z", author: "dev-context-bot" },
       { id: 3, title: "Memory graph nodes overlapping when vis.js physics is enabled", url: "https://github.com/yashhh-23/dev-context-cognee/issues/103", severity: "medium", labels: ["bug", "graph"], created: "2026-06-26T14:15:00Z", author: "yashhh" },
       { id: 4, title: "Missing is_pinned property in Cognee recall response", url: "https://github.com/yashhh-23/dev-context-cognee/issues/104", severity: "medium", labels: ["bug", "database"], created: "2026-06-26T15:00:00Z", author: "cognee-maintainer" }
     ]
+    return {
+      bugs: mockBugs,
+      total: 4,
+      counts: { critical: 1, high: 1, medium: 2, low: 0 }
+    }
   }
   if (cleanPath.startsWith('/api/contribute')) {
     return [
@@ -147,6 +152,13 @@ export interface Bug {
   author: string
   recalled_context?: string
 }
+
+export interface BugsResponse {
+  bugs: Bug[]
+  total: number
+  counts: Record<string, number>
+}
+
 export interface ContributeIssue {
   id: number
   title: string
@@ -216,7 +228,7 @@ export const api = {
   getDependenciesHealth: () => req<{ total_dependencies: number; outdated_count: number; vulnerable_count: number; packages: any[] }>('/api/dependencies/health'),
   getBugsTrend: () => req<{ labels: string[]; opened: number[]; closed: number[] }>('/api/overview/bug-trend'),
   // Bugs
-  getBugs: (limit = 100, page = 1) => req<Bug[]>(`/api/bugs?limit=${limit}&page=${page}`),
+  getBugs: (limit = 100, page = 1) => req<BugsResponse>(`/api/bugs?limit=${limit}&page=${page}`),
   recallBugContext: (bugId: number) => req<{ context: string }>(`/api/bugs/${bugId}/recall`),
   // Contribute
   getContributions: () => req<ContributeIssue[]>('/api/contribute'),
