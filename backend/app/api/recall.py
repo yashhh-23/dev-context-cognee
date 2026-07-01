@@ -215,27 +215,32 @@ async def unpin_node(node_id: str, db: Session = Depends(get_db)):
     return {"success": True, "node_id": node_id, "pinned": False}
 
 
+from pydantic import Field
+
 class FeedbackRequest(BaseModel):
-    sessionId: str
-    qaId: str
-    score: int
+    qa_id: str
+    score: int = Field(..., ge=-1, le=1)
+    comment: Optional[str] = None
 
 @router.post("/feedback")
-async def submit_feedback(body: FeedbackRequest, db: Session = Depends(get_db)):
-    session_record = db.query(SessionRecord).filter(SessionRecord.id == body.sessionId).first()
-    if not session_record:
-        raise HTTPException(status_code=400, detail="Invalid session ID")
+async def submit_recall_feedback(payload: FeedbackRequest):
     try:
         await cognee.session.add_feedback(
-            session_id=body.sessionId,
-            qa_id=body.qaId,
-            feedback_score=body.score
+            qa_id=payload.qa_id,
+            score=payload.score,
+            comment=payload.comment
         )
-        if body.score == 1:        
-            await cognee.improve(node_name=[body.qaId])
-        return {"status": "ok"}
+        await cognee.improve(session_id=payload.qa_id)
+        return {
+            "status": "success", 
+            "message": "Feedback successfully processed and applied to graph memory."
+        }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to submit feedback: {str(e)}")
+        print(f"[recall] /feedback error: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail="An internal error occurred while processing feedback."
+        )
 
 class NodeFeedbackRequest(BaseModel):
     thumbs: str

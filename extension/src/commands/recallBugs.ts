@@ -43,6 +43,10 @@ export function registerRecallBugsCommand(
       });
 
       const bugs = Array.isArray(result.bugs) ? result.bugs : [];
+      const mappedBugs = bugs.map(bug => ({
+        ...bug,
+        qa_id: bug.id || bug.qa_id || bug.node_id
+      }));
       const languageNote = isSupportedLanguage(document.languageId)
         ? summary.displayName
         : `${summary.displayName} (fallback mode)`;
@@ -50,7 +54,7 @@ export function registerRecallBugsCommand(
       provider.postMessageToWebview?.({
         type: 'bugsUpdate',
         payload: {
-          bugs,
+          bugs: mappedBugs,
           language: languageNote,
           threshold
         }
