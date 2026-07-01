@@ -8,6 +8,7 @@ const NAV_ITEMS = [
     links: [
       { href: '/overview',   label: 'Overview',  icon: IconGrid },
       { href: '/bugs',       label: 'Bugs',      icon: IconBug },
+      { href: '/ingest',     label: 'Ingest',    icon: IconIngest },
     ],
   },
   {
@@ -154,6 +155,14 @@ function IconSearch({ className }: { className?: string }) {
     <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
       <circle cx="7" cy="7" r="4.5" />
       <line x1="10.5" y1="10.5" x2="14" y2="14" />
+    </svg>
+  )
+}
+
+function IconIngest({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M2 14h12M8 2v9M5 8l3 3 3-3" />
     </svg>
   )
 }

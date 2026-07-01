@@ -46,8 +46,8 @@ export default function BugsPage() {
   }, {} as Record<string, number>)
 
   return (
-    <div>
-      <div className="page-header">
+    <div className="split-layout-container">
+      <div className="page-header" style={{ flexShrink: 0, marginBottom: 'var(--space-4)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
           <div>
             <h1 className="page-title">bugs</h1>
@@ -60,7 +60,7 @@ export default function BugsPage() {
       </div>
 
       {/* Filter tabs */}
-      <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)', flexWrap: 'wrap', flexShrink: 0 }}>
         <FilterTab active={filter === 'all'} onClick={() => setFilter('all')} label={`All (${bugs.length})`} />
         {SEVERITY_ORDER.map(s => (
           <FilterTab
@@ -72,33 +72,33 @@ export default function BugsPage() {
         ))}
       </div>
 
-      <div className="grid-2" style={{ alignItems: 'start' }}>
+      <div className="grid-2 split-layout-grid">
         {/* Bug list */}
-        <div className="card" style={{ padding: 0 }}>
-          {loading ? (
-            <div style={{ padding: 'var(--space-4)' }}>
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="item-row">
-                  <div style={{ flex: 1 }}>
-                    <div className="skeleton skeleton-text" style={{ width: `${60 + i * 5}%` }} />
-                    <div className="skeleton skeleton-text" style={{ width: '40%' }} />
+        <div className="card split-layout-card" style={{ padding: 0 }}>
+          <div className="split-layout-scrollable" style={{ padding: '0 var(--space-4)' }}>
+            {loading ? (
+              <div style={{ padding: 'var(--space-4) 0' }}>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="item-row">
+                    <div style={{ flex: 1 }}>
+                      <div className="skeleton skeleton-text" style={{ width: `${60 + i * 5}%` }} />
+                      <div className="skeleton skeleton-text" style={{ width: '40%' }} />
+                    </div>
+                    <div className="skeleton" style={{ width: 52, height: 20, borderRadius: 'var(--radius-full)' }} />
                   </div>
-                  <div className="skeleton" style={{ width: 52, height: 20, borderRadius: 'var(--radius-full)' }} />
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div style={{ padding: 'var(--space-4)', color: 'var(--color-error)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>
-              {error}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="empty-state">
-              <h3>No {filter === 'all' ? '' : filter} bugs</h3>
-              <p>All clear for this severity.</p>
-            </div>
-          ) : (
-            <div style={{ padding: '0 var(--space-4)' }}>
-              {filtered.map(bug => (
+                ))}
+              </div>
+            ) : error ? (
+              <div style={{ padding: 'var(--space-4) 0', color: 'var(--color-error)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>
+                {error}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="empty-state">
+                <h3>No {filter === 'all' ? '' : filter} bugs</h3>
+                <p>All clear for this severity.</p>
+              </div>
+            ) : (
+              filtered.map(bug => (
                 <div
                   key={bug.id}
                   className="item-row"
@@ -108,6 +108,7 @@ export default function BugsPage() {
                     padding: 'var(--space-3) var(--space-2)',
                     background: selectedBug?.id === bug.id ? 'var(--color-surface-offset)' : 'transparent',
                     marginInline: 'calc(-1 * var(--space-2))',
+                    transition: 'background var(--transition)',
                   }}
                   onClick={() => handleRecall(bug)}
                 >
@@ -121,14 +122,14 @@ export default function BugsPage() {
                   </div>
                   <SeverityBadge severity={bug.severity} />
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </div>
 
         {/* Recall panel */}
-        <div className="card" style={{ position: 'sticky', top: 'calc(var(--topbar-height) + var(--space-6))' }}>
-          <div className="card-header">
+        <div className="card split-layout-card">
+          <div className="card-header" style={{ flexShrink: 0, marginBottom: 'var(--space-3)' }}>
             <span className="card-title">cognee recall</span>
             {selectedBug && (
               <a
@@ -142,52 +143,62 @@ export default function BugsPage() {
             )}
           </div>
 
-          {!selectedBug ? (
-            <div className="empty-state" style={{ padding: 'var(--space-12) var(--space-4)' }}>
-              <div style={{ fontSize: '1.25rem', opacity: 0.3 }}>⌖</div>
-              <h3>Select a bug</h3>
-              <p>Click any issue to recall related context from Cognee memory.</p>
-            </div>
-          ) : recalling ? (
-            <div style={{ padding: 'var(--space-4)' }}>
-              <div className="skeleton skeleton-heading" />
-              <div className="skeleton skeleton-text" />
-              <div className="skeleton skeleton-text" />
-              <div className="skeleton skeleton-text" style={{ width: '70%' }} />
-            </div>
-          ) : (
-            <div>
-              <div style={{ marginBottom: 'var(--space-3)' }}>
-                <div className="item-title" style={{ fontFamily: 'var(--font-mono)', marginBottom: 'var(--space-1)' }}>
-                  #{selectedBug.id} {selectedBug.title}
+          <div className="split-layout-scrollable" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            {!selectedBug ? (
+              <div className="empty-state" style={{ padding: 'var(--space-12) var(--space-4)', flex: 1 }}>
+                <div style={{ fontSize: '1.25rem', opacity: 0.3 }}>⌖</div>
+                <h3>Select a bug</h3>
+                <p>Click any issue to recall related context from Cognee memory.</p>
+              </div>
+            ) : recalling ? (
+              <div style={{ padding: 'var(--space-2) 0', flex: 1 }}>
+                <div className="skeleton skeleton-heading" style={{ width: '80%', height: '1.2rem' }} />
+                <div className="skeleton skeleton-text" style={{ width: '90%', marginTop: 'var(--space-2)' }} />
+                <div className="skeleton skeleton-text" style={{ width: '85%' }} />
+                <div className="skeleton skeleton-text" style={{ width: '70%' }} />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                <div style={{ marginBottom: 'var(--space-3)', flexShrink: 0 }}>
+                  <div className="item-title" style={{
+                    fontFamily: 'var(--font-mono)',
+                    marginBottom: 'var(--space-2)',
+                    fontSize: 'var(--text-sm)',
+                    lineHeight: 1.4,
+                    fontWeight: 500,
+                    wordBreak: 'break-word',
+                  }}>
+                    #{selectedBug.id} {selectedBug.title}
+                  </div>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                    <SeverityBadge severity={selectedBug.severity} />
+                    {selectedBug.labels.map(l => (
+                      <span key={l} className="badge badge-default">{l}</span>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                  <SeverityBadge severity={selectedBug.severity} />
-                  {selectedBug.labels.map(l => (
-                    <span key={l} className="badge badge-default">{l}</span>
-                  ))}
+                <div className="divider" style={{ flexShrink: 0, margin: '0 0 var(--space-4) 0' }} />
+                <div
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--color-text-muted)',
+                    lineHeight: 1.7,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    background: 'var(--color-surface-offset)',
+                    padding: 'var(--space-3)',
+                    borderRadius: 'var(--radius-md)',
+                    flex: 1,
+                    overflowY: 'auto',
+                    border: '1px solid var(--color-border)',
+                  }}
+                >
+                  {recallResult ?? 'No context found in memory.'}
                 </div>
               </div>
-              <div className="divider" />
-              <div
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--color-text-muted)',
-                  lineHeight: 1.7,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  background: 'var(--color-surface-offset)',
-                  padding: 'var(--space-3)',
-                  borderRadius: 'var(--radius-md)',
-                  maxHeight: '320px',
-                  overflowY: 'auto',
-                }}
-              >
-                {recallResult ?? 'No context found in memory.'}
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
