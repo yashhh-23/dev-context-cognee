@@ -120,10 +120,11 @@
 | `8a38ffe` | 2026-06-22 | phase 4: full dashboard redesign + bugs/stats backend endpoints |
 | `095edbc` | 2026-06-21 | fix: use cognee v1.0 remember/recall API, fix ingest_service indentation, clean up router and search endpoint |
 
-## Sahil Rane (26 commits)
+## Sahil Rane (27 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `248cf90` | 2026-06-30 | feat: implement bug analysis and ingestion APIs with GitHub integration and memory recall |
 | `8320814` | 2026-06-30 | feat: implement CLI for session management, ingestion, and memory recall with feedback loop |
 | `813c2dc` | 2026-06-29 | fix(frontend): implement robust UI stability and production safety guardrails |
 | `223355b` | 2026-06-29 | fix: resolve trailing conflict marker in recall.py |
@@ -165,10 +166,11 @@
 | `db41e79` | 2026-06-30 | feat: add script to generate live contributors document from git commit history |
 | `fdc34c0` | 2026-06-30 | Refactor code structure for improved readability and maintainability |
 
-## github-actions[bot] (2 commits)
+## github-actions[bot] (3 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `b92015a` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `9119e9a` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `2c3ef53` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 
