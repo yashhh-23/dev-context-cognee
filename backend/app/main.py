@@ -22,7 +22,7 @@ if os.getenv("GEMINI_API_KEY"):
 
 from app.core.database import init_db
 from app.seed import seed_db
-from app.api import ingest, sessions, context, bugs, recall, graph, stats, lifecycle, contribute, ws, memory_health
+from app.api import ingest, sessions, context, bugs, recall, graph, stats, lifecycle, contribute, ws, memory_health, memify, forget
 from app.core.byok import byok_key_var
 
 
@@ -78,7 +78,8 @@ app.include_router(lifecycle.router,  prefix="/api",           tags=["lifecycle"
 app.include_router(contribute.router, prefix="/api/contribute", tags=["contribute"])
 app.include_router(ws.router,         tags=["ws"])
 app.include_router(memory_health.router, prefix="/api/stats",   tags=["memory_health"])
-
+app.include_router(memify.router, prefix="/api", tags=["memify"])
+app.include_router(forget.router, prefix="/api", tags=["forget"])
 
 @app.get("/")
 def root_endpoint():
