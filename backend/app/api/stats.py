@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.recall_service import get_all_sessions
 from app.core.graph_builder import build_graph
+import asyncio
 import datetime
 import httpx
 import os
@@ -37,11 +38,63 @@ async def _get_open_bug_count() -> int:
     return -1
 
 
+def _compute_health_score(
+    sessions: list,
+    open_bugs: int,
+    memory_nodes: int,
+) -> int:
+    """
+    Compute a real health score (0-100) derived entirely from live data:
+
+      - resolved_ratio   (40 pts): fraction of sessions that are resolved/completed.
+        Rewards a healthy fix rate.
+      - memory_density   (30 pts): memory nodes relative to sessions, capped at 1.0.
+        Rewards rich Cognee graph coverage.
+      - bug_health       (30 pts): penalises open bugs. Capped so a repo with 0
+        configured GitHub repo still scores full points on this component.
+    """
+    total = len(sessions)
+
+    # Component 1 — session resolve rate
+    if total > 0:
+        resolved = sum(
+            1 for s in sessions
+            if s.status in ("resolved", "completed")
+        )
+        resolved_ratio = resolved / total
+    else:
+        resolved_ratio = 0.0
+
+    # Component 2 — memory node density (nodes per session, capped at 1.0)
+    if total > 0:
+        density = min(memory_nodes / total, 1.0)
+    else:
+        density = 0.0
+
+    # Component 3 — bug health (fewer open bugs = higher score)
+    if open_bugs < 0:
+        # GitHub unreachable / not configured — don't penalise
+        bug_health_ratio = 1.0
+    elif open_bugs == 0:
+        bug_health_ratio = 1.0
+    else:
+        # Diminishing penalty: score halves every 10 open bugs
+        import math
+        bug_health_ratio = max(0.0, 1.0 - math.log1p(open_bugs) / math.log1p(50))
+
+    score = (
+        resolved_ratio  * 40
+        + density       * 30
+        + bug_health_ratio * 30
+    )
+    return round(score)
+
+
 @router.get("/stats")
 async def get_stats(db: Session = Depends(get_db)):
-    sessions   = get_all_sessions(db, skip=0, limit=500)
-    total      = len(sessions)
-    open_bugs  = await _get_open_bug_count()
+    sessions     = get_all_sessions(db, skip=0, limit=500)
+    total        = len(sessions)
+    open_bugs    = await _get_open_bug_count()
 
     # Real memory node count from Cognee graph builder
     graph_data   = build_graph(sessions)
@@ -54,10 +107,7 @@ async def get_stats(db: Session = Depends(get_db)):
         if s.timestamp and s.timestamp.date() == today and s.status == "completed"
     )
 
-    # Calculate bug health component (minimum 50 to prevent layout empty states if open bugs count is very high)
-    bug_health = max(50, 100 - open_bugs) if open_bugs > 0 else 100
-    # Aggregate with Code Quality (88%), Test Coverage (65%), and Documentation (92%)
-    health = round(88 * 0.3 + 65 * 0.2 + 92 * 0.2 + bug_health * 0.3)
+    health = _compute_health_score(sessions, open_bugs, memory_nodes)
 
     last_session = ""
     if sessions:
@@ -99,7 +149,6 @@ async def bug_trend():
     opened_map: dict[str, int] = {d: 0 for d in day_strs}
     closed_map: dict[str, int] = {d: 0 for d in day_strs}
 
-    import asyncio
     async with httpx.AsyncClient(timeout=20) as client:
         req_opened = client.get(
             "https://api.github.com/search/issues",
