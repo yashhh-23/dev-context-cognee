@@ -80,10 +80,11 @@
 | `d5f25de` | 2026-06-21 | bug fixed |
 | `e21d8c6` | 2026-06-21 | backend phase 1 |
 
-## Yash Dedhia (47 commits)
+## Yash Dedhia (48 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `e4e10eb` | 2026-07-01 | fix: circular import in scoreManager, resetDemo keys, setConn handler in provider |
 | `011e0c1` | 2026-06-30 | feat: Stage 3 — score badge, memory graph, recently enhanced, improve/forget buttons, session stats footer, suggestMemify wiring |
 | `37d152f` | 2026-06-30 | feat: Stage 2 — memory lifecycle commands, visual graph, gamification, backend memify/forget routes |
 | `f59a663` | 2026-06-27 | fix(api): fix mock fallback ordering - specific /api/recall/* routes before broad prefix |
@@ -166,10 +167,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (15 commits)
+## github-actions[bot] (16 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `30213b4` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `8279ebf` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `7dbb5cf` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `11f2755` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
