@@ -10,15 +10,15 @@ const SCORE_RULES = {
   draft: 8,
 } as const;
 
-import { statusBar } from '../extension';
-
 export type ScoreAction = keyof typeof SCORE_RULES;
 
 export class ScoreManager {
   private stateManager: StateManager;
+  private onMilestone?: (pts: number) => void;
 
-  constructor(stateManager: StateManager) {
+  constructor(stateManager: StateManager, onMilestone?: (pts: number) => void) {
     this.stateManager = stateManager;
+    this.onMilestone = onMilestone;
   }
 
   addPoints(points: number): number {
@@ -26,9 +26,11 @@ export class ScoreManager {
     const next = current + points;
     this.stateManager.set(SCORE_KEY, next);
 
-    if (current < 25 && next >= 25) statusBar.milestone(25);
-    else if (current < 50 && next >= 50) statusBar.milestone(50);
-    else if (current < 100 && next >= 100) statusBar.milestone(100);
+    if (this.onMilestone) {
+      if (current < 25 && next >= 25)  { this.onMilestone(25); }
+      else if (current < 50 && next >= 50)  { this.onMilestone(50); }
+      else if (current < 100 && next >= 100) { this.onMilestone(100); }
+    }
 
     return next;
   }

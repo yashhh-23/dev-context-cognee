@@ -52,15 +52,15 @@ function setStatusBarOffline(): void {
 }
 
 export const statusBar = {
-    syncing: setStatusBarSyncing,
-    done: setStatusBarDone,
-    error: setStatusBarError,
-    lowMatch: setStatusBarLowMatch,
+    syncing:   setStatusBarSyncing,
+    done:      setStatusBarDone,
+    error:     setStatusBarError,
+    lowMatch:  setStatusBarLowMatch,
     milestone: setStatusBarMilestone,
-    offline: setStatusBarOffline
+    offline:   setStatusBarOffline
 };
 
-// ─── Activate ──────────────────────────────────────────────────────────────────
+// ─── Activate ─────────────────────────────────────────────────────────────────
 export function activate(context: vscode.ExtensionContext): void {
     console.log('Dev-Context Assistant: activating...');
 
@@ -85,30 +85,33 @@ export function activate(context: vscode.ExtensionContext): void {
         postMessageToWebview: (msg) => provider.postMessageToWebview(msg)
     };
 
-    // 4. Managers
+    // 4. Managers — ScoreManager receives milestone callback, NO circular import
     const api            = new ApiClient({ context });
     const stateManager   = new StateManager(context);
-    const scoreManager   = new ScoreManager(stateManager);
+    const scoreManager   = new ScoreManager(stateManager, setStatusBarMilestone);
     const sessionTracker = new SessionTracker(stateManager);
 
+    // 5. Onboarding
     runOnboarding(context, api);
 
-    const url = vscode.workspace.getConfiguration('devContext').get<string>('backendUrl', 'http://localhost:8000');
-    fetch(url.endsWith('/') ? `${url}api/stats` : `${url}/api/stats`)
+    // 6. Startup health check
+    const backendUrl = vscode.workspace.getConfiguration('devContext').get<string>('backendUrl', 'http://localhost:8000');
+    const statsUrl   = backendUrl.endsWith('/') ? `${backendUrl}api/stats` : `${backendUrl}/api/stats`;
+    fetch(statsUrl)
         .then(res => {
             if (res.ok) {
                 provider.postMessageToWebview({ type: 'setConn', connected: true });
             } else {
-                statusBar.offline();
+                setStatusBarOffline();
                 provider.postMessageToWebview({ type: 'error', message: 'Backend offline' });
             }
         })
         .catch(() => {
-            statusBar.offline();
+            setStatusBarOffline();
             provider.postMessageToWebview({ type: 'error', message: 'Backend offline' });
         });
 
-    // Helper: push score + stats to sidebar after every action
+    // Helper: push score + stats to sidebar
     function syncSidebarMetrics(): void {
         provider.postMessageToWebview({ type: 'scoreUpdate', score: scoreManager.getScore() });
         const stats = sessionTracker.getStats();
@@ -131,7 +134,7 @@ export function activate(context: vscode.ExtensionContext): void {
         })
     );
 
-    // ─── Sidebar refresh command (called from improveContext / forgetContext) ───
+    // ─── Sidebar refresh command ─────────────────────────────────────────────────────
     context.subscriptions.push(
         vscode.commands.registerCommand('devContext.refreshSidebar', (payload: any) => {
             if (!payload) { return; }
@@ -166,21 +169,22 @@ export function activate(context: vscode.ExtensionContext): void {
             runOnboarding(context, api);
         }),
         vscode.commands.registerCommand('devContext.resetDemo', async () => {
-            await context.globalState.update('devContext.sessionScore', undefined);
-            await context.globalState.update('sessionTracker.stats', undefined);
+            // Use manager methods — they know the correct internal state keys
+            scoreManager.resetScore();
+            sessionTracker.reset();
             await context.globalState.update('devContext.onboardingDone', false);
+            syncSidebarMetrics();
             vscode.window.showInformationMessage('Dev-Context: Demo reset ✓ — all memory cleared');
             runOnboarding(context, api);
         }),
         bugDecorationType
     );
 
-    // Push initial score + stats to sidebar when it opens
+    // Push initial score + stats after sidebar loads
     setTimeout(() => {
         syncSidebarMetrics();
-        if (vscode.window.activeTextEditor) {
-            provider.updateContextSummary(vscode.window.activeTextEditor.document);
-        }
+        const doc = vscode.window.activeTextEditor?.document || vscode.window.visibleTextEditors[0]?.document;
+        if (doc) { provider.updateContextSummary(doc); }
     }, 1500);
 
     // 6. File watcher
