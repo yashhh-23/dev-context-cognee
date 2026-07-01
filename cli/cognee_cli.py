@@ -40,6 +40,25 @@ def config(
     save_config(cfg)
     typer.secho("[SUCCESS] Config saved", fg=typer.colors.GREEN)
 
+def check_backend_health(cfg, exit_on_fail=True):
+    try:
+        requests.get(f"{cfg['api_url']}/", timeout=3)
+        return True
+    except Exception:
+        if exit_on_fail:
+            typer.secho(f"[ERROR] Backend is offline or unreachable ({cfg.get('api_url')}). Please start the backend server.", fg=typer.colors.RED)
+            raise typer.Exit(1)
+        return False
+
+@app.command()
+def health():
+    """Check if the backend API is online"""
+    cfg = load_config()
+    if check_backend_health(cfg, exit_on_fail=False):
+        typer.secho(f"[SUCCESS] Backend is ONLINE ({cfg.get('api_url')})", fg=typer.colors.GREEN)
+    else:
+        typer.secho(f"[ERROR] Backend is OFFLINE or unreachable ({cfg.get('api_url')})", fg=typer.colors.RED)
+
 @app.command()
 def start(
     dir: str = typer.Argument(".", help="Project directory to watch"),
@@ -190,12 +209,23 @@ def recall(
     query: str = typer.Argument(...),
     top_k: int = typer.Option(5, "--top", "-n"),
     interactive: bool = typer.Option(False, "--interactive", "-i", help="Interactive mode with feedback"),
+    as_json: bool = typer.Option(False, "--json", help="Output raw JSON"),
 ):
     """Query Cognee memory for past context"""
     from rich.console import Console
     from rich.panel import Panel
     
     cfg = load_config()
+    check_backend_health(cfg)
+    
+    if as_json:
+        try:
+            resp = requests.post(f"{cfg['api_url']}/recall", json={"query": query, "limit": top_k}, headers=get_auth_headers(cfg))
+            typer.echo(json.dumps(resp.json() if resp.status_code == 200 else {"error": resp.text}, indent=2))
+        except Exception as e:
+            typer.echo(json.dumps({"error": str(e)}))
+        return
+        
     console = Console()
     
     with console.status("[bold cyan]Searching memory...[/bold cyan]"):
@@ -350,6 +380,7 @@ trap '_devcontext_hook' ERR
 def contribute(
     session_id: Optional[str] = typer.Option(None, help="Filter by specific session ID"),
     keyword: Optional[str] = typer.Option(None, help="Search by keyword instead of recent memory"),
+    as_json: bool = typer.Option(False, "--json", help="Output raw JSON"),
 ):
     """List current OSS Radar matches and contribution opportunities"""
     from rich.console import Console
@@ -357,6 +388,25 @@ def contribute(
     from rich.panel import Panel
     
     cfg = load_config()
+    check_backend_health(cfg)
+    
+    if as_json:
+        try:
+            params = {}
+            if session_id: params["session_id"] = session_id
+            if keyword: params["keyword"] = keyword
+            endpoint = "/contribute/search" if (session_id or keyword) else "/contribute"
+            resp = requests.get(f"{cfg['api_url']}{endpoint}", params=params, headers=get_auth_headers(cfg), timeout=15)
+            if resp.status_code == 200:
+                data = resp.json()
+                issues = (data.get("contribution_opportunities", []) + data.get("github_issues", [])) if (session_id or keyword) else data
+                typer.echo(json.dumps(issues, indent=2))
+            else:
+                typer.echo(json.dumps({"error": resp.text}))
+        except Exception as e:
+            typer.echo(json.dumps({"error": str(e)}))
+        return
+        
     console = Console()
     
     with console.status("[bold cyan]Scanning GitHub for open issues...[/bold cyan]"):
@@ -418,6 +468,7 @@ def contribute(
 @app.command()
 def graph(
     project: Optional[str] = typer.Option(None, help="Filter by specific project name"),
+    as_json: bool = typer.Option(False, "--json", help="Output raw JSON"),
 ):
     """Print an ASCII summary of the recent memory graph"""
     from rich.console import Console
@@ -425,6 +476,17 @@ def graph(
     from collections import defaultdict
     
     cfg = load_config()
+    check_backend_health(cfg)
+    
+    if as_json:
+        try:
+            params = {"project": project} if project else {}
+            resp = requests.get(f"{cfg['api_url']}/graph", params=params, headers=get_auth_headers(cfg), timeout=15)
+            typer.echo(json.dumps(resp.json() if resp.status_code == 200 else {"error": resp.text}, indent=2))
+        except Exception as e:
+            typer.echo(json.dumps({"error": str(e)}))
+        return
+        
     console = Console()
     
     with console.status("[bold cyan]Fetching memory graph...[/bold cyan]"):
