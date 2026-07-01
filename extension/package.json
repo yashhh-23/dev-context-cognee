@@ -32,7 +32,7 @@
         {
           "id": "devContextContainer",
           "title": "Dev-Context",
-          "icon": "$(brain)"
+          "icon": "icon.png"
         }
       ]
     },
@@ -85,6 +85,14 @@
         "command": "devContext.forgetContext",
         "title": "Dev-Context: Forget Context",
         "icon": "$(trash)"
+      },
+      {
+        "command": "devContext.resetOnboarding",
+        "title": "Dev-Context: Reset Onboarding"
+      },
+      {
+        "command": "devContext.resetDemo",
+        "title": "Dev-Context: Reset Demo"
       }
     ],
     "keybindings": [

@@ -112,9 +112,17 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
             this.isOpen = false;
             this.dispose();
         }, null, this._disposables);
+
+        setTimeout(() => {
+            const doc = vscode.window.activeTextEditor?.document || vscode.window.visibleTextEditors[0]?.document;
+            if (doc) { this.updateContextSummary(doc); }
+        }, 300);
     }
 
     async updateContextSummary(document?: vscode.TextDocument): Promise<void> {
+        if (!document) {
+            document = vscode.window.activeTextEditor?.document || vscode.window.visibleTextEditors[0]?.document;
+        }
         if (!this._view || !document || !this.isOpen) { return; }
         const config = vscode.workspace.getConfiguration('devContext');
         if (!config.get<boolean>('watcherEnabled', true)) { return; }

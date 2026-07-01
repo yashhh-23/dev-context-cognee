@@ -12,6 +12,7 @@ import { forgetContext } from './commands/forgetContext';
 import { StateManager } from './utils/stateManager';
 import { ScoreManager } from './utils/scoreManager';
 import { SessionTracker } from './utils/sessionTracker';
+import { runOnboarding } from './commands/onboarding';
 
 // ─── Status Bar ────────────────────────────────────────────────────────────────
 let statusBarItem: vscode.StatusBarItem;
@@ -20,7 +21,7 @@ function createStatusBar(): vscode.StatusBarItem {
     const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     item.text = '$(brain) Cognee';
     item.tooltip = 'Dev-Context Assistant — click to open sidebar';
-    item.command = 'workbench.view.extension.devContextContainer';
+    item.command = 'devContextSidebar.focus';
     item.show();
     return item;
 }
@@ -35,6 +36,29 @@ function setStatusBarError(): void {
     statusBarItem.text = '$(error) Cognee';
     setTimeout(() => { if (statusBarItem) { statusBarItem.text = '$(brain) Cognee'; } }, 4000);
 }
+function setStatusBarLowMatch(): void {
+    if (!statusBarItem) { return; }
+    statusBarItem.text = '$(warning) Low match — Memify?';
+    setTimeout(() => { if (statusBarItem) { statusBarItem.text = '$(brain) Cognee'; } }, 5000);
+}
+function setStatusBarMilestone(pts: number): void {
+    if (!statusBarItem) { return; }
+    statusBarItem.text = `$(star) ${pts} pts!`;
+    setTimeout(() => { if (statusBarItem) { statusBarItem.text = '$(brain) Cognee'; } }, 3000);
+}
+function setStatusBarOffline(): void {
+    if (!statusBarItem) { return; }
+    statusBarItem.text = '$(error) Cognee offline';
+}
+
+export const statusBar = {
+    syncing: setStatusBarSyncing,
+    done: setStatusBarDone,
+    error: setStatusBarError,
+    lowMatch: setStatusBarLowMatch,
+    milestone: setStatusBarMilestone,
+    offline: setStatusBarOffline
+};
 
 // ─── Activate ──────────────────────────────────────────────────────────────────
 export function activate(context: vscode.ExtensionContext): void {
@@ -67,6 +91,23 @@ export function activate(context: vscode.ExtensionContext): void {
     const scoreManager   = new ScoreManager(stateManager);
     const sessionTracker = new SessionTracker(stateManager);
 
+    runOnboarding(context, api);
+
+    const url = vscode.workspace.getConfiguration('devContext').get<string>('backendUrl', 'http://localhost:8000');
+    fetch(url.endsWith('/') ? `${url}api/stats` : `${url}/api/stats`)
+        .then(res => {
+            if (res.ok) {
+                provider.postMessageToWebview({ type: 'setConn', connected: true });
+            } else {
+                statusBar.offline();
+                provider.postMessageToWebview({ type: 'error', message: 'Backend offline' });
+            }
+        })
+        .catch(() => {
+            statusBar.offline();
+            provider.postMessageToWebview({ type: 'error', message: 'Backend offline' });
+        });
+
     // Helper: push score + stats to sidebar after every action
     function syncSidebarMetrics(): void {
         provider.postMessageToWebview({ type: 'scoreUpdate', score: scoreManager.getScore() });
@@ -79,14 +120,14 @@ export function activate(context: vscode.ExtensionContext): void {
     context.globalState.update('currentSessionId', sessionId);
     api.startSession({ sessionId, workspaceName: vscode.workspace.name || 'unnamed-workspace' })
         .then(() => console.log(`Dev-Context: Started session ${sessionId}`))
-        .catch(err => console.error('Failed to start session:', err));
+        .catch(err => console.warn(`Dev-Context: Backend offline, session not started (${err instanceof Error ? err.message : String(err)})`));
 
     context.subscriptions.push(
         new vscode.Disposable(() => {
             const curSession = context.globalState.get<string>('currentSessionId') || sessionId;
             api.endSession({ sessionId: curSession, triggerDistillation: true })
                 .then(() => console.log(`Dev-Context: Ended session ${curSession}`))
-                .catch(err => console.error('Failed to end session:', err));
+                .catch(err => console.warn(`Dev-Context: Backend offline, session not ended (${err instanceof Error ? err.message : String(err)})`));
         })
     );
 
@@ -120,11 +161,27 @@ export function activate(context: vscode.ExtensionContext): void {
             await forgetContext(context, api, scoreManager);
             syncSidebarMetrics();
         }),
+        vscode.commands.registerCommand('devContext.resetOnboarding', () => {
+            context.globalState.update('devContext.onboardingDone', false);
+            runOnboarding(context, api);
+        }),
+        vscode.commands.registerCommand('devContext.resetDemo', async () => {
+            await context.globalState.update('devContext.sessionScore', undefined);
+            await context.globalState.update('sessionTracker.stats', undefined);
+            await context.globalState.update('devContext.onboardingDone', false);
+            vscode.window.showInformationMessage('Dev-Context: Demo reset ✓ — all memory cleared');
+            runOnboarding(context, api);
+        }),
         bugDecorationType
     );
 
     // Push initial score + stats to sidebar when it opens
-    setTimeout(() => syncSidebarMetrics(), 1500);
+    setTimeout(() => {
+        syncSidebarMetrics();
+        if (vscode.window.activeTextEditor) {
+            provider.updateContextSummary(vscode.window.activeTextEditor.document);
+        }
+    }, 1500);
 
     // 6. File watcher
     context.subscriptions.push(
@@ -138,7 +195,8 @@ export function activate(context: vscode.ExtensionContext): void {
     // 7. Tab switch
     context.subscriptions.push(
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-            if (editor && provider.isOpen) { await provider.updateContextSummary(editor.document); }
+            const doc = editor?.document || vscode.window.visibleTextEditors[0]?.document;
+            if (doc && provider.isOpen) { await provider.updateContextSummary(doc); }
         })
     );
 
@@ -160,7 +218,7 @@ export function activate(context: vscode.ExtensionContext): void {
                 syncSidebarMetrics();
                 setStatusBarDone('Saved ✓');
             } catch (err) {
-                console.error('Auto-save failed:', err);
+                console.warn(`Dev-Context: Auto-save skipped, backend offline (${err instanceof Error ? err.message : String(err)})`);
             }
         })
     );
@@ -187,7 +245,7 @@ export function activate(context: vscode.ExtensionContext): void {
                             source: 'diagnostics'
                         });
                     } catch (err) {
-                        console.error('Ingesting diagnostics failed:', err);
+                        console.warn(`Dev-Context: Ingesting diagnostics skipped, backend offline (${err instanceof Error ? err.message : String(err)})`);
                     }
                 }
             }, 3000);

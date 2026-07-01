@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { statusBar } from '../extension';
 
 const LOW_SIMILARITY_THRESHOLD = 0.6;
 
@@ -8,6 +9,7 @@ export function checkAndSuggestMemify(
 ): void {
   if (!bugs || bugs.length === 0) {
     // No results at all — definitely suggest memify
+    statusBar.lowMatch();
     _showMemifyPrompt('No similar contexts found in memory.');
     return;
   }
@@ -20,6 +22,7 @@ export function checkAndSuggestMemify(
 
   if (allLow) {
     const topScore = Math.round((bugs[0].score ?? bugs[0].similarity ?? 0) * 100);
+    statusBar.lowMatch();
     _showMemifyPrompt(`Low similarity detected (best match: ${topScore}%).`);
   }
   // If any result ≥ threshold → good match found, do nothing
