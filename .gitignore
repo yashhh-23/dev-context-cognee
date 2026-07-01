@@ -31,3 +31,7 @@ dev_context.egg-info/
 dist/
 .pytest_cache/
 .mypy_cache/
+.coverage
+htmlcov/
+
+.turbo/

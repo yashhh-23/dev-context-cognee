@@ -98,9 +98,12 @@ async def list_bugs(limit: int = 30):
             )
 
         print(f"[bugs] GitHub response status: {resp.status_code}")
+        if resp.status_code == 403:
+            raise HTTPException(status_code=502, detail="GitHub rate limit exceeded")
+        if resp.status_code == 401:
+            raise HTTPException(status_code=502, detail="GitHub token invalid or missing")
         if resp.status_code != 200:
-            print(f"[bugs] GitHub error body: {resp.text[:300]}")
-            return []
+            raise HTTPException(status_code=502, detail=f"GitHub API error: {resp.status_code}")
 
         items = [item for item in resp.json() if "pull_request" not in item]
         print(f"[bugs] returning {len(items)} issues")
@@ -116,6 +119,8 @@ async def list_bugs(limit: int = 30):
             }
             for item in items
         ]
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[bugs] list_bugs exception: {e}")
         return []

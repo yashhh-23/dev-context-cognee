@@ -9,7 +9,7 @@ import LiveFeed from '@/components/ui/LiveFeed'
 import { DashboardSkeleton } from '@/components/skeletons/Skeletons'
 import MemoryHealthModal from '@/components/ui/MemoryHealthModal'
 import { useHealth } from '@/hooks/useHealth'
-import { formatRelative } from '@/lib/dateUtils'
+import { formatRelative, repoShortName } from '@/lib/utils'
 
 const BugTrendChart = dynamic(() => import('@/components/ui/BugTrendChart'), { ssr: false })
 
@@ -258,7 +258,7 @@ export default function OverviewClient() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                       <span className="item-title" style={{ fontFamily: 'var(--font-mono)' }}>
-                        {s.repo?.includes('/') ? s.repo.split('/')[1] : s.repo}
+                        {repoShortName(s.repo || "")}
                       </span>
                       <span className="badge badge-default" style={{ fontSize: '10px' }}>{s.branch}</span>
                     </div>
