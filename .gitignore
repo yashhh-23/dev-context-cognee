@@ -35,3 +35,5 @@ dist/
 htmlcov/
 
 .turbo/
+.vercel
+.env*.local
