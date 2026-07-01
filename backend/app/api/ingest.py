@@ -32,15 +32,21 @@ def ingest_log(
     if req.terminal_output is None and req.content is None:
         raise HTTPException(status_code=422, detail="Either content or terminal_output must be provided")
 
-    # Guard: never pass None as timestamp — SQLAlchemy default only fires when field is omitted
-    ts = req.timestamp if req.timestamp is not None else datetime.datetime.now(datetime.timezone.utc)
+    if req.terminal_output and len(req.terminal_output) > 100_000:
+        raise HTTPException(status_code=400, detail="Log too large")
+
+    # Guard: server controls timestamp to prevent client spoofing
+    ts = datetime.datetime.now(datetime.timezone.utc)
 
     if req.content is not None:
         # File context ingestion from VS Code extension
+        terminal_output_raw = f"[File Context Ingested: {req.fileName}]"
+        if x_byok_key:
+            terminal_output_raw = encrypt_data(terminal_output_raw, x_byok_key)
         new_session = SessionRecord(
             project=req.fileName or "file-ingest",
             branch=req.branch or "main",
-            terminal_output=f"[File Context Ingested: {req.fileName}]",
+            terminal_output=terminal_output_raw,
             tags=req.tags,
             timestamp=ts,
             status="queued",

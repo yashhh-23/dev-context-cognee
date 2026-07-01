@@ -9,6 +9,7 @@ from app.services.recall_service import get_all_sessions
 from app.core.graph_builder import build_graph
 import importlib.metadata
 import datetime
+from dateutil.parser import isoparse
 
 router = APIRouter()
 
@@ -31,7 +32,7 @@ async def memory_health(db: Session = Depends(get_db)):
         ts_raw = n.get("timestamp") or n.get("created_at") or ""
         if ts_raw:
             try:
-                ts = datetime.datetime.fromisoformat(str(ts_raw).replace("Z", "+00:00")).replace(tzinfo=None)
+                ts = isoparse(str(ts_raw)).replace(tzinfo=None)
                 if ts < cutoff:
                     decaying_nodes += 1
             except Exception:
@@ -55,6 +56,8 @@ async def memory_health(db: Session = Depends(get_db)):
     else:
         decay_ratio = decaying_nodes / total_nodes
         health_score = max(0, round(100 - decay_ratio * 40))
+        if total_nodes < 5:
+            health_score = max(0, health_score - 20)
 
     # Cognee version
     try:
@@ -68,6 +71,5 @@ async def memory_health(db: Session = Depends(get_db)):
         "decaying_nodes": decaying_nodes,
         "topics": topics,
         "health_score": health_score,
-        "last_clean_removed": 0,  # updated by auto-clean endpoint on each run
         "cognee_version": cognee_version,
     }
