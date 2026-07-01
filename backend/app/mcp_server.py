@@ -1,20 +1,23 @@
 import os
 import sys
+import tempfile
+import traceback
+import filelock
+import difflib
+import cognee
 from pathlib import Path
+from fastmcp import FastMCP
 
 # Add backend directory to sys.path to allow absolute imports of app
 backend_dir = Path(__file__).resolve().parent.parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
-import os
 os.environ["COGNEE_SYSTEM_PATH"] = os.path.expanduser("~/.cognee_system")
 
-import tempfile
-import filelock
-import cognee
-from fastmcp import FastMCP
 from app.core.cognee_client import init_cognee
+from app.cognee_utils import is_duplicate
+from app.services.recall_service import extract_text
 
 # Use a cross-platform temp file lock to protect Cognee initialization
 lock_path = os.path.join(tempfile.gettempdir(), "cognee_kuzu.lock")
@@ -31,7 +34,6 @@ async def remember_context(text: str) -> str:
     """Store text, notes, or terminal logs into Cognee's persistent memory."""
     try:
         # Check for duplicates first to save database space
-        from app.cognee_utils import is_duplicate
         dup = False
         existing = ""
         try:
@@ -48,8 +50,6 @@ async def remember_context(text: str) -> str:
         try:
             results = await cognee.recall(text)
             if results:
-                from app.services.recall_service import extract_text
-                import difflib
                 items = results if isinstance(results, list) else [results]
                 for item in items:
                     existing_text = extract_text(item)
@@ -68,7 +68,6 @@ async def remember_context(text: str) -> str:
             return f"Stored. [WARNING] Potential conflict with: {contradictions[0]}"
         return "Successfully stored text in Cognee memory."
     except Exception as e:
-        import traceback
         traceback.print_exc()
         return f"Error storing memory: {str(e)}"
 
@@ -77,7 +76,6 @@ async def recall_context(query: str) -> str:
     """Query and recall relevant context from Cognee's memory."""
     try:
         raw = await cognee.recall(query)
-        from app.services.recall_service import extract_text
         if not raw:
             return "No relevant context found."
         
@@ -107,7 +105,6 @@ async def cognify_source_code(file_path: str, content: str) -> str:
         formatted_content = f"File Path: {safe_file_id}\nContent:\n{content}"
 
         # Dedup check before ingestion
-        from app.cognee_utils import is_duplicate
         dup, existing = await is_duplicate(formatted_content)
         if dup:
             return f"[DEDUP] Skipped - near-identical content already in graph. Existing: {existing[:100]}..."
@@ -123,3 +120,4 @@ async def cognify_source_code(file_path: str, content: str) -> str:
 
 if __name__ == "__main__":
     mcp.run()
+

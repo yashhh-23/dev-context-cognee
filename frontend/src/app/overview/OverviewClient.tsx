@@ -229,9 +229,9 @@ export default function OverviewClient() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-6)', padding: 'var(--space-2) 0' }}>
             <CircularProgress value={healthScore} />
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              <ProgressRow label="Code Quality" value={88} color="#2dd4bf" />
-              <ProgressRow label="Test Coverage" value={65} color="#eab308" />
-              <ProgressRow label="Documentation" value={92} color="#4ade80" />
+              <ProgressRow label="Code Quality" value={stats?.code_quality ?? 88} color="#2dd4bf" />
+              <ProgressRow label="Test Coverage" value={stats?.test_coverage ?? 65} color="#eab308" />
+              <ProgressRow label="Documentation" value={stats?.documentation ?? 92} color="#4ade80" />
             </div>
           </div>
           <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', fontFamily: 'var(--font-mono)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-2)' }}>
