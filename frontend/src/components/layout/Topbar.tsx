@@ -18,6 +18,7 @@ export default function Topbar() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('byok_key') || ''
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setByokKey(saved)
     }
   }, [])

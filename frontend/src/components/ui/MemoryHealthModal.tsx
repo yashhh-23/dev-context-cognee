@@ -37,6 +37,7 @@ export default function MemoryHealthModal({ open, onClose, autoCleanEnabled, onT
 
   useEffect(() => {
     if (!open) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     setCleanResult(null)
     fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}/api/stats/memory-health`)

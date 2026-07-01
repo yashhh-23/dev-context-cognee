@@ -150,6 +150,10 @@ export default function GraphClient() {
   const [editingNode, setEditingNode] = useState<string | null>(null)
   const [editVal, setEditVal] = useState('')
 
+  // Selected node and connected edges states for graph inspector
+  const [selectedNode, setSelectedNode] = useState<any>(null)
+  const [connectedEdges, setConnectedEdges] = useState<any[]>([])
+
   async function handleEditSubmit(nodeId: string) {
     if (!editVal.trim()) return
     try {
@@ -222,10 +226,30 @@ export default function GraphClient() {
       if (networkRef.current) {
         ;(networkRef.current as any).destroy()
       }
-      networkRef.current = new vis.Network(containerRef.current, { nodes, edges }, options)
+      const network = new vis.Network(containerRef.current, { nodes, edges }, options)
+      networkRef.current = network
+
+      network.on('selectNode', (params: any) => {
+        const selectedId = params.nodes[0]
+        const node = graphData.nodes.find(n => n.id === selectedId)
+        if (node) {
+          const connected = graphData.edges.filter(e => e.source === selectedId || e.target === selectedId)
+          setSelectedNode(node)
+          setConnectedEdges(connected)
+        }
+      })
+
+      network.on('deselectNode', () => {
+        setSelectedNode(null)
+        setConnectedEdges([])
+      })
     }
     document.head.appendChild(script)
-    return () => { script.remove() }
+    return () => { 
+      script.remove() 
+      setSelectedNode(null)
+      setConnectedEdges([])
+    }
   }, [viewMode, graphData])
 
   const nodeTypeCount = graphData
@@ -587,6 +611,107 @@ export default function GraphClient() {
               })}
             </div>
           )}
+        </div>
+      )}
+      {/* Node Detail Drawer */}
+      {viewMode === 'graph' && selectedNode && (
+        <div style={{
+          position: 'fixed',
+          top: '0',
+          right: 0,
+          width: '350px',
+          height: '100vh',
+          background: 'var(--color-surface)',
+          borderLeft: '1px solid var(--color-border)',
+          padding: 'var(--space-5)',
+          boxShadow: 'var(--shadow-lg)',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 99,
+          animation: 'slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        }}>
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes slideIn {
+              from { transform: translateX(100%); }
+              to { transform: translateX(0); }
+            }
+          `}} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>
+            <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', fontWeight: 'bold', color: 'var(--color-text-faint)', textTransform: 'uppercase' }}>Node Inspector</span>
+            <button
+              onClick={() => {
+                setSelectedNode(null)
+                setConnectedEdges([])
+              }}
+              style={{ fontSize: 'var(--text-md)', color: 'var(--color-text-muted)', cursor: 'pointer', background: 'transparent', border: 'none' }}
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <div>
+              <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)', textTransform: 'uppercase' }}>Node ID</div>
+              <div style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', color: 'var(--color-text)', wordBreak: 'break-all', background: 'var(--color-surface-offset)', padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', marginTop: '2px' }}>
+                {selectedNode.id}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)', textTransform: 'uppercase' }}>Type</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', marginTop: '2px' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: selectedNode.color || 'var(--color-primary)' }} />
+                <span className="mono" style={{ fontSize: 'var(--text-xs)', textTransform: 'capitalize' }}>{selectedNode.type}</span>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)', textTransform: 'uppercase' }}>Label / Content</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text)', marginTop: '2px', lineHeight: 1.4, background: 'var(--color-surface-offset)', padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', whiteSpace: 'pre-wrap' }}>
+                {selectedNode.label}
+              </div>
+            </div>
+
+            {selectedNode.data && Object.keys(selectedNode.data).length > 0 && (
+              <div>
+                <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)', textTransform: 'uppercase', marginBottom: '4px' }}>Metadata</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {Object.entries(selectedNode.data).map(([k, v]) => (
+                    <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--color-border)', paddingBottom: '2px' }}>
+                      <span style={{ color: 'var(--color-text-faint)' }}>{k}</span>
+                      <span style={{ color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' }}>{String(v)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)', textTransform: 'uppercase', marginBottom: '4px' }}>Connected Relations ({connectedEdges.length})</div>
+              {connectedEdges.length === 0 ? (
+                <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)' }}>No active connections.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {connectedEdges.map((e, idx) => {
+                    const isSource = e.source === selectedNode.id
+                    const partnerId = isSource ? e.target : e.source
+                    const partnerName = partnerId.split(':').slice(1).join(':') || partnerId
+                    return (
+                      <div key={idx} style={{ padding: 'var(--space-2)', background: 'var(--color-surface-offset)', borderRadius: 'var(--radius-sm)', fontSize: '10px', fontFamily: 'var(--font-mono)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                          <span style={{ color: 'var(--color-primary)' }}>{e.label || 'connects'}</span>
+                          <span style={{ color: 'var(--color-text-faint)' }}>{isSource ? 'Outbound ➔' : 'Inbound ↵'}</span>
+                        </div>
+                        <div style={{ color: 'var(--color-text)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={partnerId}>
+                          {partnerName}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

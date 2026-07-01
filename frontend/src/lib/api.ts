@@ -225,7 +225,7 @@ export const api = {
   getContextSummary: ()              => req<{ repo: string; branch: string; summary: string }>('/api/context/summary'),
   getMemoryStats: ()                 => req<{ total_memories: number; graph_nodes: number; graph_edges: number; last_updated: string }>('/api/overview/memory-stats'),
   getDependenciesHealth: ()          => req<{ total_dependencies: number; outdated_count: number; vulnerable_count: number; packages: any[] }>('/api/dependencies/health'),
-  getBugsTrend: (days = 7)           => req<{ labels: string[]; opened: number[]; closed: number[] }>('/api/overview/bug-trend'),
+  getBugsTrend: ()           => req<{ labels: string[]; opened: number[]; closed: number[] }>('/api/overview/bug-trend'),
 
   // Bugs
   getBugs: (limit = 20)              => req<Bug[]>(`/api/bugs?limit=${limit}`),
@@ -242,6 +242,8 @@ export const api = {
   // Recall / Memory
   recall: (query: string, limit = 10) =>
     req<RecallResult[]>(`/api/recall?q=${encodeURIComponent(query)}&limit=${limit}`),
+  searchMemory: (query: string, limit = 10) =>
+    req<RecallResult[]>(`/api/memory/search?q=${encodeURIComponent(query)}&limit=${limit}`),
   forget: (nodeId: string)            => req<{ success: boolean }>(`/api/recall/${nodeId}`, { method: 'DELETE' }),
   memify: (content: string)           =>
     req<{ node_id: string }>('/api/recall/memify', {

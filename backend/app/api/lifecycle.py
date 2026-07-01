@@ -147,6 +147,13 @@ async def improve_session(
     try:
         await cognee.improve(context)
         record.status = "resolved"
+        record.error_message = fix_note
+        try:
+            raw = await cognee.recall(f"Project: {record.project} Branch: {record.branch}")
+            items = raw if isinstance(raw, list) else [raw] if raw else []
+            record.context_size = len(items)
+        except Exception:
+            record.context_size = 1
         db.commit()
     except Exception as e:
         record.status = "resolved"
