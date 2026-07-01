@@ -12,6 +12,7 @@ import { forgetContext } from './commands/forgetContext';
 import { StateManager } from './utils/stateManager';
 import { ScoreManager } from './utils/scoreManager';
 import { SessionTracker } from './utils/sessionTracker';
+import { runOnboarding } from './commands/onboarding';
 
 // ─── Status Bar ────────────────────────────────────────────────────────────────
 let statusBarItem: vscode.StatusBarItem;
@@ -20,7 +21,7 @@ function createStatusBar(): vscode.StatusBarItem {
     const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     item.text = '$(brain) Cognee';
     item.tooltip = 'Dev-Context Assistant — click to open sidebar';
-    item.command = 'workbench.view.extension.devContextContainer';
+    item.command = 'devContextSidebar.focus';
     item.show();
     return item;
 }
@@ -35,8 +36,31 @@ function setStatusBarError(): void {
     statusBarItem.text = '$(error) Cognee';
     setTimeout(() => { if (statusBarItem) { statusBarItem.text = '$(brain) Cognee'; } }, 4000);
 }
+function setStatusBarLowMatch(): void {
+    if (!statusBarItem) { return; }
+    statusBarItem.text = '$(warning) Low match — Memify?';
+    setTimeout(() => { if (statusBarItem) { statusBarItem.text = '$(brain) Cognee'; } }, 5000);
+}
+function setStatusBarMilestone(pts: number): void {
+    if (!statusBarItem) { return; }
+    statusBarItem.text = `$(star) ${pts} pts!`;
+    setTimeout(() => { if (statusBarItem) { statusBarItem.text = '$(brain) Cognee'; } }, 3000);
+}
+function setStatusBarOffline(): void {
+    if (!statusBarItem) { return; }
+    statusBarItem.text = '$(error) Cognee offline';
+}
 
-// ─── Activate ──────────────────────────────────────────────────────────────────
+export const statusBar = {
+    syncing:   setStatusBarSyncing,
+    done:      setStatusBarDone,
+    error:     setStatusBarError,
+    lowMatch:  setStatusBarLowMatch,
+    milestone: setStatusBarMilestone,
+    offline:   setStatusBarOffline
+};
+
+// ─── Activate ─────────────────────────────────────────────────────────────────
 export function activate(context: vscode.ExtensionContext): void {
     console.log('Dev-Context Assistant: activating...');
 
@@ -61,13 +85,33 @@ export function activate(context: vscode.ExtensionContext): void {
         postMessageToWebview: (msg) => provider.postMessageToWebview(msg)
     };
 
-    // 4. Managers
+    // 4. Managers — ScoreManager receives milestone callback, NO circular import
     const api            = new ApiClient({ context });
     const stateManager   = new StateManager(context);
-    const scoreManager   = new ScoreManager(stateManager);
+    const scoreManager   = new ScoreManager(stateManager, setStatusBarMilestone);
     const sessionTracker = new SessionTracker(stateManager);
 
-    // Helper: push score + stats to sidebar after every action
+    // 5. Onboarding
+    runOnboarding(context, api);
+
+    // 6. Startup health check
+    const backendUrl = vscode.workspace.getConfiguration('devContext').get<string>('backendUrl', 'http://localhost:8000');
+    const statsUrl   = backendUrl.endsWith('/') ? `${backendUrl}api/stats` : `${backendUrl}/api/stats`;
+    fetch(statsUrl)
+        .then(res => {
+            if (res.ok) {
+                provider.postMessageToWebview({ type: 'setConn', connected: true });
+            } else {
+                setStatusBarOffline();
+                provider.postMessageToWebview({ type: 'error', message: 'Backend offline' });
+            }
+        })
+        .catch(() => {
+            setStatusBarOffline();
+            provider.postMessageToWebview({ type: 'error', message: 'Backend offline' });
+        });
+
+    // Helper: push score + stats to sidebar
     function syncSidebarMetrics(): void {
         provider.postMessageToWebview({ type: 'scoreUpdate', score: scoreManager.getScore() });
         const stats = sessionTracker.getStats();
@@ -79,18 +123,18 @@ export function activate(context: vscode.ExtensionContext): void {
     context.globalState.update('currentSessionId', sessionId);
     api.startSession({ sessionId, workspaceName: vscode.workspace.name || 'unnamed-workspace' })
         .then(() => console.log(`Dev-Context: Started session ${sessionId}`))
-        .catch(err => console.error('Failed to start session:', err));
+        .catch(err => console.warn(`Dev-Context: Backend offline, session not started (${err instanceof Error ? err.message : String(err)})`));
 
     context.subscriptions.push(
         new vscode.Disposable(() => {
             const curSession = context.globalState.get<string>('currentSessionId') || sessionId;
             api.endSession({ sessionId: curSession, triggerDistillation: true })
                 .then(() => console.log(`Dev-Context: Ended session ${curSession}`))
-                .catch(err => console.error('Failed to end session:', err));
+                .catch(err => console.warn(`Dev-Context: Backend offline, session not ended (${err instanceof Error ? err.message : String(err)})`));
         })
     );
 
-    // ─── Sidebar refresh command (called from improveContext / forgetContext) ───
+    // ─── Sidebar refresh command ─────────────────────────────────────────────────────
     context.subscriptions.push(
         vscode.commands.registerCommand('devContext.refreshSidebar', (payload: any) => {
             if (!payload) { return; }
@@ -120,11 +164,28 @@ export function activate(context: vscode.ExtensionContext): void {
             await forgetContext(context, api, scoreManager);
             syncSidebarMetrics();
         }),
+        vscode.commands.registerCommand('devContext.resetOnboarding', () => {
+            context.globalState.update('devContext.onboardingDone', false);
+            runOnboarding(context, api);
+        }),
+        vscode.commands.registerCommand('devContext.resetDemo', async () => {
+            // Use manager methods — they know the correct internal state keys
+            scoreManager.resetScore();
+            sessionTracker.reset();
+            await context.globalState.update('devContext.onboardingDone', false);
+            syncSidebarMetrics();
+            vscode.window.showInformationMessage('Dev-Context: Demo reset ✓ — all memory cleared');
+            runOnboarding(context, api);
+        }),
         bugDecorationType
     );
 
-    // Push initial score + stats to sidebar when it opens
-    setTimeout(() => syncSidebarMetrics(), 1500);
+    // Push initial score + stats after sidebar loads
+    setTimeout(() => {
+        syncSidebarMetrics();
+        const doc = vscode.window.activeTextEditor?.document || vscode.window.visibleTextEditors[0]?.document;
+        if (doc) { provider.updateContextSummary(doc); }
+    }, 1500);
 
     // 6. File watcher
     context.subscriptions.push(
@@ -138,7 +199,8 @@ export function activate(context: vscode.ExtensionContext): void {
     // 7. Tab switch
     context.subscriptions.push(
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-            if (editor && provider.isOpen) { await provider.updateContextSummary(editor.document); }
+            const doc = editor?.document || vscode.window.visibleTextEditors[0]?.document;
+            if (doc && provider.isOpen) { await provider.updateContextSummary(doc); }
         })
     );
 
@@ -160,7 +222,7 @@ export function activate(context: vscode.ExtensionContext): void {
                 syncSidebarMetrics();
                 setStatusBarDone('Saved ✓');
             } catch (err) {
-                console.error('Auto-save failed:', err);
+                console.warn(`Dev-Context: Auto-save skipped, backend offline (${err instanceof Error ? err.message : String(err)})`);
             }
         })
     );
@@ -187,7 +249,7 @@ export function activate(context: vscode.ExtensionContext): void {
                             source: 'diagnostics'
                         });
                     } catch (err) {
-                        console.error('Ingesting diagnostics failed:', err);
+                        console.warn(`Dev-Context: Ingesting diagnostics skipped, backend offline (${err instanceof Error ? err.message : String(err)})`);
                     }
                 }
             }, 3000);

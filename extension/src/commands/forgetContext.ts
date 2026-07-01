@@ -7,7 +7,7 @@ export async function forgetContext(
   apiClient: ApiClient,
   scoreManager: ScoreManager
 ): Promise<void> {
-  const editor = vscode.window.activeTextEditor;
+  const editor = vscode.window.activeTextEditor || vscode.window.visibleTextEditors[0];
   if (!editor) {
     vscode.window.showWarningMessage('Dev-Context: No active editor found.');
     return;

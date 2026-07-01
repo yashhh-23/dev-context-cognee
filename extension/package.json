@@ -4,7 +4,6 @@
   "description": "Cognee-powered developer context assistant with persistent memory across sessions. API keys are stored securely via VS Code SecretStorage.",
   "version": "0.1.0",
   "publisher": "yashhh-23",
-  "icon": "icon.png",
   "categories": [
     "Other",
     "Programming Languages",
@@ -27,17 +26,8 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "devContextContainer",
-          "title": "Dev-Context",
-          "icon": "$(brain)"
-        }
-      ]
-    },
     "views": {
-      "devContextContainer": [
+      "explorer": [
         {
           "type": "webview",
           "id": "devContextSidebar",
@@ -85,6 +75,14 @@
         "command": "devContext.forgetContext",
         "title": "Dev-Context: Forget Context",
         "icon": "$(trash)"
+      },
+      {
+        "command": "devContext.resetOnboarding",
+        "title": "Dev-Context: Reset Onboarding"
+      },
+      {
+        "command": "devContext.resetDemo",
+        "title": "Dev-Context: Reset Demo"
       }
     ],
     "keybindings": [
@@ -139,7 +137,7 @@
           "type": "number",
           "default": 0.75,
           "minimum": 0.5,
-          "maximum": 1.0,
+          "maximum": 1,
           "description": "Minimum similarity score (0.5–1.0) for recalling similar bugs from Cognee memory."
         },
         "devContext.maxRecallResults": {
@@ -175,9 +173,13 @@
     "lint": "eslint src --ext ts"
   },
   "devDependencies": {
-    "@types/vscode": "^1.80.0",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^18.x",
-    "typescript": "^5.1.3",
-    "@vscode/vsce": "^2.19.0"
+    "@types/vscode": "^1.80.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0",
+    "@vscode/vsce": "^2.19.0",
+    "mocha": "^11.7.6",
+    "typescript": "^5.9.3"
   }
 }

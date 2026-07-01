@@ -112,9 +112,17 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
             this.isOpen = false;
             this.dispose();
         }, null, this._disposables);
+
+        setTimeout(() => {
+            const doc = vscode.window.activeTextEditor?.document || vscode.window.visibleTextEditors[0]?.document;
+            if (doc) { this.updateContextSummary(doc); }
+        }, 300);
     }
 
     async updateContextSummary(document?: vscode.TextDocument): Promise<void> {
+        if (!document) {
+            document = vscode.window.activeTextEditor?.document || vscode.window.visibleTextEditors[0]?.document;
+        }
         if (!this._view || !document || !this.isOpen) { return; }
         const config = vscode.workspace.getConfiguration('devContext');
         if (!config.get<boolean>('watcherEnabled', true)) { return; }
@@ -249,7 +257,8 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     /* Footer */
     .footer { margin-top: auto; display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border); }
     .conn-status { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); }
-    .conn-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+    .conn-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); }
+    .conn-dot.online { background: var(--success); }
     .conn-dot.offline { background: var(--faint); }
     .session-stats { font-size: 10px; color: var(--faint); }
   </style>
@@ -403,7 +412,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
   <div class="footer">
     <div class="conn-status">
       <div class="conn-dot" id="conn-dot"></div>
-      <span id="conn-label">Ready</span>
+      <span id="conn-label">Connecting...</span>
     </div>
     <div class="session-stats" id="session-stats">💾 0 saved · 🔍 0 recalled</div>
   </div>
@@ -437,8 +446,15 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   function setConn(ok) {
-    document.getElementById('conn-dot').className = 'conn-dot' + (ok ? '' : ' offline');
-    document.getElementById('conn-label').textContent = ok ? 'Ready' : 'Offline';
+    var dot   = document.getElementById('conn-dot');
+    var label = document.getElementById('conn-label');
+    if (ok) {
+      dot.className   = 'conn-dot online';
+      label.textContent = 'Ready';
+    } else {
+      dot.className   = 'conn-dot offline';
+      label.textContent = 'Offline';
+    }
   }
 
   function updateScore(pts) {
@@ -607,6 +623,9 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     switch (action) {
       case 'contextUpdate':
         updateContext(msg.context);
+        break;
+      case 'setConn':
+        setConn(msg.connected !== false);
         break;
       case 'scoreUpdate':
         updateScore(msg.score || 0);

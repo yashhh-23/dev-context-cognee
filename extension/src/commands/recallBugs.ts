@@ -13,7 +13,7 @@ export function registerRecallBugsCommand(
   status: StatusSetter
 ): vscode.Disposable {
   return vscode.commands.registerCommand('devContext.recallSimilarBugs', async () => {
-    const editor = vscode.window.activeTextEditor;
+    const editor = vscode.window.activeTextEditor || vscode.window.visibleTextEditors[0];
     if (!editor) {
       vscode.window.showWarningMessage('Dev-Context: No active file open. Open a file first.');
       return;

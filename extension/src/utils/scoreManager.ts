@@ -14,15 +14,24 @@ export type ScoreAction = keyof typeof SCORE_RULES;
 
 export class ScoreManager {
   private stateManager: StateManager;
+  private onMilestone?: (pts: number) => void;
 
-  constructor(stateManager: StateManager) {
+  constructor(stateManager: StateManager, onMilestone?: (pts: number) => void) {
     this.stateManager = stateManager;
+    this.onMilestone = onMilestone;
   }
 
   addPoints(points: number): number {
     const current = this.getScore();
     const next = current + points;
     this.stateManager.set(SCORE_KEY, next);
+
+    if (this.onMilestone) {
+      if (current < 25 && next >= 25)  { this.onMilestone(25); }
+      else if (current < 50 && next >= 50)  { this.onMilestone(50); }
+      else if (current < 100 && next >= 100) { this.onMilestone(100); }
+    }
+
     return next;
   }
 
