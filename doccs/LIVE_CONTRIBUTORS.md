@@ -151,9 +151,10 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## frag2win (1 commit)
+## frag2win (2 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `db41e79` | 2026-06-30 | feat: add script to generate live contributors document from git commit history |
 | `fdc34c0` | 2026-06-30 | Refactor code structure for improved readability and maintainability |
 
