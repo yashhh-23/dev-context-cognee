@@ -75,6 +75,16 @@
         "title": "Save All Changed Files to Cognee",
         "category": "Dev-Context",
         "icon": "$(save-all)"
+      },
+      {
+        "command": "devContext.improveContext",
+        "title": "Dev-Context: Improve Context",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "devContext.forgetContext",
+        "title": "Dev-Context: Forget Context",
+        "icon": "$(trash)"
       }
     ],
     "keybindings": [
@@ -100,6 +110,16 @@
         "command": "devContext.rememberChangedFiles",
         "key": "ctrl+shift+g",
         "mac": "cmd+shift+g"
+      },
+      {
+        "command": "devContext.improveContext",
+        "key": "ctrl+shift+u",
+        "mac": "cmd+shift+u"
+      },
+      {
+        "command": "devContext.forgetContext",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d"
       }
     ],
     "configuration": {
