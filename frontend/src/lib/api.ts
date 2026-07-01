@@ -62,13 +62,13 @@ async function getMockFallback(path: string): Promise<any> {
     return { success: true, node_id: nodeId, pinned: false }
   }
   // Generic recall search — must come after all specific /api/recall/* routes
-  if (cleanPath.startsWith('/api/recall') || cleanPath.startsWith('/api/memory')) {
+  if (cleanPath.startsWith('/recall') || cleanPath.startsWith('/api/recall') || cleanPath.startsWith('/api/memory')) {
     return (await import('./mocks/memory_search.json')).default
   }
   if (cleanPath.startsWith('/api/graph/build')) {
     return { message: 'Graph built successfully (cached demo data)', node_count: 142 }
   }
-  if (cleanPath.startsWith('/api/graph')) {
+  if (cleanPath.startsWith('/graph')) {
     return (await import('./mocks/memory_graph.json')).default
   }
   if (cleanPath.startsWith('/api/bugs/trend')) {
@@ -235,12 +235,12 @@ export const api = {
   suggestContribution: (id: number) => req<{ suggestion: string }>(`/api/contribute/${id}/suggest`),
   // Graph
   buildGraph: () => req<{ message: string; node_count: number }>('/api/graph/build', { method: 'POST' }),
-  getGraph: () => req<GraphData>('/api/graph'),
+  getGraph: () => req<GraphData>('/graph'),
   // Recall / Memory
   recall: (query: string, limit = 10) =>
-    req<RecallResult[]>(`/api/recall?q=${encodeURIComponent(query)}&limit=${limit}`),
+    req<RecallResult[]>('/recall', { method: 'POST', body: JSON.stringify({ query, limit }) }),
   searchMemory: (query: string, limit = 10) =>
-    req<RecallResult[]>(`/api/recall/search?q=${encodeURIComponent(query)}&limit=${limit}`),
+    req<RecallResult[]>('/recall', { method: 'POST', body: JSON.stringify({ query, limit }) }),
   forget: (nodeId: string) => req<{ success: boolean }>(`/api/recall/${nodeId}`, { method: 'DELETE' }),
   memify: (content: string) =>
     req<{ node_id: string }>('/api/recall/memify', {
