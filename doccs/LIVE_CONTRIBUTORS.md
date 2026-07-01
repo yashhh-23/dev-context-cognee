@@ -73,10 +73,11 @@
 | `d5f25de` | 2026-06-21 | bug fixed |
 | `e21d8c6` | 2026-06-21 | backend phase 1 |
 
-## Yash Dedhia (45 commits)
+## Yash Dedhia (46 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `37d152f` | 2026-06-30 | feat: Stage 2 — memory lifecycle commands, visual graph, gamification, backend memify/forget routes |
 | `f59a663` | 2026-06-27 | fix(api): fix mock fallback ordering - specific /api/recall/* routes before broad prefix |
 | `c799359` | 2026-06-27 | fix(main): remove unused import subprocess |
 | `6288979` | 2026-06-27 | fix(mocks): add code_quality, test_coverage, documentation fields to stats.json mock |
@@ -169,10 +170,11 @@
 | `db41e79` | 2026-06-30 | feat: add script to generate live contributors document from git commit history |
 | `fdc34c0` | 2026-06-30 | Refactor code structure for improved readability and maintainability |
 
-## github-actions[bot] (5 commits)
+## github-actions[bot] (6 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `442a22f` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `07571b9` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `4c42251` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `b92015a` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
