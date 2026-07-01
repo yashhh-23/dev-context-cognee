@@ -7,10 +7,14 @@ from app.core.config import settings
 from app.services.recall_service import get_session, search_memory, recall_text, extract_text
 import httpx
 import re
+import time
 
 from app.utils.github_utils import get_github_headers, parse_repo_from_url, search_github
 
 router = APIRouter()
+
+_issues_cache = {}
+_CACHE_TTL = 300  # 5 minutes
 
 
 class AnalyzeRequest(BaseModel):
@@ -89,36 +93,58 @@ async def search_github_contributions(keyword: str) -> list:
     ]
 
 
+async def get_all_issues(repo: str, headers: dict) -> list:
+    now = time.time()
+    if repo in _issues_cache:
+        cached_time, issues = _issues_cache[repo]
+        if now - cached_time < _CACHE_TTL:
+            return issues
+
+    issues = []
+    async with httpx.AsyncClient(timeout=10) as client:
+        page = 1
+        while page <= 10:  # Fetch up to 1000 issues
+            resp = await client.get(
+                f"https://api.github.com/repos/{repo}/issues",
+                params={"state": "open", "per_page": 100, "page": page, "sort": "created", "direction": "desc"},
+                headers=headers,
+            )
+            if resp.status_code != 200:
+                if page == 1:
+                    if resp.status_code == 403:
+                        raise HTTPException(status_code=502, detail="GitHub rate limit exceeded")
+                    if resp.status_code == 401:
+                        raise HTTPException(status_code=502, detail="GitHub token invalid or missing")
+                    raise HTTPException(status_code=502, detail=f"GitHub API error: {resp.status_code}")
+                break
+            
+            raw_items = resp.json()
+            page_items = [item for item in raw_items if "pull_request" not in item]
+            issues.extend(page_items)
+            
+            if len(raw_items) < 100:
+                break
+            page += 1
+
+    _issues_cache[repo] = (now, issues)
+    return issues
+
 @router.get("")
 async def list_bugs(limit: int = 100, page: int = 1):
-    """Return open issues from the configured GITHUB_REPO."""
+    """Return open issues from the configured GITHUB_REPO with global counts."""
     repo = settings.GITHUB_REPO or ""
     if not repo:
         print("[bugs] GITHUB_REPO not set — returning empty list")
-        return []
+        return {"bugs": [], "total": 0, "counts": {}}
 
     headers = get_github_headers(settings.GITHUB_TOKEN)
     print(f"[bugs] fetching issues from {repo} (page {page}, limit {limit})")
 
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(
-                f"https://api.github.com/repos/{repo}/issues",
-                params={"state": "open", "per_page": limit, "page": page, "sort": "created", "direction": "desc"},
-                headers=headers,
-            )
-
-        print(f"[bugs] GitHub response status: {resp.status_code}")
-        if resp.status_code == 403:
-            raise HTTPException(status_code=502, detail="GitHub rate limit exceeded")
-        if resp.status_code == 401:
-            raise HTTPException(status_code=502, detail="GitHub token invalid or missing")
-        if resp.status_code != 200:
-            raise HTTPException(status_code=502, detail=f"GitHub API error: {resp.status_code}")
-
-        items = [item for item in resp.json() if "pull_request" not in item]
-        print(f"[bugs] returning {len(items)} issues")
-        return [
+        all_issues = await get_all_issues(repo, headers)
+        print(f"[bugs] returning {len(all_issues)} total issues")
+        
+        all_bugs = [
             {
                 "id":       item["number"],
                 "title":    item["title"],
@@ -128,13 +154,28 @@ async def list_bugs(limit: int = 100, page: int = 1):
                 "url":      item["html_url"],
                 "labels":   [l["name"] for l in item.get("labels", [])],
             }
-            for item in items
+            for item in all_issues
         ]
+
+        total = len(all_bugs)
+        counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+        for b in all_bugs:
+            counts[b["severity"]] = counts.get(b["severity"], 0) + 1
+
+        start = (page - 1) * limit
+        end = start + limit
+        paginated = all_bugs[start:end]
+
+        return {
+            "bugs": paginated,
+            "total": total,
+            "counts": counts
+        }
     except HTTPException:
         raise
     except Exception as e:
         print(f"[bugs] list_bugs exception: {e}")
-        return []
+        return {"bugs": [], "total": 0, "counts": {}}
 
 
 @router.get("/{bug_id}/recall")

@@ -14,6 +14,8 @@ export default function BugsPage() {
   const [recalling,    setRecalling]    = useState(false)
   const [recallResult, setRecallResult] = useState<string | null>(null)
   const [filter,       setFilter]       = useState<'all' | typeof SEVERITY_ORDER[number]>('all')
+  const [totalBugs,    setTotalBugs]    = useState(0)
+  const [globalCounts, setGlobalCounts] = useState<Record<string, number>>({})
   const [feedbackApplied, setFeedbackApplied] = useState<Record<string, boolean>>({})
   
   const [page,         setPage]         = useState(1)
@@ -38,8 +40,10 @@ export default function BugsPage() {
     setLoading(true)
     api.getBugs(100, page)
       .then(res => {
-        setBugs(res)
-        setHasMore(res.length > 0)
+        setBugs(res.bugs)
+        setTotalBugs(res.total)
+        setGlobalCounts(res.counts)
+        setHasMore(res.bugs.length > 0)
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
@@ -64,11 +68,6 @@ export default function BugsPage() {
     ? bugs
     : bugs.filter(b => b.severity === filter)
 
-  const counts = SEVERITY_ORDER.reduce((acc, s) => {
-    acc[s] = bugs.filter(b => b.severity === s).length
-    return acc
-  }, {} as Record<string, number>)
-
   return (
     <div className="split-layout-container">
       <div className="page-header" style={{ flexShrink: 0, marginBottom: 'var(--space-4)' }}>
@@ -78,20 +77,20 @@ export default function BugsPage() {
             <p className="page-subtitle">open issues from GitHub, enriched with Cognee memory recall</p>
           </div>
           <span className="badge badge-error" style={{ marginBottom: 'var(--space-1)' }}>
-            {bugs.length} open
+            {totalBugs} open
           </span>
         </div>
       </div>
 
       {/* Filter tabs */}
       <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)', flexWrap: 'wrap', flexShrink: 0 }}>
-        <FilterTab active={filter === 'all'} onClick={() => setFilter('all')} label={`All (${bugs.length})`} />
+        <FilterTab active={filter === 'all'} onClick={() => setFilter('all')} label={`All (${totalBugs})`} />
         {SEVERITY_ORDER.map(s => (
           <FilterTab
             key={s}
             active={filter === s}
             onClick={() => setFilter(s)}
-            label={`${s} (${counts[s] ?? 0})`}
+            label={`${s} (${globalCounts[s] ?? 0})`}
           />
         ))}
       </div>

@@ -79,7 +79,8 @@ def build_graph(sessions: List[SessionRecord]) -> Dict[str, Any]:
             "branch":     s.branch,
             "timestamp":  s.timestamp.isoformat() if s.timestamp else None,
         })
-        add_edge(proj_id, sess_id, "belongs_to")
+        # Arrow points from session (bug/fix) to project
+        add_edge(sess_id, proj_id, "belongs_to")
 
         # Dependency nodes
         for dep in _dep_from_text(terminal):
@@ -90,8 +91,8 @@ def build_graph(sessions: List[SessionRecord]) -> Dict[str, Any]:
         # Separate fix node only when session is a resolved bug
         if s.status == "completed" and is_bug:
             fix_id = f"fix:{s.id}"
-            # Label: clean short text, no 'fix:' prefix
-            fix_label = _short(terminal, 38) or f"resolved {s.id[:8]}"
+            # distinct label for the fix
+            fix_label = f"Fix: {_short(terminal, 33)}" if terminal else f"resolved {s.id[:8]}"
             add_node(fix_id, "fix", fix_label, {"session_id": s.id})
             add_edge(sess_id, fix_id, "fixed_by")
 
