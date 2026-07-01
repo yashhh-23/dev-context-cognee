@@ -1,5 +1,7 @@
 import { StateManager } from './stateManager';
 
+const STATS_KEY = 'sessionTracker.stats';
+
 export class SessionTracker {
   constructor(private stateManager: StateManager) {}
 
@@ -11,10 +13,15 @@ export class SessionTracker {
     if (action === 'recalled') {
       stats.bugsRecalled++;
     }
-    this.stateManager.set('sessionTracker.stats', stats);
+    this.stateManager.set(STATS_KEY, stats);
   }
 
   getStats(): { filesSaved: number, bugsRecalled: number } {
-    return this.stateManager.get<{filesSaved: number, bugsRecalled: number}>('sessionTracker.stats') || { filesSaved: 0, bugsRecalled: 0 };
+    return this.stateManager.get<{ filesSaved: number, bugsRecalled: number }>(STATS_KEY)
+      || { filesSaved: 0, bugsRecalled: 0 };
+  }
+
+  reset(): void {
+    this.stateManager.clear(STATS_KEY);
   }
 }
