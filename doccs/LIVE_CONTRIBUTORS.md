@@ -556,10 +556,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (63 commits)
+## github-actions[bot] (64 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `098ac26` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `2c1e22b` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `a85ebc2` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `cd6ea17` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
@@ -624,10 +625,12 @@
 | `9119e9a` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `2c3ef53` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 
-## frag2win (37 commits)
+## frag2win (39 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `ceb662a` | 2026-07-01 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
+| `89248e6` | 2026-07-01 | feat: implement repository ingestion workflow with real-time WebSocket progress tracking and backend integration |
 | `223c7a4` | 2026-07-01 | feat: implement API client with mock data fallback and type definitions |
 | `7545c28` | 2026-07-02 | feat: enhance ingest command to support file ingestion and improve error handling |
 | `d980535` | 2026-07-02 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
