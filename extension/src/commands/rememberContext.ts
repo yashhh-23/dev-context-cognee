@@ -37,11 +37,24 @@ export function registerRememberContextCommand(
     status.syncing();
 
     try {
+      // Native VS Code symbols provider (LSP-backed)
+      let symbolNames: string[] = [];
+      try {
+        const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
+          'vscode.executeDocumentSymbolProvider',
+          document.uri
+        );
+        symbolNames = symbols?.flatMap(s => [s.name, ...s.children.map(c => c.name)]) ?? [];
+      } catch {
+        symbolNames = summary.symbols;
+      }
+
       await api.ingestContext({
         content: document.getText(),
         fileName: vscode.workspace.asRelativePath(document.fileName),
         languageId: document.languageId,
-        source: 'vscode-extension'
+        source: 'vscode-extension',
+        symbols: symbolNames
       });
 
       status.done('Saved ✓');
