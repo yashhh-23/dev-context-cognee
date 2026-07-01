@@ -346,5 +346,136 @@ trap '_devcontext_hook' ERR
     else:
         typer.secho(f"Unsupported shell: {shell}", fg=typer.colors.RED)
 
+@app.command()
+def contribute(
+    session_id: Optional[str] = typer.Option(None, help="Filter by specific session ID"),
+    keyword: Optional[str] = typer.Option(None, help="Search by keyword instead of recent memory"),
+):
+    """List current OSS Radar matches and contribution opportunities"""
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+    
+    cfg = load_config()
+    console = Console()
+    
+    with console.status("[bold cyan]Scanning GitHub for open issues...[/bold cyan]"):
+        try:
+            # If a keyword or session is provided, use the search endpoint
+            if session_id or keyword:
+                params = {}
+                if session_id: params["session_id"] = session_id
+                if keyword: params["keyword"] = keyword
+                resp = requests.get(f"{cfg['api_url']}/contribute/search", params=params, headers=get_auth_headers(cfg), timeout=15)
+                
+                if resp.status_code == 200:
+                    data = resp.json()
+                    issues = data.get("contribution_opportunities", []) + data.get("github_issues", [])
+                else:
+                    console.print(f"[red]Failed to fetch OSS radar matches. Status code: {resp.status_code}[/red]")
+                    return
+            else:
+                # Default endpoint
+                resp = requests.get(f"{cfg['api_url']}/contribute", headers=get_auth_headers(cfg), timeout=15)
+                if resp.status_code == 200:
+                    issues = resp.json()
+                else:
+                    console.print(f"[red]Failed to fetch OSS radar matches. Status code: {resp.status_code}[/red]")
+                    return
+        except requests.exceptions.RequestException as e:
+            console.print(f"[red]Connection error while reaching backend: {e}[/red]")
+            return
+            
+    if not issues:
+        console.print(Panel("[yellow]No relevant open source issues found at the moment.[/yellow]", title="OSS Radar"))
+        return
+        
+    table = Table(title="Open Source Contribution Opportunities", show_header=True, header_style="bold magenta")
+    table.add_column("Repo", style="cyan")
+    table.add_column("Issue", style="green")
+    table.add_column("Title", style="white")
+    table.add_column("Type", justify="center")
+    
+    for issue in issues:
+        repo = issue.get("repo", "unknown/repo")
+        issue_id = issue.get("id") or issue.get("number", "N/A")
+        title = issue.get("title", "")
+        if len(title) > 60: title = title[:57] + "..."
+        itype = issue.get("type") or "issue"
+        type_color = "green" if "first" in itype.lower() else "yellow"
+        
+        table.add_row(
+            repo,
+            f"#{issue_id}",
+            title,
+            f"[{type_color}]{itype}[/{type_color}]"
+        )
+        
+    console.print(table)
+    console.print("[dim]Run `devcontext contribute --keyword <query>` to search for specific bug patterns.[/dim]")
+
+
+@app.command()
+def graph(
+    project: Optional[str] = typer.Option(None, help="Filter by specific project name"),
+):
+    """Print an ASCII summary of the recent memory graph"""
+    from rich.console import Console
+    from rich.table import Table
+    from collections import defaultdict
+    
+    cfg = load_config()
+    console = Console()
+    
+    with console.status("[bold cyan]Fetching memory graph...[/bold cyan]"):
+        try:
+            params = {"project": project} if project else {}
+            resp = requests.get(f"{cfg['api_url']}/graph", params=params, headers=get_auth_headers(cfg), timeout=15)
+            
+            if resp.status_code != 200:
+                console.print(f"[red]Failed to fetch memory graph. Status code: {resp.status_code}[/red]")
+                return
+            
+            data = resp.json()
+        except requests.exceptions.RequestException as e:
+            console.print(f"[red]Connection error while reaching backend: {e}[/red]")
+            return
+
+    nodes = data.get("nodes", [])
+    edges = data.get("edges", [])
+    
+    if not nodes:
+        console.print("[yellow]The memory graph is currently empty. Run `dev-context ingest` to build memory.[/yellow]")
+        return
+        
+    # Aggregate stats for summary
+    type_counts = defaultdict(int)
+    for node in nodes:
+        type_counts[node.get("type", "unknown")] += 1
+        
+    summary_table = Table(title="Memory Graph Summary", show_header=True, header_style="bold blue")
+    summary_table.add_column("Node Type", style="cyan")
+    summary_table.add_column("Count", justify="right", style="magenta")
+    
+    for ntype, count in sorted(type_counts.items()):
+        summary_table.add_row(ntype.capitalize(), str(count))
+        
+    console.print(summary_table)
+    console.print(f"\n[bold]Total Nodes:[/bold] {len(nodes)} | [bold]Total Edges:[/bold] {len(edges)}")
+    
+    if edges:
+        console.print("\n[bold]Sample Relationships:[/bold]")
+        edge_table = Table(show_header=False, box=None)
+        node_map = {str(n.get("id")): n.get("label", n.get("id")) for n in nodes}
+        for edge in edges[:5]:
+            src = node_map.get(str(edge.get("source")), "Unknown")
+            tgt = node_map.get(str(edge.get("target")), "Unknown")
+            rel = edge.get("label", "connected to")
+            if len(src) > 30: src = src[:27] + "..."
+            if len(tgt) > 30: tgt = tgt[:27] + "..."
+            edge_table.add_row(f"[cyan]{src}[/cyan]", f"[dim]{rel} ->[/dim]", f"[green]{tgt}[/green]")
+        console.print(edge_table)
+
+
 if __name__ == "__main__":
     app()
