@@ -2,10 +2,12 @@
 
 > This document is automatically generated to track contributions to the project based on the Git commit history.
 
-## yashhh-23 (67 commits)
+## yashhh-23 (69 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `8f8af27` | 2026-06-30 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
+| `d2766e3` | 2026-06-30 | fix: routing the memory ingest through a safe dataset name |
 | `35552cd` | 2026-06-30 | feat: register memify/forget routes and extension commands per see.md |
 | `16e1e32` | 2026-06-30 | chore: strictly add empty skeleton files per fiks.md |
 | `58799dd` | 2026-06-30 | Revert "chore: add empty skeleton files for memory management features" |
@@ -172,10 +174,11 @@
 | `db41e79` | 2026-06-30 | feat: add script to generate live contributors document from git commit history |
 | `fdc34c0` | 2026-06-30 | Refactor code structure for improved readability and maintainability |
 
-## github-actions[bot] (8 commits)
+## github-actions[bot] (9 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `8d0a219` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `d3aff14` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `ac988fa` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `442a22f` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
