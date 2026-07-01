@@ -6,6 +6,8 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
     public isOpen = false;
     private _disposables: vscode.Disposable[] = [];
+    private _pendingMessages: unknown[] = [];
+    private _isVisible = false;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
@@ -19,6 +21,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
     ): void {
         this._view = webviewView;
         this.isOpen = true;
+        this._isVisible = webviewView.visible;
 
         webviewView.webview.options = {
             enableScripts: true,
@@ -28,10 +31,36 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.html = this._getHtml();
 
         const api = new ApiClient({ context: this._context });
+
+        // Flush pending messages when webview becomes visible
+        webviewView.onDidChangeVisibility(() => {
+            this._isVisible = webviewView.visible;
+            if (webviewView.visible && this._pendingMessages.length > 0) {
+                const queue = this._pendingMessages.splice(0);
+                queue.forEach(msg => this._view?.webview.postMessage(msg));
+            }
+        }, null, this._disposables);
+
         webviewView.webview.onDidReceiveMessage(
             (message: { type?: string; command?: string; payload?: any; qaId?: string; score?: number }) => {
                 const action = message.type || message.command;
                 switch (action) {
+                    case 'webviewReady': {
+                        // Webview JS has loaded — send initial state now
+                        const sendContext = () => {
+                            const doc = vscode.window.activeTextEditor?.document || vscode.window.visibleTextEditors[0]?.document;
+                            if (doc) { this.updateContextSummary(doc); }
+                        };
+                        sendContext();
+                        // Retry in case webview had focus (activeTextEditor was null)
+                        setTimeout(sendContext, 500);
+                        setTimeout(sendContext, 1500);
+                        api.healthCheck()
+                            .then(() => this._view?.webview.postMessage({ type: 'setConn', connected: true }))
+                            .catch(() => this._view?.webview.postMessage({ type: 'setConn', connected: false }));
+                        vscode.commands.executeCommand('devContext.syncMetrics').then(undefined, () => {});
+                        break;
+                    }
                     case 'copyToClipboard':
                         vscode.env.clipboard.writeText(String(message.payload ?? ''))
                             .then(() => vscode.window.showInformationMessage('Dev-Context: Copied to clipboard.'));
@@ -113,10 +142,6 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
             this.dispose();
         }, null, this._disposables);
 
-        setTimeout(() => {
-            const doc = vscode.window.activeTextEditor?.document || vscode.window.visibleTextEditors[0]?.document;
-            if (doc) { this.updateContextSummary(doc); }
-        }, 300);
     }
 
     async updateContextSummary(document?: vscode.TextDocument): Promise<void> {
@@ -126,7 +151,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
         if (!this._view || !document || !this.isOpen) { return; }
         const config = vscode.workspace.getConfiguration('devContext');
         if (!config.get<boolean>('watcherEnabled', true)) { return; }
-        this._view.webview.postMessage({
+        this.postMessageToWebview({
             type: 'contextUpdate',
             context: {
                 fileName: vscode.workspace.asRelativePath(document.fileName),
@@ -139,6 +164,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
 
     postMessageToWebview(message: unknown): void {
         if (!this._view || !this.isOpen) { return; }
+        // Always try direct postMessage — VS Code buffers if hidden
         this._view.webview.postMessage(message);
     }
 
@@ -417,7 +443,7 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
       <div class="conn-dot" id="conn-dot"></div>
       <span id="conn-label">Connecting...</span>
     </div>
-    <div class="session-stats" id="session-stats">💾 0 saved · 🔍 0 recalled</div>
+    <div class="session-stats" id="session-stats"><span class="material-symbols-outlined" style="font-size:10px; margin-right:2px;">save</span> 0 saved &middot; <span class="material-symbols-outlined" style="font-size:10px; margin-right:2px;">search</span> 0 recalled</div>
   </div>
 
 </div>
@@ -432,6 +458,9 @@ export class DevContextWebViewProvider implements vscode.WebviewViewProvider {
   const vscode = acquireVsCodeApi();
   let toastTimer = null;
   let enhancedItems = [];
+
+  // Tell the extension we are ready — must be first thing in script
+  vscode.postMessage({ type: 'webviewReady' });
 
   function post(type, payload) {
     vscode.postMessage({ type, payload });
