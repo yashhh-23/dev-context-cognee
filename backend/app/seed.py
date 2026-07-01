@@ -70,7 +70,7 @@ def seed_db():
 async def seed_cognee_memories():
     import cognee
     from app.core.cognee_client import init_cognee
-    from app.utils.embeddings import sanitize_dataset_name
+    from app.utils.embedding_utils import sanitize_dataset_name
     print("[seed] Seeding Cognee graph memories in background...")
     try:
         init_cognee()
