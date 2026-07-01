@@ -17,3 +17,6 @@ dev-context = "cli.cognee_cli:app"
 
 [tool.setuptools]
 packages = ["cli"]
+
+[tool.vercel]
+entrypoint = "backend.app.main:app"
