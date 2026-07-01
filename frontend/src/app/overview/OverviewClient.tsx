@@ -8,7 +8,6 @@ import { api, type OverviewStats, type Session } from '@/lib/api'
 import LiveFeed from '@/components/ui/LiveFeed'
 import { DashboardSkeleton } from '@/components/skeletons/Skeletons'
 import MemoryHealthModal from '@/components/ui/MemoryHealthModal'
-import { toast } from 'sonner'
 import { useHealth } from '@/hooks/useHealth'
 
 const BugTrendChart = dynamic(() => import('@/components/ui/BugTrendChart'), { ssr: false })
@@ -29,12 +28,6 @@ const AnimatedGraphIcon = () => (
       animation: 'pulse-scale 2s infinite ease-in-out',
     }}
   >
-    <style>{`
-      @keyframes pulse-scale {
-        0%, 100% { transform: scale(1); opacity: 0.8; }
-        50% { transform: scale(1.18); opacity: 1; }
-      }
-    `}</style>
     <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
   </svg>
 )
@@ -53,13 +46,6 @@ const AnimatedBugIcon = () => (
       animation: 'bug-wiggle 1.5s infinite ease-in-out',
     }}
   >
-    <style>{`
-      @keyframes bug-wiggle {
-        0%, 100% { transform: rotate(0deg); }
-        25% { transform: rotate(-8deg); }
-        75% { transform: rotate(8deg); }
-      }
-    `}</style>
     <rect width="8" height="14" x="8" y="6" rx="4" />
     <path d="M12 2v4M12 20v2M4 9h4M16 9h4M4 14h4M16 14h4M6 5c1-1 3-2 6-2s5 1 6 2" />
   </svg>
@@ -79,12 +65,6 @@ const AnimatedContinuityIcon = () => (
       animation: 'glow-flow 1.8s infinite ease-in-out',
     }}
   >
-    <style>{`
-      @keyframes glow-flow {
-        0%, 100% { filter: drop-shadow(0 0 0px var(--color-info)); opacity: 0.7; }
-        50% { filter: drop-shadow(0 0 3px var(--color-info)); opacity: 1; }
-      }
-    `}</style>
     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
   </svg>
 )
@@ -108,12 +88,6 @@ const AnimatedLatencyIcon = () => (
       transformOrigin: '12px 12px',
       animation: 'clock-spin 5s infinite linear'
     }} />
-    <style>{`
-      @keyframes clock-spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-    `}</style>
   </svg>
 )
 
@@ -158,16 +132,6 @@ export default function OverviewClient() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData()
-
-    if (autoCleanEnabled) {
-      api.autoCleanMemories()
-        .then(res => {
-          if (res && res.cleaned_count > 0) {
-            toast.success(`Deduplicated memories: cleaned ${res.cleaned_count} duplicate sessions.`)
-          }
-        })
-        .catch(() => { /* silent */ })
-    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

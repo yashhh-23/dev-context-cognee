@@ -2,6 +2,37 @@
 import asyncio
 import difflib
 from fastapi import APIRouter, Query, HTTPException, Depends
+import numpy as np
+from cognee.infrastructure.databases.vector.embeddings.get_embedding_engine import get_embedding_engine
+
+# Cache embeddings in-memory during a single recall search
+_embedding_cache: dict[str, list[float]] = {}
+
+async def _get_text_embedding(text: str) -> list[float] | None:
+    val = text.strip()
+    if not val:
+        return None
+    if val in _embedding_cache:
+        return _embedding_cache[val]
+    try:
+        engine = get_embedding_engine()
+        res = await engine.embed_text([val])
+        if res and len(res) > 0:
+            emb = res[0]
+            _embedding_cache[val] = emb
+            return emb
+    except Exception as e:
+        print("[DEBUG] Failed to get embedding in recall.py:", e)
+    return None
+
+def _calculate_cosine_similarity(v1: list[float], v2: list[float]) -> float:
+    arr1 = np.array(v1)
+    arr2 = np.array(v2)
+    norm1 = np.linalg.norm(arr1)
+    norm2 = np.linalg.norm(arr2)
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+    return float(np.dot(arr1, arr2) / (norm1 * norm2))
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -85,9 +116,19 @@ async def recall(
                 continue
             if not texts[i] or not texts[j]:
                 continue
-            sim = difflib.SequenceMatcher(None, texts[i].strip().lower(), texts[j].strip().lower()).ratio()
-            if 0.30 <= sim < 0.85:
-                conflict_map[i].append(texts[j][:100])
+            
+            emb1 = await _get_text_embedding(texts[i])
+            emb2 = await _get_text_embedding(texts[j])
+            
+            if emb1 is not None and emb2 is not None:
+                sim = _calculate_cosine_similarity(emb1, emb2)
+                # Moderate similarity represents a potential semantic overlap/conflict
+                if 0.45 <= sim < 0.90:
+                    conflict_map[i].append(texts[j][:100])
+            else:
+                sim = difflib.SequenceMatcher(None, texts[i].strip().lower(), texts[j].strip().lower()).ratio()
+                if 0.30 <= sim < 0.85:
+                    conflict_map[i].append(texts[j][:100])
 
     results = []
     for idx, item in enumerate(items_to_process):

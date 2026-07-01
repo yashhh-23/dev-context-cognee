@@ -5,8 +5,32 @@ import traceback
 import filelock
 import difflib
 import cognee
+import numpy as np
 from pathlib import Path
 from fastmcp import FastMCP
+from cognee.infrastructure.databases.vector.embeddings.get_embedding_engine import get_embedding_engine
+
+async def _get_text_embedding(text: str) -> list[float] | None:
+    val = text.strip()
+    if not val:
+        return None
+    try:
+        engine = get_embedding_engine()
+        res = await engine.embed_text([val])
+        if res and len(res) > 0:
+            return res[0]
+    except Exception as e:
+        print("[DEBUG] Failed to get embedding in mcp_server.py:", e)
+    return None
+
+def _calculate_cosine_similarity(v1: list[float], v2: list[float]) -> float:
+    arr1 = np.array(v1)
+    arr2 = np.array(v2)
+    norm1 = np.linalg.norm(arr1)
+    norm2 = np.linalg.norm(arr2)
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+    return float(np.dot(arr1, arr2) / (norm1 * norm2))
 
 # Add backend directory to sys.path to allow absolute imports of app
 backend_dir = Path(__file__).resolve().parent.parent
@@ -43,9 +67,17 @@ async def remember_context(text: str) -> str:
                     existing_text = extract_text(item)
                     if not existing_text:
                         continue
-                    similarity = difflib.SequenceMatcher(None, text.strip().lower(), existing_text.strip().lower()).ratio()
-                    # High structural similarity but different semantic value represents a conflict
-                    if 0.30 <= similarity < 0.85 and existing_text.strip().lower() != text.strip().lower():
+                    emb1 = await _get_text_embedding(text)
+                    emb2 = await _get_text_embedding(existing_text)
+                    if emb1 is not None and emb2 is not None:
+                        similarity = _calculate_cosine_similarity(emb1, emb2)
+                        # Moderate similarity represents a conflict/overlap
+                        is_conflict = 0.45 <= similarity < 0.90
+                    else:
+                        similarity = difflib.SequenceMatcher(None, text.strip().lower(), existing_text.strip().lower()).ratio()
+                        is_conflict = 0.30 <= similarity < 0.85
+                    
+                    if is_conflict and existing_text.strip().lower() != text.strip().lower():
                         contradictions.append(existing_text[:100])
         except Exception as e:
             print("[DEBUG] search exception:", e)
