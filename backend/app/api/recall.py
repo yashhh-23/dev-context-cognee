@@ -382,4 +382,3 @@ Response:"""
         "content": answer,
         "sources": sources
     }
->>>>>>> Stashed changes
