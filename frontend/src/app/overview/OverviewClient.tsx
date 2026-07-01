@@ -9,12 +9,116 @@ import LiveFeed from '@/components/ui/LiveFeed'
 import { DashboardSkeleton } from '@/components/skeletons/Skeletons'
 import MemoryHealthModal from '@/components/ui/MemoryHealthModal'
 import { toast } from 'sonner'
+import { useHealth } from '@/hooks/useHealth'
 
 const BugTrendChart = dynamic(() => import('@/components/ui/BugTrendChart'), { ssr: false })
 
 const AUTO_CLEAN_KEY = 'devctx_auto_clean_enabled'
 
+const AnimatedGraphIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="var(--color-primary)"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{
+      animation: 'pulse-scale 2s infinite ease-in-out',
+    }}
+  >
+    <style>{`
+      @keyframes pulse-scale {
+        0%, 100% { transform: scale(1); opacity: 0.8; }
+        50% { transform: scale(1.18); opacity: 1; }
+      }
+    `}</style>
+    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+  </svg>
+)
+
+const AnimatedBugIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="var(--color-warning)"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{
+      animation: 'bug-wiggle 1.5s infinite ease-in-out',
+    }}
+  >
+    <style>{`
+      @keyframes bug-wiggle {
+        0%, 100% { transform: rotate(0deg); }
+        25% { transform: rotate(-8deg); }
+        75% { transform: rotate(8deg); }
+      }
+    `}</style>
+    <rect width="8" height="14" x="8" y="6" rx="4" />
+    <path d="M12 2v4M12 20v2M4 9h4M16 9h4M4 14h4M16 14h4M6 5c1-1 3-2 6-2s5 1 6 2" />
+  </svg>
+)
+
+const AnimatedContinuityIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="var(--color-info)"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{
+      animation: 'glow-flow 1.8s infinite ease-in-out',
+    }}
+  >
+    <style>{`
+      @keyframes glow-flow {
+        0%, 100% { filter: drop-shadow(0 0 0px var(--color-info)); opacity: 0.7; }
+        50% { filter: drop-shadow(0 0 3px var(--color-info)); opacity: 1; }
+      }
+    `}</style>
+    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+  </svg>
+)
+
+const AnimatedLatencyIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{
+      opacity: 0.8
+    }}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" style={{
+      transformOrigin: '12px 12px',
+      animation: 'clock-spin 5s infinite linear'
+    }} />
+    <style>{`
+      @keyframes clock-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    `}</style>
+  </svg>
+)
+
 export default function OverviewClient() {
+  const { isHealthy } = useHealth()
   const [stats, setStats] = useState<OverviewStats | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
   const [trendData, setTrendData] = useState<{ labels: string[]; opened: number[]; closed: number[] } | null>(null)
@@ -37,7 +141,7 @@ export default function OverviewClient() {
       const [s, sess, trend, dep] = await Promise.all([
         api.getStats(),
         api.getSessions(5),
-        api.getBugsTrend(7),
+        api.getBugsTrend(),
         api.getDependenciesHealth(),
       ])
       setStats(s)
@@ -218,11 +322,11 @@ export default function OverviewClient() {
         <LiveFeed />
       </div>
 
-      {/* Dependency health panel */}
+      {/* Dependency & System Health panel */}
       {depHealth && (
-        <div className="card">
-          <div className="card-header" style={{ marginBottom: 'var(--space-3)' }}>
-            <span className="card-title">dependency health & security</span>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div className="card-header" style={{ marginBottom: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+            <span className="card-title">Dependency & System Health</span>
             <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
               <span className="badge badge-default" style={{ fontSize: '10px' }}>{depHealth.total_dependencies} packages</span>
               {depHealth.outdated_count > 0 && (
@@ -233,30 +337,154 @@ export default function OverviewClient() {
               )}
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            {depHealth.packages.slice(0, 3).map(p => (
-              <div
-                key={p.name}
-                className="item-row"
-                style={{
-                  padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <span className="mono" style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold' }}>{p.name}</span>
-                  <span style={{ fontSize: '10px', color: 'var(--color-text-faint)' }}>current: {p.current}</span>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: 'var(--space-5)',
+            marginTop: 'var(--space-2)'
+          }}>
+            {/* Left Column: System Health Status */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                System Components
+              </span>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                {/* Row 1: Memory Graph */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <AnimatedGraphIcon />
+                    <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)' }}>Memory Graph</span>
+                  </div>
+                  <span className={`badge ${stats?.memory_nodes && stats.memory_nodes > 0 ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '9px' }}>
+                    {stats?.memory_nodes && stats.memory_nodes > 0 ? 'healthy' : 'degraded'}
+                  </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>latest: {p.latest}</span>
-                  <span className={`badge ${
-                    p.status === 'vulnerable' ? 'badge-error'
-                    : p.status === 'outdated' ? 'badge-warning'
-                    : 'badge-success'
-                  }`} style={{ fontSize: '9px' }}>{p.status}</span>
+
+                {/* Row 2: Open Bugs */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <AnimatedBugIcon />
+                    <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)' }}>Open Bugs</span>
+                  </div>
+                  <span className={`badge ${stats?.open_bugs && stats.open_bugs > 0 ? 'badge-warning' : 'badge-success'}`} style={{ fontSize: '9px' }}>
+                    {stats?.open_bugs && stats.open_bugs > 0 ? 'degraded' : 'healthy'}
+                  </span>
+                </div>
+
+                {/* Row 3: Session Continuity */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <AnimatedContinuityIcon />
+                    <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)' }}>Session Continuity</span>
+                  </div>
+                  <span className={`badge ${sessions.some(s => s.status === 'failed') ? 'badge-error' : 'badge-success'}`} style={{ fontSize: '9px' }}>
+                    {sessions.some(s => s.status === 'failed') ? 'degraded' : 'healthy'}
+                  </span>
+                </div>
+
+                {/* Row 4: Recall Latency */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <AnimatedLatencyIcon />
+                    <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)' }}>Recall Latency</span>
+                  </div>
+                  <span className={`badge ${isHealthy ? 'badge-success' : 'badge-error'}`} style={{ fontSize: '9px' }}>
+                    {isHealthy ? 'healthy' : 'degraded'}
+                  </span>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Right Column: Outdated Packages OR System Diagnostics */}
+            {depHealth.packages && depHealth.packages.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Outdated Packages
+                </span>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  {depHealth.packages.slice(0, 4).map(p => (
+                    <div
+                      key={p.name}
+                      style={{
+                        padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <span className="mono" style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold' }}>{p.name}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--color-text-faint)' }}>v{p.current}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>latest: v{p.latest}</span>
+                        <span className={`badge ${
+                          p.status === 'vulnerable' ? 'badge-error'
+                          : p.status === 'outdated' ? 'badge-warning'
+                          : 'badge-success'
+                        }`} style={{ fontSize: '9px' }}>{p.status}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  System Diagnostics
+                </span>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-5)', padding: 'var(--space-1) 0' }}>
+                  {/* Circular SVG Gauge */}
+                  <div style={{ position: 'relative', width: '56px', height: '56px', flexShrink: 0 }}>
+                    <svg width="56" height="56" viewBox="0 0 36 36">
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="15.915"
+                        fill="transparent"
+                        stroke="var(--color-border)"
+                        strokeWidth="2.5"
+                      />
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="15.915"
+                        fill="transparent"
+                        stroke="var(--color-primary)"
+                        strokeWidth="3.5"
+                        strokeDasharray={`${stats?.health_score ?? 100} 100`}
+                        strokeLinecap="round"
+                        style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+                        transform="rotate(-90 18 18)"
+                      />
+                    </svg>
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      fontFamily: 'var(--font-mono)',
+                      color: 'var(--color-text)'
+                    }}>
+                      {stats?.health_score ?? 100}%
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold', color: 'var(--color-text)' }}>
+                      {(stats?.health_score ?? 100) >= 80 ? 'Optimal Operations' : 'Performance Warning'}
+                    </span>
+                    <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', margin: 0, lineHeight: '1.4' }}>
+                      All system dependencies are verified. Cognee memory graphs and local databases are operating within green parameters.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
