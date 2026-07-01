@@ -6,6 +6,7 @@ import { registerDraftIssueCommand } from './commands/draftIssue';
 import { registerRememberChangedFilesCommand } from './commands/rememberChangedFiles';
 import { ApiClient } from './utils/apiClient';
 import { isSupportedLanguage } from './utils/languageDetector';
+import { bugDecorationType } from './decorations/bugDecorator';
 
 // ─── Status Bar ────────────────────────────────────────────────────────────────
 let statusBarItem: vscode.StatusBarItem;
@@ -98,7 +99,8 @@ export function activate(context: vscode.ExtensionContext): void {
         registerRememberContextCommand(context, bridge, status),
         registerRecallBugsCommand(context, bridge, status),
         registerDraftIssueCommand(context, bridge, status),
-        registerRememberChangedFilesCommand(context, bridge, status)
+        registerRememberChangedFilesCommand(context, bridge, status),
+        bugDecorationType
     );
 
     // 6. File watcher: auto-refresh context bar on text change
@@ -145,30 +147,37 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(autoSaveDisposable);
 
     // ─── Diagnostic Integration ────────────────────────────────────────────────────
+    let diagnosticDebounceTimer: NodeJS.Timeout | undefined;
     const diagnosticsDisposable = vscode.languages.onDidChangeDiagnostics(async (event) => {
         const config = vscode.workspace.getConfiguration('devContext');
         if (!config.get<boolean>('feedDiagnosticsToCognee', true)) { return; }
 
-        for (const uri of event.uris) {
-            if (uri.scheme !== 'file') { continue; }
-            const diagnostics = vscode.languages.getDiagnostics(uri);
-            const errors = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error);
-            if (errors.length === 0) { continue; }
-
-            const editor = vscode.window.visibleTextEditors.find(e => e.document.uri.toString() === uri.toString());
-            const fileName = vscode.workspace.asRelativePath(uri.fsPath);
-
-            try {
-                await api.ingestContext({
-                    content: errors.map(e => `[${e.source || 'Diagnostic'}] Line ${e.range.start.line + 1}: ${e.message}`).join('\n'),
-                    fileName: fileName,
-                    languageId: editor?.document.languageId ?? 'unknown',
-                    source: 'diagnostics'
-                });
-            } catch (err) {
-                console.error('Ingesting diagnostics failed:', err);
-            }
+        if (diagnosticDebounceTimer) {
+            clearTimeout(diagnosticDebounceTimer);
         }
+
+        diagnosticDebounceTimer = setTimeout(async () => {
+            for (const uri of event.uris) {
+                if (uri.scheme !== 'file') { continue; }
+                const diagnostics = vscode.languages.getDiagnostics(uri);
+                const errors = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error);
+                if (errors.length === 0) { continue; }
+
+                const editor = vscode.window.visibleTextEditors.find(e => e.document.uri.toString() === uri.toString());
+                const fileName = vscode.workspace.asRelativePath(uri.fsPath);
+
+                try {
+                    await api.ingestContext({
+                        content: errors.map(e => `[${e.source || 'Diagnostic'}] Line ${e.range.start.line + 1}: ${e.message}`).join('\n'),
+                        fileName: fileName,
+                        languageId: editor?.document.languageId ?? 'unknown',
+                        source: 'diagnostics'
+                    });
+                } catch (err) {
+                    console.error('Ingesting diagnostics failed:', err);
+                }
+            }
+        }, 3000);
     });
     context.subscriptions.push(diagnosticsDisposable);
 
