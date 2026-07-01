@@ -12,7 +12,7 @@ import datetime
 router = APIRouter()
 
 
-@router.post("/", response_model=IngestResponse)
+@router.post("", response_model=IngestResponse)
 def ingest_log(
     req: IngestRequest,
     background_tasks: BackgroundTasks,
