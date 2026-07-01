@@ -2,10 +2,16 @@
 
 > This document is automatically generated to track contributions to the project based on the Git commit history.
 
-## yashhh-23 (217 commits)
+## yashhh-23 (264 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `0ff1c4b` | 2026-07-01 | Resolve merge conflicts using ours |
+| `c9985b7` | 2026-07-01 | bug  fixes in recall memory |
+| `1e1e0a6` | 2026-07-01 | track file creation |
+| `f3a4549` | 2026-07-01 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
+| `9b76872` | 2026-07-01 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
+| `7b36c78` | 2026-07-01 | extension fix |
 | `9c45b77` | 2026-07-01 | Merge branch 'main' and resolve conflicts using ours |
 | `9113528` | 2026-07-01 | bug  fixes in recall memory |
 | `f75ef68` | 2026-07-01 | track file creation |
@@ -34,57 +40,83 @@
 | `2e1b924` | 2026-07-01 | Apply bug fixes from audit |
 | `2130cea` | 2026-07-01 | Fix backend endpoints and VS Code Extension integration |
 | `5409a50` | 2026-07-01 | Fix icon issue |
+| `db24873` | 2026-07-01 | fix: routing the memory ingest through a safe dataset name |
+| `2d593e7` | 2026-07-01 | feat: register memify/forget routes and extension commands per see.md |
 | `5058b7e` | 2026-07-01 | api fix |
 | `fe6a634` | 2026-07-01 | chore: strictly add empty skeleton files per fiks.md |
 | `14891e2` | 2026-07-01 | Revert "chore: add empty skeleton files for memory management features" |
 | `6949a4f` | 2026-07-01 | fix: replace hard crash env checks with fallback settings in NextAuth route |
+| `6e25322` | 2026-07-01 | chore: strictly add empty skeleton files per fiks.md |
 | `80324a6` | 2026-07-01 | chore: add empty skeleton files for memory management features |
 | `319d00c` | 2026-07-01 | fix: wrap signin Client Component in Server Component to bypass Vercel Next.js 16 builder bug |
+| `5c7d9c9` | 2026-07-01 | Revert "chore: add empty skeleton files for memory management features" |
+| `43984af` | 2026-07-01 | chore: add empty skeleton files for memory management features |
 | `1cfe453` | 2026-07-01 | fix: removed cognee_utils.py, updated mcp_server.py to use Cognee native dedup, fixed 307 trailing slash redirects in FastAPI routers, added fallback NEXTAUTH_SECRET to fix Vercel deployment error |
 | `8881e50` | 2026-07-01 | fix: update api.ts paths to match backend routes |
 | `c48d457` | 2026-07-01 | vs code extension fixes |
 | `d74a409` | 2026-07-01 | fix(backend,frontend): clean up imports, optimize loops, resolve N+1 queries, and compute real metrics |
 | `77199e7` | 2026-07-01 | feat(cli): upgrade cli to use typer and add watch mode |
+| `c01a395` | 2026-07-01 | docs: create doccs folder with context.md and PRD.md |
+| `09c68ab` | 2026-07-01 | Remove fastembed to fix Vercel bundle size limit |
 | `f7efb81` | 2026-07-01 | docs: create doccs folder with context.md and PRD.md |
+| `e6e50c9` | 2026-07-01 | Add backend dependencies to pyproject.toml for Vercel deployment |
+| `d8fa4e7` | 2026-07-01 | Fix Vercel entrypoint in pyproject.toml |
 | `083f78b` | 2026-07-01 | Remove fastembed to fix Vercel bundle size limit |
 | `faeec4e` | 2026-07-01 | Add backend dependencies to pyproject.toml for Vercel deployment |
 | `c8318d9` | 2026-07-01 | Fix Vercel entrypoint in pyproject.toml |
+| `f364866` | 2026-07-01 | Refactor CLI to use background daemon, config system, and shell hooks |
+| `bc47cc4` | 2026-07-01 | Fix high severity bugs in backend API and security configuration |
 | `576d1ab` | 2026-07-01 | Refactor CLI to use background daemon, config system, and shell hooks |
 | `5ff4a3d` | 2026-07-01 | fix(frontend): resolve TypeScript type mismatch in MemoryHealthModal |
+| `9047575` | 2026-07-01 | perf: optimize O(n^2) embedding conflict detection in recall |
 | `7b7f8eb` | 2026-07-01 | Fix high severity bugs in backend API and security configuration |
+| `9af7adf` | 2026-07-01 | fix: implement Phase 1-6 bug fixes, BYOK encryption, and frontend Polish |
+| `171856c` | 2026-07-01 | fix: apply bug fixes from notn.md |
 | `aaf8eff` | 2026-07-01 | perf: optimize O(n^2) embedding conflict detection in recall |
 | `cd36af8` | 2026-07-01 | fix: implement Phase 1-6 bug fixes, BYOK encryption, and frontend Polish |
+| `232e049` | 2026-07-01 | Fix bugs, refactor APIs, and update frontend components per implementation plan |
 | `4a8529c` | 2026-07-01 | fix: apply bug fixes from notn.md |
 | `472ee8a` | 2026-07-01 | feat(security): implement NextAuth, BYOK GCM-256 database encryption, prompt injection hardening |
 | `77ba953` | 2026-07-01 | Fix bugs, refactor APIs, and update frontend components per implementation plan |
 | `5798151` | 2026-07-01 | fix: resolve backend and frontend api issues |
 | `15d2329` | 2026-07-01 | Apply bug fixes from audit |
+| `abb78bb` | 2026-07-01 | Apply bug fixes from audit |
 | `957e55d` | 2026-07-01 | Fix backend endpoints and VS Code Extension integration |
+| `18dd217` | 2026-07-01 | Fix backend endpoints and VS Code Extension integration |
+| `1d20ebb` | 2026-06-30 | fix: replace hard crash env checks with fallback settings in NextAuth route |
 | `064e564` | 2026-06-30 | fix: replace hard crash env checks with fallback settings in NextAuth route |
+| `b530435` | 2026-06-30 | fix: wrap signin Client Component in Server Component to bypass Vercel Next.js 16 builder bug |
 | `502f1a3` | 2026-06-30 | fix: wrap signin Client Component in Server Component to bypass Vercel Next.js 16 builder bug |
 | `74117b0` | 2026-06-30 | bug  fixes in recall memory |
 | `ae85820` | 2026-06-30 | track file creation |
 | `3a0fe59` | 2026-06-30 | Revert "feat: add /api/memories/auto-clean endpoint + frontend auto-clean on recall page load" |
 | `8f8af27` | 2026-06-30 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
 | `d2766e3` | 2026-06-30 | fix: routing the memory ingest through a safe dataset name |
+| `f8cc934` | 2026-06-30 | fix: removed cognee_utils.py, updated mcp_server.py to use Cognee native dedup, fixed 307 trailing slash redirects in FastAPI routers, added fallback NEXTAUTH_SECRET to fix Vercel deployment error |
 | `35552cd` | 2026-06-30 | feat: register memify/forget routes and extension commands per see.md |
 | `16e1e32` | 2026-06-30 | chore: strictly add empty skeleton files per fiks.md |
 | `58799dd` | 2026-06-30 | Revert "chore: add empty skeleton files for memory management features" |
 | `eb21407` | 2026-06-30 | chore: add empty skeleton files for memory management features |
+| `88a2e2f` | 2026-06-30 | fix: update api.ts paths to match backend routes |
 | `36b02ef` | 2026-06-30 | fix: removed cognee_utils.py, updated mcp_server.py to use Cognee native dedup, fixed 307 trailing slash redirects in FastAPI routers, added fallback NEXTAUTH_SECRET to fix Vercel deployment error |
 | `9be11e2` | 2026-06-30 | fix: update api.ts paths to match backend routes |
+| `a2aff89` | 2026-06-30 | fix(backend,frontend): clean up imports, optimize loops, resolve N+1 queries, and compute real metrics |
 | `b304f3e` | 2026-06-30 | fix(backend,frontend): clean up imports, optimize loops, resolve N+1 queries, and compute real metrics |
 | `2acb03b` | 2026-06-30 | vercel deploy |
 | `016e61b` | 2026-06-30 | feat(cli): upgrade cli to use typer and add watch mode |
 | `a527dc3` | 2026-06-30 | cleanup: remove diagnostic db-check endpoint |
+| `db80cc1` | 2026-06-30 | feat(cli): upgrade cli to use typer and add watch mode |
 | `ce59939` | 2026-06-30 | diagnostics: add /db-check endpoint |
 | `af179d9` | 2026-06-30 | fix: add vercel frontend URL to CORS allowed origins |
 | `c5c34a6` | 2026-06-30 | fix(frontend): resolve TypeScript type mismatch in MemoryHealthModal |
 | `b2ba2b2` | 2026-06-30 | feat(security): implement NextAuth, BYOK GCM-256 database encryption, prompt injection hardening |
 | `0ddfc57` | 2026-06-30 | fix: make DB init fault-tolerant so app starts even if DATABASE_URL is unreachable |
+| `0f27b4a` | 2026-06-30 | fix(frontend): resolve TypeScript type mismatch in MemoryHealthModal |
 | `6a4af64` | 2026-06-30 | fix: explicit pin fastapi-users 13.0.0 to prevent pip backtracking on render |
 | `158e2a7` | 2026-06-30 | fix: resolve backend and frontend api issues |
+| `39e7310` | 2026-06-30 | feat(security): implement NextAuth, BYOK GCM-256 database encryption, prompt injection hardening |
 | `7aff0b5` | 2026-06-30 | fix: relax tenacity version to resolve instructor dependency conflict |
+| `e82a64a` | 2026-06-30 | fix: resolve backend and frontend api issues |
 | `94486b1` | 2026-06-30 | fix: downgrade uvicorn to 0.22.0 to resolve cognee dependency conflict on render |
 | `4e57f17` | 2026-06-30 | fix: upgrade sqlalchemy to 2.0.35 to resolve cognee dependency conflict on render |
 | `6e3f30f` | 2026-06-30 | fix: upgrade pydantic to 2.8.2 and fix local scope error in recall.py |
@@ -94,26 +126,41 @@
 | `7c69db8` | 2026-06-30 | fix: bump alembic version to resolve cognee dependency conflict on render |
 | `fffd810` | 2026-06-30 | chore: implement pre-deployment code changes |
 | `6a5d984` | 2026-06-30 | vercel deploy |
+| `b3f4892` | 2026-06-30 | Revert "feat: add /api/memories/auto-clean endpoint + frontend auto-clean on recall page load" |
+| `7518da8` | 2026-06-30 | vercel deploy |
+| `33b357f` | 2026-06-30 | cleanup: remove diagnostic db-check endpoint |
 | `0d8de53` | 2026-06-30 | cleanup: remove diagnostic db-check endpoint |
+| `aae23b0` | 2026-06-30 | diagnostics: add /db-check endpoint |
 | `d0de290` | 2026-06-30 | diagnostics: add /db-check endpoint |
 | `48201de` | 2026-06-30 | fix: add vercel frontend URL to CORS allowed origins |
+| `ee27bcb` | 2026-06-30 | fix: add vercel frontend URL to CORS allowed origins |
 | `3791ce7` | 2026-06-30 | fix: make DB init fault-tolerant so app starts even if DATABASE_URL is unreachable |
+| `5580443` | 2026-06-30 | fix: make DB init fault-tolerant so app starts even if DATABASE_URL is unreachable |
+| `a842b2f` | 2026-06-30 | fix: explicit pin fastapi-users 13.0.0 to prevent pip backtracking on render |
+| `aa30e91` | 2026-06-30 | fix: relax tenacity version to resolve instructor dependency conflict |
 | `adde6e6` | 2026-06-30 | fix: explicit pin fastapi-users 13.0.0 to prevent pip backtracking on render |
 | `fea1eee` | 2026-06-30 | fix: graph label visibility in light mode |
 | `316a396` | 2026-06-30 | fix: relax tenacity version to resolve instructor dependency conflict |
+| `99fc795` | 2026-06-30 | fix: downgrade uvicorn to 0.22.0 to resolve cognee dependency conflict on render |
 | `c32f545` | 2026-06-30 | Remove fastembed to fix Vercel bundle size limit |
 | `1acd226` | 2026-06-30 | Add backend dependencies to pyproject.toml for Vercel deployment |
 | `2f2caa8` | 2026-06-30 | fix: downgrade uvicorn to 0.22.0 to resolve cognee dependency conflict on render |
+| `e4f5a43` | 2026-06-30 | fix: upgrade sqlalchemy to 2.0.35 to resolve cognee dependency conflict on render |
+| `256dbb1` | 2026-06-30 | fix: upgrade pydantic to 2.8.2 and fix local scope error in recall.py |
 | `06a8b3a` | 2026-06-30 | fix: upgrade sqlalchemy to 2.0.35 to resolve cognee dependency conflict on render |
+| `3a8a346` | 2026-06-30 | fix: downgrade fastapi to resolve cognee dependency conflict on render |
 | `929037f` | 2026-06-30 | Fix Vercel entrypoint in pyproject.toml |
 | `c0a12db` | 2026-06-30 | fix: upgrade pydantic to 2.8.2 and fix local scope error in recall.py |
 | `5fa441a` | 2026-06-30 | fix: downgrade fastapi to resolve cognee dependency conflict on render |
+| `85264f5` | 2026-06-30 | fix: bump alembic version to resolve cognee dependency conflict on render |
 | `ff11bd1` | 2026-06-30 | feat: Group 3 utilities for API calls and token management |
 | `5ef40c9` | 2026-06-30 | fix: bump alembic version to resolve cognee dependency conflict on render |
 | `4a1a505` | 2026-06-30 | fix: use workspace-relative paths in vscode settings |
+| `3556381` | 2026-06-30 | chore: implement pre-deployment code changes |
 | `217cb2d` | 2026-06-30 | chore: implement pre-deployment code changes |
 | `21e3412` | 2026-06-30 | extra file |
 | `3bd5417` | 2026-06-30 | feat: Add Cognee deduction layer and Multi-IDE MCP integration |
+| `15ef2a9` | 2026-06-30 | fix: graph label visibility in light mode |
 | `40893f6` | 2026-06-30 | feat: implement dashboard overview panels, backend API endpoints for project context, system statistics, and GitHub issue trend tracking. |
 | `7c1ac94` | 2026-06-30 | fix: graph label visibility in light mode |
 | `a5d584d` | 2026-06-30 | open bugs issue fixed |
@@ -224,15 +271,17 @@
 | `d5f25de` | 2026-06-21 | bug fixed |
 | `e21d8c6` | 2026-06-21 | backend phase 1 |
 
-## Yash Dedhia (142 commits)
+## Yash Dedhia (160 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `210198e` | 2026-07-01 | feat: Stage 3 — score badge, memory graph, recently enhanced, improve/forget buttons, session stats footer, suggestMemify wiring |
 | `2f45939` | 2026-07-01 | feat: Stage 3 — score badge, memory graph, recently enhanced, improve/forget buttons, session stats footer, suggestMemify wiring |
 | `d6923b8` | 2026-07-02 | feat: Stage 3 — score badge, memory graph, recently enhanced, improve/forget buttons, session stats footer, suggestMemify wiring |
 | `ab66124` | 2026-07-02 | feat: Stage 2 — memory lifecycle commands, visual graph, gamification, backend memify/forget routes |
 | `cef4148` | 2026-07-01 | feat: Stage 2 — memory lifecycle commands, visual graph, gamification, backend memify/forget routes |
 | `e4e10eb` | 2026-07-01 | fix: circular import in scoreManager, resetDemo keys, setConn handler in provider |
+| `ed135c0` | 2026-07-01 | feat: Stage 2 — memory lifecycle commands, visual graph, gamification, backend memify/forget routes |
 | `a4c2218` | 2026-07-01 | fix(api): fix mock fallback ordering - specific /api/recall/* routes before broad prefix |
 | `ebc96e0` | 2026-07-01 | fix(main): remove unused import subprocess |
 | `6305783` | 2026-07-01 | fix(mocks): add code_quality, test_coverage, documentation fields to stats.json mock |
@@ -243,21 +292,32 @@
 | `f38f37c` | 2026-07-01 | fix(sessions): decrypt terminal_output with BYOK key before returning to client |
 | `c59aab0` | 2026-07-01 | feat(auto-clean): LLM-powered supersede detection via Gemini 1.5 Flash → Groq fallback |
 | `d20ce34` | 2026-07-01 | feat(dashboard): add Memory Health modal with Cognee stats, topic distribution, decay & auto-clean toggle |
+| `f0fcd91` | 2026-06-30 | fix(api): fix mock fallback ordering - specific /api/recall/* routes before broad prefix |
+| `33a2c26` | 2026-06-30 | fix(main): remove unused import subprocess |
 | `f4c0724` | 2026-06-30 | fix(api): fix mock fallback ordering - specific /api/recall/* routes before broad prefix |
+| `6c5b118` | 2026-06-30 | fix(mocks): add code_quality, test_coverage, documentation fields to stats.json mock |
 | `79837b8` | 2026-06-30 | fix(main): remove unused import subprocess |
 | `0a02689` | 2026-06-30 | fix(mocks): add code_quality, test_coverage, documentation fields to stats.json mock |
 | `011e0c1` | 2026-06-30 | feat: Stage 3 — score badge, memory graph, recently enhanced, improve/forget buttons, session stats footer, suggestMemify wiring |
+| `377dcca` | 2026-06-30 | fix(recall): replace N+1 DB queries with single bulk PinnedNode fetch using .in_() |
+| `3b14276` | 2026-06-30 | fix(security): remove hardcoded NEXTAUTH_SECRET and DASHBOARD_PASSWORD fallbacks |
 | `62ef1a2` | 2026-06-30 | fix(recall): replace N+1 DB queries with single bulk PinnedNode fetch using .in_() |
 | `0c42cc5` | 2026-06-30 | fix(security): remove hardcoded NEXTAUTH_SECRET and DASHBOARD_PASSWORD fallbacks |
 | `37d152f` | 2026-06-30 | feat: Stage 2 — memory lifecycle commands, visual graph, gamification, backend memify/forget routes |
 | `19a3e24` | 2026-06-30 | feat: add /api/memories/auto-clean endpoint + frontend auto-clean on recall page load |
 | `17d0631` | 2026-06-30 | fix: remove hardcoded fake data from main.py and stats.py |
+| `57ce5f8` | 2026-06-30 | fix: remove hardcoded fake data from main.py and stats.py |
 | `c5a0ec4` | 2026-06-30 | fix(extension): correct recall route /api/memory/recall → /api/recall to match backend router |
 | `b5f533b` | 2026-06-30 | fix(sessions): decrypt terminal_output with BYOK key before returning to client |
+| `18295b6` | 2026-06-30 | fix(extension): correct recall route /api/memory/recall → /api/recall to match backend router |
+| `380a5fb` | 2026-06-30 | fix(sessions): decrypt terminal_output with BYOK key before returning to client |
 | `05c02ec` | 2026-06-30 | feat(auto-clean): LLM-powered supersede detection via Gemini 1.5 Flash → Groq fallback |
 | `2efe263` | 2026-06-30 | feat(dashboard): add Memory Health modal with Cognee stats, topic distribution, decay & auto-clean toggle |
+| `1943e58` | 2026-06-30 | feat(auto-clean): LLM-powered supersede detection via Gemini 1.5 Flash → Groq fallback |
+| `fa34105` | 2026-06-30 | feat(dashboard): add Memory Health modal with Cognee stats, topic distribution, decay & auto-clean toggle |
 | `c1f3dcb` | 2026-06-30 | feat: add /api/memories/auto-clean endpoint + frontend auto-clean on recall page load |
 | `35b80cd` | 2026-06-30 | fix: add filelock+websockets to requirements, fix variable shadowing in recall.py |
+| `a40facb` | 2026-06-30 | feat: add /api/memories/auto-clean endpoint + frontend auto-clean on recall page load |
 | `076d3bb` | 2026-06-30 | docs: full README rewrite — accurate architecture, correct env vars, manual setup steps, extension install guide |
 | `e77ee16` | 2026-06-30 | fix(extension): clean package.json — fix activationEvents, add maxRecallResults, remove stale cogneeApiKey ref, add secretStorage note |
 | `93a6537` | 2026-06-30 | feat(backend): add missing __init__ files, bug_service, and updated requirements |
@@ -266,12 +326,17 @@
 | `f53535b` | 2026-06-30 | feat(extension): Group 2 - rewrite extension.ts with full activation logic |
 | `cc06616` | 2026-06-30 | feat(extension): Group 1 - upgrade package.json + add .vscodeignore |
 | `4b0d0da` | 2026-06-30 | fix: add filelock+websockets to requirements, fix variable shadowing in recall.py |
+| `4e2206c` | 2026-06-30 | fix: add filelock+websockets to requirements, fix variable shadowing in recall.py |
+| `7fd13e8` | 2026-06-30 | docs: full README rewrite — accurate architecture, correct env vars, manual setup steps, extension install guide |
 | `fabc6ac` | 2026-06-30 | docs: full README rewrite — accurate architecture, correct env vars, manual setup steps, extension install guide |
 | `9039881` | 2026-06-30 | refactor(contribute): move import asyncio to top-level imports (PEP 8) |
 | `d31a26d` | 2026-06-30 | refactor(bugs): inline _get_repo() helper — use settings.GITHUB_REPO directly |
 | `5090eb1` | 2026-06-30 | fix(extension): clean package.json — fix activationEvents, add maxRecallResults, remove stale cogneeApiKey ref, add secretStorage note |
+| `e61c82c` | 2026-06-30 | fix(extension): clean package.json — fix activationEvents, add maxRecallResults, remove stale cogneeApiKey ref, add secretStorage note |
 | `444306f` | 2026-06-30 | feat(backend): add missing __init__ files, bug_service, and updated requirements |
 | `993bf54` | 2026-06-30 | Group 5: full sidebar WebView UI + provider.ts, update extension.ts to use it |
+| `f7031d5` | 2026-06-30 | feat(backend): add missing __init__ files, bug_service, and updated requirements |
+| `c019bbb` | 2026-06-30 | Group 5: full sidebar WebView UI + provider.ts, update extension.ts to use it |
 | `9da3bfe` | 2026-06-30 | fix(bugs+recall): add /bugs/{id}/recall route, fix Cognee SearchResult str() dump |
 | `f596a54` | 2026-06-30 | Group 4: extract commands into src/commands/, refactor extension.ts to use ApiClient + bridges |
 | `500141d` | 2026-06-29 | fix(bugs): remove broken @property module-level aliases, clean up GITHUB_TOKEN/REPO exports |
@@ -371,12 +436,15 @@
 | `8a38ffe` | 2026-06-22 | phase 4: full dashboard redesign + bugs/stats backend endpoints |
 | `095edbc` | 2026-06-21 | fix: use cognee v1.0 remember/recall API, fix ingest_service indentation, clean up router and search endpoint |
 
-## Sahil Rane (87 commits)
+## Sahil Rane (115 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `80f227c` | 2026-07-01 | Merge branches 'main' and 'main' of https://github.com/yashhh-23/dev-context-cognee |
+| `4e9436f` | 2026-07-01 | feat: add GitHub bug tracking API, session-based error analysis, and memory health diagnostics endpoints |
 | `3907f5b` | 2026-07-01 | feat: add GitHub bug tracking API, session-based error analysis, and memory health diagnostics endpoints |
 | `b2fb194` | 2026-07-01 | feat: add bug tracking and statistics API endpoints with GitHub integration and session analysis |
+| `2595b78` | 2026-07-01 | feat: add bug tracking and statistics API endpoints with GitHub integration and session analysis |
 | `b82b18c` | 2026-07-02 | feat: add GitHub bug tracking API, session-based error analysis, and memory health diagnostics endpoints |
 | `c2891ab` | 2026-07-02 | feat: add bug tracking and statistics API endpoints with GitHub integration and session analysis |
 | `1de1357` | 2026-07-02 | feat: implement bug analysis and ingestion APIs with GitHub integration and memory recall |
@@ -389,22 +457,31 @@
 | `5e07c37` | 2026-07-01 | Fix cross-platform compatibility warnings, optimize frontend API imports, and update semantic deduplication |
 | `0296bbe` | 2026-07-01 | feat: implement dashboard overview with repository health metrics, session tracking, and API integration |
 | `790bd64` | 2026-07-01 | feat: implement bug analysis and ingestion APIs with GitHub integration and memory recall |
+| `3f20917` | 2026-07-01 | feat: implement bug analysis and ingestion APIs with GitHub integration and memory recall |
 | `525a057` | 2026-07-01 | feat: add dashboard stats and GitHub bug trend endpoints |
 | `55329f5` | 2026-07-01 | feat: implement dashboard overview client with dependency health tracking and memory auto-clean functionality |
+| `52b45d7` | 2026-07-01 | feat: implement CLI for session management, ingestion, and memory recall with feedback loop |
 | `fa5cd37` | 2026-07-01 | feat: implement session management and memory lifecycle APIs with LLM-powered deduplication |
+| `347a014` | 2026-07-01 | fix(frontend): implement robust UI stability and production safety guardrails |
 | `b6aa5bd` | 2026-07-01 | feat: implement CLI for session management, ingestion, and memory recall with feedback loop |
 | `11843f8` | 2026-07-01 | fix(frontend): implement robust UI stability and production safety guardrails |
+| `fc07620` | 2026-07-01 | fix: resolve trailing conflict marker in recall.py |
 | `408680a` | 2026-07-01 | fix: resolve trailing conflict marker in recall.py |
+| `7e65ad4` | 2026-07-01 | feat: consolidate embeddings cache, resolve conflict, add feedback UI and memory decay |
 | `4f8514f` | 2026-07-01 | feat: consolidate embeddings cache, resolve conflict, add feedback UI and memory decay |
 | `e95ded7` | 2026-07-01 | fix(frontend): resolve ESLint and React hook lifecycle warnings |
 | `94d0932` | 2026-07-01 | feat: initialize dev-context CLI package with dependency configuration and entry point |
+| `9910b4c` | 2026-07-01 | feat: initialize dev-context CLI package with dependency configuration and entry point |
 | `fcea0a3` | 2026-07-01 | Fix clean install dependency gaps and update CLI setup documentation |
+| `ac4c897` | 2026-07-01 | Fix clean install dependency gaps and update CLI setup documentation |
 | `9d041c8` | 2026-07-01 | fix(frontend): resolve ChatBubbleIcon style prop type error in RecallClient |
 | `f9677a4` | 2026-07-01 | feat: add GitHub bug tracking API, session-based error analysis, and memory health diagnostics endpoints |
+| `948e372` | 2026-07-01 | Fix cross-platform compatibility warnings, optimize frontend API imports, and update semantic deduplication |
 | `8e50847` | 2026-07-01 | feat(frontend): replace emojis with professional, custom animated SVG icons |
 | `46ce086` | 2026-07-01 | Fix cross-platform compatibility warnings, optimize frontend API imports, and update semantic deduplication |
 | `780b1f3` | 2026-07-01 | feat: implement session management, memory lifecycle controls, and node pinning API |
 | `2f83743` | 2026-07-01 | feat(frontend): add smooth wave theme transition using startViewTransition |
+| `a918441` | 2026-07-01 | feat: implement dashboard overview with repository health metrics, session tracking, and API integration |
 | `fccf711` | 2026-07-01 | feat: implement dashboard overview with repository health metrics, session tracking, and API integration |
 | `cc80346` | 2026-07-01 | style(frontend): make Ingest console stream terminal theme-aware |
 | `232bc6e` | 2026-06-30 | style(frontend): fix bug trend chart width to occupy full space |
@@ -416,6 +493,9 @@
 | `248cf90` | 2026-06-30 | feat: implement bug analysis and ingestion APIs with GitHub integration and memory recall |
 | `6b242bb` | 2026-06-30 | feat: implement dashboard overview client with dependency health tracking and memory auto-clean functionality |
 | `3adf917` | 2026-06-30 | feat: implement session management and memory lifecycle APIs with LLM-powered deduplication |
+| `6713ce8` | 2026-06-30 | feat: add dashboard stats and GitHub bug trend endpoints |
+| `45350d5` | 2026-06-30 | feat: implement dashboard overview client with dependency health tracking and memory auto-clean functionality |
+| `192be9b` | 2026-06-30 | feat: implement session management and memory lifecycle APIs with LLM-powered deduplication |
 | `86c4909` | 2026-06-30 | fix(frontend): resolve ESLint and React hook lifecycle warnings |
 | `84b1fbb` | 2026-06-30 | fix(frontend): resolve ChatBubbleIcon style prop type error in RecallClient |
 | `76575c4` | 2026-06-30 | feat(frontend): replace emojis with professional, custom animated SVG icons |
@@ -423,15 +503,28 @@
 | `1278837` | 2026-06-30 | feat(frontend): add smooth wave theme transition using startViewTransition |
 | `fc577d5` | 2026-06-30 | style(frontend): make Ingest console stream terminal theme-aware |
 | `9e64ae3` | 2026-06-30 | style(frontend): fix bug trend chart width to occupy full space |
+| `4ac34d5` | 2026-06-30 | fix(frontend): resolve ESLint and React hook lifecycle warnings |
 | `fbf2777` | 2026-06-30 | feat(frontend): implement eye-protective warm cream light mode and smooth theme transitions |
 | `974e13d` | 2026-06-30 | fix(frontend): change health check path to /health to match backend |
+| `e3c459a` | 2026-06-30 | fix(frontend): resolve ChatBubbleIcon style prop type error in RecallClient |
 | `d476f81` | 2026-06-30 | feat(frontend): implement premium dashboard, recall & ask, memory graph manager, and ingest pages with fallbacks and tests |
+| `775cdf4` | 2026-06-30 | feat(frontend): replace emojis with professional, custom animated SVG icons |
+| `6e258fe` | 2026-06-30 | feat: implement session management, memory lifecycle controls, and node pinning API |
+| `efc10fe` | 2026-06-30 | feat(frontend): add smooth wave theme transition using startViewTransition |
+| `ef5d058` | 2026-06-30 | style(frontend): make Ingest console stream terminal theme-aware |
+| `96ce6de` | 2026-06-30 | style(frontend): fix bug trend chart width to occupy full space |
+| `5c3ec19` | 2026-06-30 | feat(frontend): implement eye-protective warm cream light mode and smooth theme transitions |
+| `9ada943` | 2026-06-30 | fix(frontend): change health check path to /health to match backend |
 | `e227fe7` | 2026-06-30 | build: restore requirements.txt to original pinned dependencies |
+| `3a11acd` | 2026-06-30 | feat(frontend): implement premium dashboard, recall & ask, memory graph manager, and ingest pages with fallbacks and tests |
 | `002dcbc` | 2026-06-30 | test: add integration test scripts for MCP memory flow and search score diagnostics |
 | `8b6bc42` | 2026-06-30 | feat: implement MCP server with Cognee memory management, deduplication, and source code indexing. |
 | `54868ea` | 2026-06-30 | build: restore requirements.txt to original pinned dependencies |
+| `24cfb10` | 2026-06-30 | build: restore requirements.txt to original pinned dependencies |
+| `c176c1c` | 2026-06-30 | test: add integration test scripts for MCP memory flow and search score diagnostics |
 | `999d7e4` | 2026-06-30 | test: add integration test scripts for MCP memory flow and search score diagnostics |
 | `87a8edf` | 2026-06-30 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
+| `6910823` | 2026-06-30 | feat: implement MCP server with Cognee memory management, deduplication, and source code indexing. |
 | `a343cea` | 2026-06-30 | feat: implement MCP server with Cognee memory management, deduplication, and source code indexing. |
 | `0e39037` | 2026-06-30 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 | `8320814` | 2026-06-30 | feat: implement CLI for session management, ingestion, and memory recall with feedback loop |
@@ -463,10 +556,19 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (46 commits)
+## github-actions[bot] (63 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `2c1e22b` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `a85ebc2` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `cd6ea17` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `f119a55` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `13c3be2` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `67a628b` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `49517e4` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `bff8662` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `334fb87` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `7b3539b` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `ada5fde` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `6f7d65c` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
@@ -490,13 +592,21 @@
 | `19cb11d` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `1ecd455` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `e27cb58` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `0a859ae` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `a9a62a1` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `f18e624` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `30213b4` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `d4e3ec3` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `cc6fde4` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `3b5518d` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `43ed05d` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `6aae0d4` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `8aadfa8` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `49d31b1` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `7de2c79` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `3e89f77` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `c4627a2` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `b9f5502` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `a22b378` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `8279ebf` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `7dbb5cf` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
@@ -514,10 +624,11 @@
 | `9119e9a` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `2c3ef53` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 
-## frag2win (27 commits)
+## frag2win (37 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `223c7a4` | 2026-07-01 | feat: implement API client with mock data fallback and type definitions |
 | `7545c28` | 2026-07-02 | feat: enhance ingest command to support file ingestion and improve error handling |
 | `d980535` | 2026-07-02 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
 | `ed9ffc0` | 2026-07-02 | feat: add graph_output.json to track graph data structures |
@@ -528,10 +639,19 @@
 | `4083712` | 2026-07-02 | feat: add script to generate live contributors document from git commit history |
 | `ee79e4b` | 2026-07-02 | Refactor code structure for improved readability and maintainability |
 | `31b2cdd` | 2026-07-01 | feat: enhance ingest command to support file ingestion and improve error handling |
+| `b6bb454` | 2026-07-01 | feat: enhance ingest command to support file ingestion and improve error handling |
 | `b730c11` | 2026-07-01 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
+| `b471acb` | 2026-07-01 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
+| `b577966` | 2026-07-01 | feat: add graph_output.json to track graph data structures |
 | `c1e9c16` | 2026-07-01 | feat: add graph_output.json to track graph data structures |
+| `70204da` | 2026-07-01 | feat: add health check command and JSON output options for API interactions |
+| `98ceb66` | 2026-07-01 | docs: update LIVE_CONTRIBUTORS.md to include new contributor and contributions |
+| `2d74fd3` | 2026-07-01 | docs: generate LIVE_CONTRIBUTORS.md to track project contributions |
 | `d9bf023` | 2026-07-01 | feat: add health check command and JSON output options for API interactions |
+| `4c5202c` | 2026-07-01 | docs: add automatically generated live contributors tracking document |
+| `6a69cf0` | 2026-07-01 | feat: add script to generate live contributors document from git commit history |
 | `8933220` | 2026-07-01 | docs: update LIVE_CONTRIBUTORS.md to include new contributor and contributions |
+| `e4409a8` | 2026-07-01 | Refactor code structure for improved readability and maintainability |
 | `155ca48` | 2026-07-01 | docs: generate LIVE_CONTRIBUTORS.md to track project contributions |
 | `5f42dcd` | 2026-07-01 | docs: add automatically generated live contributors tracking document |
 | `eedaa99` | 2026-07-01 | feat: add script to generate live contributors document from git commit history |
