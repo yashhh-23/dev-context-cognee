@@ -24,7 +24,6 @@ from app.core.security import verify_safe_input
 import cognee
 from app.utils.embedding_utils import sanitize_dataset_name
 import httpx
-from typing import Optional
 
 router = APIRouter()
 
@@ -101,6 +100,10 @@ async def recall(
     # Compute conflicts in-memory across result set (no extra Cognee calls)
     texts = [extract_text(item) for item in items_to_process][:20]
     conflict_map: dict[int, list[str]] = {i: [] for i in range(len(texts))}
+    
+    # Pre-compute all embeddings once
+    embeddings = [await get_text_embedding(t) for t in texts]
+
     for i in range(len(texts)):
         for j in range(len(texts)):
             if i == j:
@@ -108,8 +111,8 @@ async def recall(
             if not texts[i] or not texts[j]:
                 continue
             
-            emb1 = await get_text_embedding(texts[i])
-            emb2 = await get_text_embedding(texts[j])
+            emb1 = embeddings[i]
+            emb2 = embeddings[j]
             
             if emb1 is not None and emb2 is not None:
                 sim = cosine_similarity(emb1, emb2)
