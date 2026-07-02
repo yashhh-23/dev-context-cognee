@@ -36,13 +36,19 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const reconnectAttemptsRef = useRef(0)
+  const shouldReconnectRef = useRef(true)
+
+  useEffect(() => {
+    reconnectAttemptsRef.current = reconnectAttempts
+  }, [reconnectAttempts])
 
   const connect = () => {
     if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
       return
     }
 
-    setStatus(reconnectAttempts > 0 ? 'reconnecting' : 'connecting')
+    setStatus(reconnectAttemptsRef.current > 0 ? 'reconnecting' : 'connecting')
     
     try {
       const ws = new WebSocket(WS_URL)
@@ -51,6 +57,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       ws.onopen = () => {
         console.log('[WS] connected to', WS_URL)
         setStatus('connected')
+        reconnectAttemptsRef.current = 0
         setReconnectAttempts(0)
       }
 
@@ -65,12 +72,15 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
       ws.onclose = () => {
         console.log('[WS] closed')
+        wsRef.current = null
         setStatus('disconnected')
-        scheduleReconnect()
+        if (shouldReconnectRef.current) {
+          scheduleReconnect()
+        }
       }
 
-      ws.onerror = (err) => {
-        console.error('[WS] error:', err)
+      ws.onerror = () => {
+        console.warn('[WS] connection error; waiting for close event before retrying')
         ws.close()
       }
     } catch (e) {
@@ -81,7 +91,9 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   }
 
   const scheduleReconnect = () => {
-    if (reconnectAttempts >= 10) {
+    const nextAttempt = reconnectAttemptsRef.current + 1
+
+    if (nextAttempt > 10) {
       console.warn("[WS] Max reconnect reached")
       return
     }
@@ -91,12 +103,14 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Exponential backoff: 2s, 4s, 8s, 16s, max 30s
-    const delay = Math.min(2 ** (reconnectAttempts + 1) * 1000, 30000)
-    console.log(`[WS] reconnecting in ${delay / 1000}s (attempt ${reconnectAttempts + 1})`)
+    const delay = Math.min(2 ** nextAttempt * 1000, 30000)
+    console.log(`[WS] reconnecting in ${delay / 1000}s (attempt ${nextAttempt})`)
     
-    setReconnectAttempts(prev => prev + 1)
+    reconnectAttemptsRef.current = nextAttempt
+    setReconnectAttempts(nextAttempt)
 
     reconnectTimeoutRef.current = setTimeout(() => {
+      reconnectTimeoutRef.current = null
       connect()
     }, delay)
   }
@@ -113,6 +127,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial connection on mount
     connect()
     return () => {
+      shouldReconnectRef.current = false
       if (wsRef.current) {
         wsRef.current.onclose = null // prevent reconnect loop on unmount
         wsRef.current.close()
