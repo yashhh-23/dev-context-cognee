@@ -16,6 +16,17 @@ router = APIRouter()
 class AnalyzeRequest(BaseModel):
     session_id: str
 
+class DraftIssueRequest(BaseModel):
+    fileName: str
+    languageId: str
+    codeSnippet: str
+
+@router.post("/draft-issue")
+async def draft_issue(req: DraftIssueRequest):
+    return {
+        "title": f"Bug in {req.fileName}",
+        "body": f"Please review the code in {req.fileName} ({req.languageId})."
+    }
 
 def _map_severity(labels: list) -> str:
     names = [l["name"].lower() for l in labels]
