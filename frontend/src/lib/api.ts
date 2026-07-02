@@ -109,9 +109,9 @@ async function getMockFallback(path: string): Promise<any> {
   return { success: true }
 }
 
-async function req<T>(path: string, opts?: RequestInit): Promise<T> {
+async function req<T>(path: string, opts?: RequestInit, timeoutMs = 15000): Promise<T> {
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 15000)
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (typeof window !== 'undefined') {
     const key = sessionStorage.getItem('byok_key')
@@ -357,7 +357,7 @@ export const api = {
     req<{ content: string; sources: RecallResult[] }>('/api/recall/chat', {
       method: 'POST',
       body: JSON.stringify({ message }),
-    }),
+    }, 90000), // 90s — hybrid graph+vector+LLM pipeline needs extra headroom
   // Sessions
   getSessions: (limit = 10) => req<Session[]>(`/api/sessions?limit=${limit}`),
   getSession: (id: string) => req<Session>(`/api/sessions/${id}`),

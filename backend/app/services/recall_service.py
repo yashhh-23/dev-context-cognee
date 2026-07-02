@@ -65,12 +65,10 @@ def extract_text(item: Any) -> str:
 
     # Dict-style result
     if isinstance(item, dict):
-        return (
-            item.get("text")
-            or item.get("content")
-            or item.get("value")
-            or str(item)
-        )
+        for key in ("text", "content", "value"):
+            if key in item and isinstance(item[key], str):
+                return item[key].strip()
+        return str(item)
 
     # Cognee SearchResult / dataclass — probe known text attributes in priority order
     for attr in ("text", "content", "value", "description"):
@@ -157,6 +155,10 @@ def _dedup(items: list[dict]) -> list[dict]:
     for item in items:
         item_id = str(item.get("id") or "")
         text = extract_text(item)
+        
+        if not text:
+            continue
+            
         text_sig = hashlib.sha256(text.strip().lower().encode()).hexdigest()
 
         if item_id and item_id in seen_ids:
