@@ -563,10 +563,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (71 commits)
+## github-actions[bot] (72 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `e990aeb` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `4452df5` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `0a9a54e` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `dab415b` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
@@ -639,10 +640,12 @@
 | `9119e9a` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `2c3ef53` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 
-## frag2win (39 commits)
+## frag2win (41 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `6cab02e` | 2026-07-02 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
+| `a265881` | 2026-07-02 | feat: Integrate Cognee Cloud and Bug Cognification |
 | `ceb662a` | 2026-07-01 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
 | `89248e6` | 2026-07-01 | feat: implement repository ingestion workflow with real-time WebSocket progress tracking and backend integration |
 | `223c7a4` | 2026-07-01 | feat: implement API client with mock data fallback and type definitions |
