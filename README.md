@@ -16,6 +16,7 @@ To boot the entire persistent-memory developer context engine with seeded mock d
 cp .env.example .env
 docker compose up --build
 ```
+
 > [!IMPORTANT]
 > Please ensure you populate the `NEXTAUTH_SECRET` and `DASHBOARD_PASSWORD` inside your new `.env` file, as our production-grade security middleware will explicitly block runtime execution if they are missing.
 
@@ -36,7 +37,7 @@ docker compose up --build
 
 ## Architecture
 
-```
+```text
 ┌──────────────────────────────────────────────────┐
 │  Input Layer                                     │
 │  VS Code Extension (sidebar + keybindings)       │
@@ -72,7 +73,7 @@ docker compose up --build
 
 ## Project Structure
 
-```
+```text
 dev-context-cognee/
 ├── backend/
 │   ├── app/
@@ -200,11 +201,13 @@ On first use, run **Dev-Context: Set Cognee API Key** from the Command Palette (
 ### MCP (Model Context Protocol) Server
 
 To register Cognee memory tools with Claude Desktop, Cursor, or Cline:
+
 ```bash
 # Run the auto-installer to register the MCP server with Claude Desktop
 python mcp/install.py
 ```
-For detailed configurations, see the [mcp/README.md](file:///c:/Users/Win10/Desktop/cognee/mcp/README.md) guide.
+
+For detailed configurations, see the `./mcp/README.md` guide.
 
 ---
 
@@ -244,7 +247,7 @@ NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
 
 ## Cognee Memory Lifecycle
 
-```
+```text
 Capture  →  cognee.add()        store raw context (file + symbols)
          →  cognee.cognify()    build knowledge graph (async, background)
 
@@ -270,21 +273,21 @@ Manage   →  cognee.delete()     forget a specific memory node
 
 ## Demo Script (3-minute video)
 
-1. **Open VS Code** on any project file → sidebar shows file name, language, line count
-2. **Press `Cmd+Shift+M`** → "Context saved" toast; backend logs `cognee.cognify()` running
-3. **Press `Cmd+Shift+R`** → sidebar populates with recalled bug cards + similarity scores
-4. **Press `Cmd+Shift+I`** → drafts a GitHub issue with description, steps, and related past bugs
-5. **Open `http://localhost:3000/graph`** → show the live Cognee knowledge graph growing
-6. **Open `/recall`** → free-text search, forget a node, memify a manual note
+1. **Open VS Code** on any project file → sidebar shows file name, language, line count.
+2. **Press `Cmd+Shift+M`** → "Context saved" toast; backend logs `cognee.cognify()` running.
+3. **Press `Cmd+Shift+R`** → sidebar populates with recalled bug cards + similarity scores.
+4. **Press `Cmd+Shift+I`** → drafts a GitHub issue with description, steps, and related past bugs.
+5. **Open `http://localhost:3000/graph`** → show the live Cognee knowledge graph growing.
+6. **Open `/recall`** → free-text search, forget a node, memify a manual note.
 
 ---
 
 ## Open-Source Contribution Targets
 
-- **LangGraph integration** — wire Cognee memory into a LangGraph agent for multi-step debugging
-- **n8n node** — Cognee memory node for n8n automation workflows
-- **MCP server** — expose Cognee recall as an MCP tool for Claude / Cursor (see `mcp/`)
-- **Cognee cookbook** — add dev-context as a reference example in the Cognee docs
+- **LangGraph integration** — wire Cognee memory into a LangGraph agent for multi-step debugging.
+- **n8n node** — Cognee memory node for n8n automation workflows.
+- **MCP server** — expose Cognee recall as an MCP tool for Claude / Cursor (see `mcp/`).
+- **Cognee cookbook** — add dev-context as a reference example in the Cognee docs.
 
 ---
 

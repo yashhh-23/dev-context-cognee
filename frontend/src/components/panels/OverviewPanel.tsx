@@ -1,7 +1,15 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { getStats, StatsResponse } from '@/lib/api';
+import { api } from '@/lib/api';
 import { useWebSocket } from '@/lib/ws';
+
+export interface StatsResponse {
+  total_sessions: number;
+  completed: number;
+  failed: number;
+  projects: string[];
+  bug_frequency: { day: string; count: number }[];
+}
 import StatCard from '@/components/shared/StatCard';
 import Topbar from '@/components/layout/Topbar';
 
@@ -11,8 +19,8 @@ export default function OverviewPanel() {
 
   const load = useCallback(async () => {
     try {
-      const res = await getStats();
-      setStats(res.data);
+      const res = await (api as any).getStats();
+      setStats(res.data || res);
     } catch (e) {
       console.error('stats error', e);
     } finally {
@@ -23,15 +31,15 @@ export default function OverviewPanel() {
   const { subscribe } = useWebSocket();
 
   useEffect(() => {
-    const unsub = subscribe((msg) => {
-      if (msg.type === 'bug_ingested') load();
+    const unsub = subscribe((msg: any) => {
+      if (msg && msg.type === 'bug_ingested') load();
     });
     return unsub;
   }, [subscribe, load]);
 
   useEffect(() => { load(); }, [load]);
 
-  const maxCount = stats ? Math.max(...stats.bug_frequency.map(d => d.count), 1) : 1;
+  const maxCount = stats ? Math.max(...stats.bug_frequency.map((d: any) => d.count), 1) : 1;
 
   return (
     <div className="panel">
@@ -52,7 +60,7 @@ export default function OverviewPanel() {
           <section className="chart-section">
             <h2 className="section-title">Bug Frequency — Last 7 Days</h2>
             <div className="bar-chart">
-              {stats.bug_frequency.map(d => (
+              {stats.bug_frequency.map((d: any) => (
                 <div key={d.day} className="bar-col">
                   <div
                     className="bar"
@@ -69,7 +77,7 @@ export default function OverviewPanel() {
             <section className="projects-section">
               <h2 className="section-title">Active Projects</h2>
               <div className="project-list">
-                {stats.projects.map(p => (
+                {stats.projects.map((p: any) => (
                   <div key={p} className="project-chip">{p}</div>
                 ))}
               </div>

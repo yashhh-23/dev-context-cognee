@@ -18,10 +18,11 @@ export class ApiClient {
   private get backendUrl(): string {
     const url = vscode.workspace
       .getConfiguration('devContext')
-      .get<string>('backendUrl', '');
+      .get<string>('backendUrl', 'http://localhost:8000');
 
+    // Ignore placeholder values — fall back to localhost
     if (!url || url === 'https://your-backend.onrender.com') {
-      throw new Error('Backend URL not configured. Update Dev-Context Assistant settings.');
+      return 'http://localhost:8000';
     }
 
     return url.replace(/\/$/, '');

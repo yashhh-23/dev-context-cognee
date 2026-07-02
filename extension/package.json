@@ -9,6 +9,7 @@
     "Programming Languages",
     "Machine Learning"
   ],
+  "icon": "icon.png",
   "keywords": [
     "cognee",
     "memory",
@@ -19,11 +20,6 @@
   "engines": {
     "vscode": "^1.80.0"
   },
-  "activationEvents": [
-    "onStartupFinished",
-    "onView:devContextSidebar",
-    "onLanguage"
-  ],
   "main": "./out/extension.js",
   "contributes": {
     "views": {

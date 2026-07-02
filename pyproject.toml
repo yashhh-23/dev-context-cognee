@@ -44,3 +44,6 @@ packages = ["cli"]
 
 [tool.vercel]
 entrypoint = "backend.app.main:app"
+
+[tool.pyright]
+extraPaths = ["backend"]

@@ -147,6 +147,9 @@ export function activate(context: vscode.ExtensionContext): void {
                 sessionTracker.increment('deleted');
             }
             syncSidebarMetrics();
+        }),
+        vscode.commands.registerCommand('devContext.syncMetrics', () => {
+            syncSidebarMetrics();
         })
     );
 

@@ -10,6 +10,7 @@ import { DashboardSkeleton } from '@/components/skeletons/Skeletons'
 import MemoryHealthModal from '@/components/ui/MemoryHealthModal'
 import { useHealth } from '@/hooks/useHealth'
 import { formatRelativeSafe, safeRepoName } from '@/lib/utils'
+import IngestProgress from '@/components/IngestProgress'
 
 const BugTrendChart = dynamic(() => import('@/components/ui/BugTrendChart'), { ssr: false })
 
@@ -175,6 +176,9 @@ export default function OverviewClient() {
           </button>
         </div>
       </div>
+
+      {/* Ingestion progress — auto-hides when idle */}
+      <IngestProgress />
 
       {/* KPI Stats Grid */}
       <div className="stats-grid">

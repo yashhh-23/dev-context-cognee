@@ -20,7 +20,7 @@ export function useHealth() {
   const checkImmediate = useCallback(async () => {
     setLoading(true)
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000)
+    const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), 5000)
 
     try {
       const res = await fetch(`${BASE}/health`, {
@@ -35,9 +35,13 @@ export function useHealth() {
       } else {
         setIsHealthy(false)
       }
-    } catch (err) {
+    } catch (err: any) {
       clearTimeout(timeoutId)
-      console.warn('[useHealth] Backend health check failed:', err)
+      if (err.name === 'AbortError' || err.message === 'timeout') {
+        console.warn('[useHealth] Backend health check timed out.')
+      } else {
+        console.warn(`[useHealth] Backend health check failed: ${err.message || err}`)
+      }
       setIsHealthy(false)
     } finally {
       setLoading(false)
