@@ -33,8 +33,10 @@ from app.services.recall_service import extract_text
 lock_path = os.path.join(tempfile.gettempdir(), "cognee_kuzu.lock")
 COGNEE_LOCK = filelock.FileLock(lock_path, timeout=10)
 
+import asyncio
+
 with COGNEE_LOCK:
-    init_cognee()
+    asyncio.run(init_cognee())
 
 # Create FastMCP server
 mcp = FastMCP("dev-context-cognee")

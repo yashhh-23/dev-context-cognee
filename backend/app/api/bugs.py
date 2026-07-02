@@ -1,5 +1,5 @@
 """Bugs API — list open GitHub issues + analyze sessions for bug context."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -8,6 +8,7 @@ from app.services.recall_service import get_session, search_memory, recall_text,
 import httpx
 import re
 import time
+import cognee
 
 from app.utils.github_utils import get_github_headers, parse_repo_from_url, search_github
 
@@ -24,6 +25,40 @@ class DraftIssueRequest(BaseModel):
     fileName: str
     languageId: str
     codeSnippet: str
+
+class BugCognifyRequest(BaseModel):
+    bug_id: int
+    title: str
+    severity: str
+    labels: list[str]
+    body: str
+    session_id: str | None = None
+
+@router.post("/cognify")
+async def cognify_bug(req: BugCognifyRequest):
+    """
+    Feed bug data into Cognee's knowledge graph pipeline.
+    """
+    bug_doc = f"""
+    BUG REPORT #{req.bug_id}
+    Title: {req.title}
+    Severity: {req.severity}
+    Labels: {', '.join(req.labels)}
+    Session: {req.session_id or 'none'}
+    
+    Description:
+    {req.body}
+    """
+    try:
+        await cognee.add(bug_doc, dataset_name="bugs")
+        await cognee.cognify()
+        return {
+            "status": "cognified",
+            "bug_id": req.bug_id,
+            "message": "Bug graph nodes and memory links generated"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cognify failed: {str(e)}")
 
 @router.post("/draft-issue")
 async def draft_issue(req: DraftIssueRequest):
@@ -129,8 +164,20 @@ async def get_all_issues(repo: str, headers: dict) -> list:
     _issues_cache[repo] = (now, issues)
     return issues
 
+async def auto_cognify_bugs(items: list):
+    for item in items[:10]:
+        doc = f"BUG #{item['id']}: {item['title']} | Severity: {item['severity']} | Labels: {', '.join(item['labels'])}"
+        try:
+            await cognee.add(doc, dataset_name="bugs")
+        except Exception:
+            pass
+    try:
+        await cognee.cognify()
+    except Exception as e:
+        print(f"[auto_cognify] {e}")
+
 @router.get("")
-async def list_bugs(limit: int = 100, page: int = 1):
+async def list_bugs(limit: int = 100, page: int = 1, background_tasks: BackgroundTasks = None):
     """Return open issues from the configured GITHUB_REPO with global counts."""
     repo = settings.GITHUB_REPO or ""
     if not repo:
@@ -165,6 +212,9 @@ async def list_bugs(limit: int = 100, page: int = 1):
         start = (page - 1) * limit
         end = start + limit
         paginated = all_bugs[start:end]
+
+        if background_tasks:
+            background_tasks.add_task(auto_cognify_bugs, paginated)
 
         return {
             "bugs": paginated,
@@ -229,8 +279,11 @@ async def analyze_bug(request: AnalyzeRequest, db: Session = Depends(get_db)):
             for item in (raw if isinstance(raw, list) else [])
             if extract_text(item)
         ]
-        # session_record.context_size = len(similar_bugs) # Removed overloaded context_size update
         db.commit()
+        
+        session_context = f"Session {request.session_id} triggered bug analysis for: {keyword}. Related past bugs: {similar_bugs[:2]}"
+        await cognee.add(session_context, dataset_name="bug_sessions")
+        await cognee.cognify()
     except Exception:
         similar_bugs = []
 

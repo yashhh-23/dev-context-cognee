@@ -73,7 +73,7 @@ async def seed_cognee_memories():
     from app.utils.embedding_utils import sanitize_dataset_name
     print("[seed] Seeding Cognee graph memories in background...")
     try:
-        init_cognee()
+        await init_cognee()
         
         mem1 = "TypeError: Cannot read properties of undefined (reading 'status') in WebSocketContext"
         mem2 = "Failed to load LanceDB vector index on Windows due to MAX_PATH limit. Setting system_root_directory to ~/.cognee_system resolved this error."

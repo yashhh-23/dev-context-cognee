@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     GROQ_API_KEY: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
     COGNEE_API_KEY: Optional[str] = None
+    COGNEE_TENANT_URL: Optional[str] = None
     LLM_MODEL:     Optional[str] = "gemini/gemini-1.5-flash"
 
     class Config:
