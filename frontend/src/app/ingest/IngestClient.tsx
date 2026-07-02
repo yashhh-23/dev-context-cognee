@@ -96,7 +96,7 @@ export default function IngestClient() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       {/* Page Header */}
       <div className="page-header">
-        <h1 className="page-title">ingest repository</h1>
+        <h1 className="page-title">Ingest repository</h1>
         <p className="page-subtitle">index git repositories, build dependency trees, and store codebase context in Cognee</p>
       </div>
 
@@ -195,7 +195,7 @@ export default function IngestClient() {
                 style={{ fontFamily: 'var(--font-mono)', marginTop: 'var(--space-2)', alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
               >
                 <RocketIcon className="rocket-icon" />
-                <span>{ingestStatus === 'running' ? 'ingesting codebase…' : 'trigger ingestion'}</span>
+                <span>{ingestStatus === 'running' ? 'ingesting codebase…' : 'Trigger ingestion'}</span>
               </button>
             </form>
           </div>

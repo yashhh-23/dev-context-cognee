@@ -261,8 +261,8 @@ export default function RecallClient() {
       {/* Page Header */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }}>
         <div>
-          <h1 className="page-title">recall & ask</h1>
-          <p className="page-subtitle">conversational Q&A, sequential traces, and vector memory search</p>
+          <h1 className="page-title">Recall & Ask</h1>
+          <p className="page-subtitle">Conversational Q&A, Sequential traces, and Vector memory search</p>
         </div>
 
         {/* Tab Buttons */}
@@ -696,7 +696,7 @@ export default function RecallClient() {
                     disabled={searchLoading || !query.trim()}
                     style={{ fontFamily: 'var(--font-mono)' }}
                   >
-                    {searchLoading ? '…' : 'search'}
+                    {searchLoading ? '…' : 'Search'}
                   </button>
                 </div>
               </form>
@@ -886,7 +886,7 @@ export default function RecallClient() {
                     disabled={memifying || !memifyInput.trim()}
                     style={{ fontFamily: 'var(--font-mono)', alignSelf: 'flex-start' }}
                   >
-                    {memifying ? 'storing...' : 'store in cognee'}
+                    {memifying ? 'storing...' : 'Store in Cognee'}
                   </button>
                 </form>
               </div>

@@ -218,6 +218,39 @@ export interface OverviewStats {
   documentation?: number
 }
 
+function normalizeRecallResults(payload: unknown): RecallResult[] {
+  const rawItems =
+    Array.isArray(payload) ? payload
+    : Array.isArray((payload as { bugs?: unknown[] })?.bugs) ? (payload as { bugs: unknown[] }).bugs
+    : Array.isArray((payload as { results?: unknown[] })?.results) ? (payload as { results: unknown[] }).results
+    : Array.isArray((payload as { items?: unknown[] })?.items) ? (payload as { items: unknown[] }).items
+    : []
+
+  return rawItems.map((item, index) => {
+    const entry = (item ?? {}) as Partial<RecallResult> & Record<string, unknown>
+    return {
+      id: String(entry.id ?? entry.node_id ?? index),
+      content: typeof entry.content === 'string'
+        ? entry.content
+        : typeof entry.text === 'string'
+          ? entry.text
+          : '',
+      score: typeof entry.score === 'number'
+        ? entry.score
+        : typeof entry.relevance === 'number'
+          ? entry.relevance
+          : 0,
+      source: typeof entry.source === 'string' ? entry.source : 'unknown',
+      session_id: typeof entry.session_id === 'string' ? entry.session_id : undefined,
+      created_at: typeof entry.created_at === 'string' ? entry.created_at : undefined,
+      conflicts: Array.isArray(entry.conflicts) ? entry.conflicts.filter((v): v is string => typeof v === 'string') : [],
+      pinned: typeof entry.pinned === 'boolean' ? entry.pinned : false,
+      thumbs: typeof entry.thumbs === 'string' ? entry.thumbs : undefined,
+      confidence_score: typeof entry.confidence_score === 'number' ? entry.confidence_score : undefined,
+    }
+  })
+}
+
 /* ---- API methods ---- */
 export const api = {
   // Overview
@@ -237,10 +270,10 @@ export const api = {
   buildGraph: () => req<{ message: string; node_count: number }>('/api/graph/build', { method: 'POST' }),
   getGraph: () => req<GraphData>('/api/graph'),
   // Recall / Memory
-  recall: (query: string, limit = 10) =>
-    req<RecallResult[]>('/api/recall', { method: 'POST', body: JSON.stringify({ query, limit }) }),
-  searchMemory: (query: string, limit = 10) =>
-    req<RecallResult[]>('/api/recall', { method: 'POST', body: JSON.stringify({ query, limit }) }),
+  recall: async (query: string, limit = 10) =>
+    normalizeRecallResults(await req<unknown>('/api/recall', { method: 'POST', body: JSON.stringify({ query, limit }) })),
+  searchMemory: async (query: string, limit = 10) =>
+    normalizeRecallResults(await req<unknown>('/api/recall', { method: 'POST', body: JSON.stringify({ query, limit }) })),
   forget: (nodeId: string) => req<{ success: boolean }>(`/api/recall/${nodeId}`, { method: 'DELETE' }),
   memify: (content: string) =>
     req<{ node_id: string }>('/api/recall/memify', {

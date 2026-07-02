@@ -25,11 +25,11 @@ const NODE_SHAPES: Record<string, string> = {
 }
 
 const LEGEND: [string, string][] = [
-  ['project',      '#38bdf8'],
-  ['bug',          '#f87171'],
-  ['dependency',   '#fbbf24'],
-  ['fix',          '#4ade80'],
-  ['github_issue', '#c084fc'],
+  ['Project',      '#38bdf8'],
+  ['Bug',          '#f87171'],
+  ['Dependency',   '#fbbf24'],
+  ['Fix',          '#4ade80'],
+  ['Github_issue', '#c084fc'],
 ]
 
 export default function GraphClient() {
@@ -303,10 +303,10 @@ export default function GraphClient() {
     : {}
 
   // Filter memories by category (Grid view)
-  const filteredMemories = memories.filter(m => {
+  const filteredMemories = (Array.isArray(memories) ? memories : []).filter(m => {
     if (selectedCategory === 'all') return true
     if (selectedCategory === 'pinned') return !!m.pinned
-    return m.source.toLowerCase().includes(selectedCategory)
+    return (m.source ?? '').toLowerCase().includes(selectedCategory)
   })
 
   // Expandable card state
@@ -318,7 +318,7 @@ export default function GraphClient() {
       {/* Page Header */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 0 }}>
         <div>
-          <h1 className="page-title">memory graph & manager</h1>
+          <h1 className="page-title">Memory Graph & Manager</h1>
           <p className="page-subtitle">Cognee knowledge graph, interactive node network, and memory card manager</p>
         </div>
         
@@ -330,7 +330,7 @@ export default function GraphClient() {
             disabled={building}
             style={{ fontFamily: 'var(--font-mono)' }}
           >
-            {building ? 'building…' : '⟳ rebuild graph'}
+            {building ? 'building…' : '⟳ Rebuild Graph'}
           </button>
 
           <div style={{

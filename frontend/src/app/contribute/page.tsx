@@ -44,7 +44,7 @@ export default function ContributePage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">contribute</h1>
+        <h1 className="page-title">Contribute</h1>
         <p className="page-subtitle">good-first issues, stale PRs, and Cognee-suggested entry points</p>
       </div>
 
