@@ -439,10 +439,11 @@
 | `8a38ffe` | 2026-06-22 | phase 4: full dashboard redesign + bugs/stats backend endpoints |
 | `095edbc` | 2026-06-21 | fix: use cognee v1.0 remember/recall API, fix ingest_service indentation, clean up router and search endpoint |
 
-## Sahil Rane (117 commits)
+## Sahil Rane (118 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `a5932d8` | 2026-07-02 | feat: add ingestion progress tracking to dashboard with new component and hook |
 | `eefd06e` | 2026-07-02 | feat: implement backend API client and overview dashboard for session and memory analytics |
 | `27c5a0e` | 2026-07-01 | Enhance UI with Material Symbols and fix UI elements |
 | `80f227c` | 2026-07-01 | Merge branches 'main' and 'main' of https://github.com/yashhh-23/dev-context-cognee |
@@ -561,10 +562,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (69 commits)
+## github-actions[bot] (70 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `0a9a54e` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `dab415b` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `61cbc5f` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `1860c3b` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
