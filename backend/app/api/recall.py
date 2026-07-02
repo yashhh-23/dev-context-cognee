@@ -291,7 +291,7 @@ async def chat_memory(body: ChatRequest, db: Session = Depends(get_db)):
     try:
         # Sanitize query just in case it is used by Cognee internal tokens
         sanitized_query = sanitize_dataset_name(body.message)
-        recalled = await cognee.recall(body.message)
+        recalled = await search_memory(body.message)
     except Exception as e:
         print(f"[chat] recall error: {e}")
         recalled = []
