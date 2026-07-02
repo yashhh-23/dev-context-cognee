@@ -7,6 +7,10 @@ import { registerRememberChangedFilesCommand } from './commands/rememberChangedF
 import { ApiClient } from './utils/apiClient';
 import { isSupportedLanguage } from './utils/languageDetector';
 import { bugDecorationType } from './decorations/bugDecorator';
+import { improveContext } from './commands/improveContext';
+import { forgetContext } from './commands/forgetContext';
+import { StateManager } from './utils/stateManager';
+import { ScoreManager } from './utils/scoreManager';
 
 // ─── Status Bar ────────────────────────────────────────────────────────────────
 let statusBarItem: vscode.StatusBarItem;
@@ -76,6 +80,8 @@ export function activate(context: vscode.ExtensionContext): void {
 
     // 4. API Client
     const api = new ApiClient({ context });
+    const stateManager = new StateManager(context);
+    const scoreManager = new ScoreManager(stateManager);
 
     // ─── Session Lifecycle ─────────────────────────────────────────────────────────
     const sessionId = `session_${Date.now()}_${vscode.env.machineId.slice(0, 8)}`;
@@ -100,6 +106,12 @@ export function activate(context: vscode.ExtensionContext): void {
         registerRecallBugsCommand(context, bridge, status),
         registerDraftIssueCommand(context, bridge, status),
         registerRememberChangedFilesCommand(context, bridge, status),
+        vscode.commands.registerCommand('devContext.improveContext', () =>
+            improveContext(context, api, scoreManager)
+        ),
+        vscode.commands.registerCommand('devContext.forgetContext', () =>
+            forgetContext(context, api, scoreManager)
+        ),
         bugDecorationType
     );
 
