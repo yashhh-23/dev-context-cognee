@@ -9,7 +9,7 @@ const API_BASE =
     ? (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000')
     : 'http://localhost:8000'
 
-export default function Topbar() {
+export default function Topbar({ title, subtitle }: { title?: string; subtitle?: string } = {}) {
   const [repo,   setRepo]   = useState<string>('dev-context-cognee')
   const [branch, setBranch] = useState<string>('main')
   const { data: session } = useSession()
@@ -50,6 +50,12 @@ export default function Topbar() {
   return (
     <header className="topbar">
       <div className="topbar-left">
+        {title && (
+          <div style={{ display: 'flex', flexDirection: 'column', marginRight: 'var(--space-4)' }}>
+            <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--color-text)' }}>{title}</span>
+            {subtitle && <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{subtitle}</span>}
+          </div>
+        )}
         <div className="topbar-context">
           <div className="context-chip" title="Repository">
             <RepoIcon className="chip-icon" />

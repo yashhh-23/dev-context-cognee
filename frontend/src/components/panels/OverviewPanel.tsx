@@ -28,14 +28,11 @@ export default function OverviewPanel() {
     }
   }, []);
 
-  const { subscribe } = useWebSocket();
+  const { lastMessage } = useWebSocket();
 
   useEffect(() => {
-    const unsub = subscribe((msg: any) => {
-      if (msg && msg.type === 'bug_ingested') load();
-    });
-    return unsub;
-  }, [subscribe, load]);
+    if (lastMessage && lastMessage.type === 'bug_ingested') load();
+  }, [lastMessage, load]);
 
   useEffect(() => { load(); }, [load]);
 

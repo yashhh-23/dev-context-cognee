@@ -80,7 +80,9 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       }
 
       ws.onerror = () => {
-        console.warn('[WS] connection error; waiting for close event before retrying')
+        if (reconnectAttemptsRef.current === 0) {
+          console.warn('[WS] Backend unreachable; running in offline/demo mode')
+        }
         ws.close()
       }
     } catch (e) {

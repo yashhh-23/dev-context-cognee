@@ -29,16 +29,14 @@ export default function BugsPanel() {
     finally { setLoading(false); }
   }, []);
 
-  const { subscribe } = useWebSocket();
+  const { lastMessage } = useWebSocket();
 
   useEffect(() => {
-    const unsub = subscribe((msg) => {
-      if (msg.type === 'bug_ingested' || msg.type === 'session_resolved' || msg.type === 'session_forgotten') {
-        load();
-      }
-    });
-    return unsub;
-  }, [subscribe, load]);
+    if (!lastMessage) return;
+    if (lastMessage.type === 'bug_ingested' || lastMessage.type === 'session_resolved' || lastMessage.type === 'session_forgotten') {
+      load();
+    }
+  }, [lastMessage, load]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -73,18 +71,18 @@ export default function BugsPanel() {
             <div key={s.id} className="bug-card" style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
               <div className="bug-card-header">
                 <div className="bug-meta">
-                  <span className="bug-project">{s.project}</span>
+                  <span className="bug-project">{s.project || s.repo}</span>
                   {s.branch && <span className="muted">{s.branch}</span>}
                 </div>
                 <span
                   className="status-badge"
-                  style={{ background: STATUS_COLOR[s.status] + '22', color: STATUS_COLOR[s.status] }}
+                  style={{ background: (STATUS_COLOR[s.status || 'completed'] || '#3fb950') + '22', color: STATUS_COLOR[s.status || 'completed'] || '#3fb950' }}
                 >
-                  {s.status}
+                  {s.status || 'completed'}
                 </span>
               </div>
               <p className="bug-timestamp muted">
-                {new Date(s.timestamp).toLocaleString()}
+                {new Date(s.timestamp || s.started_at || Date.now()).toLocaleString()}
               </p>
               {s.tags && s.tags.length > 0 && (
                 <div className="tag-row">
@@ -111,7 +109,7 @@ export default function BugsPanel() {
                     ⚡ Memory Improved (Before vs. After)
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{ color: 'var(--color-error)', textDecoration: 'line-through', padding: '4px 6px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', textOutline: 'none', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ color: 'var(--color-error)', textDecoration: 'line-through', padding: '4px 6px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       - Log: {s.terminal_output ? s.terminal_output.slice(0, 100) : 'Original log content'}...
                     </div>
                     <div style={{ color: 'var(--color-success)', padding: '4px 6px', background: 'rgba(34, 197, 94, 0.08)', borderRadius: 'var(--radius-sm)' }}>

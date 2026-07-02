@@ -38,9 +38,9 @@ export function useHealth() {
     } catch (err: any) {
       clearTimeout(timeoutId)
       if (err.name === 'AbortError' || err.message === 'timeout') {
-        console.warn('[useHealth] Backend health check timed out.')
+        console.debug('[useHealth] Backend health check timed out.')
       } else {
-        console.warn(`[useHealth] Backend health check failed: ${err.message || err}`)
+        console.debug(`[useHealth] Backend health check failed: ${err.message || err}`)
       }
       setIsHealthy(false)
     } finally {

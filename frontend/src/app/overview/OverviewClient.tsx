@@ -143,6 +143,9 @@ export default function OverviewClient() {
   if (loading) return <DashboardSkeleton />
 
   const healthScore = stats?.health_score ?? 85
+  const hasBugStats = typeof stats?.open_bugs === 'number' && stats.open_bugs >= 0
+  const latestSession = sessions[0] ?? null
+  const hasRecentSessionFailure = latestSession?.status === 'failed'
 
   return (
     <div className="max-w-7xl mx-auto p-6 md:p-8 w-full" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
@@ -340,8 +343,8 @@ export default function OverviewClient() {
                     <AnimatedBugIcon />
                     <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)' }}>Open Bugs</span>
                   </div>
-                  <span className={`badge ${stats?.open_bugs && stats.open_bugs > 0 ? 'badge-warning' : 'badge-success'}`} style={{ fontSize: '9px' }}>
-                    {stats?.open_bugs && stats.open_bugs > 0 ? 'degraded' : 'healthy'}
+                  <span className={`badge ${hasBugStats ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '9px' }}>
+                    {hasBugStats ? 'healthy' : 'degraded'}
                   </span>
                 </div>
 
@@ -351,8 +354,8 @@ export default function OverviewClient() {
                     <AnimatedContinuityIcon />
                     <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)' }}>Session Continuity</span>
                   </div>
-                  <span className={`badge ${sessions.some(s => s.status === 'failed') ? 'badge-error' : 'badge-success'}`} style={{ fontSize: '9px' }}>
-                    {sessions.some(s => s.status === 'failed') ? 'degraded' : 'healthy'}
+                  <span className={`badge ${hasRecentSessionFailure ? 'badge-error' : 'badge-success'}`} style={{ fontSize: '9px' }}>
+                    {hasRecentSessionFailure ? 'degraded' : 'healthy'}
                   </span>
                 </div>
 

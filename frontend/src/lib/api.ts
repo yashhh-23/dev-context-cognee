@@ -135,7 +135,10 @@ async function req<T>(path: string, opts?: RequestInit): Promise<T> {
     return await res.json() as T
   } catch (err: any) {
     clearTimeout(timeoutId)
-    console.warn(`[API Fallback] Request to ${path} failed, using mock data. Error:`, err.message || err)
+    if (err.name === 'AbortError' || String(err.message || err).includes('aborted')) {
+      throw err
+    }
+    console.debug(`[API Fallback] Request to ${path} failed, using mock data. Error:`, err.message || err)
     showFallbackToast()
     return await getMockFallback(path) as T
   }
@@ -174,6 +177,7 @@ export interface GraphNode {
   type: 'project' | 'bug' | 'dependency' | 'fix' | 'github_issue'
   color?: string
   size?: number
+  data?: Record<string, any>
 }
 export interface GraphEdge {
   source: string
@@ -196,6 +200,7 @@ export interface RecallResult {
   pinned?: boolean
   thumbs?: string
   confidence_score?: number
+  text?: string
 }
 export interface Session {
   id: string
@@ -205,6 +210,11 @@ export interface Session {
   context_size: number
   summary?: string
   status?: string
+  project?: string
+  timestamp?: string
+  tags?: string[]
+  error_message?: string
+  terminal_output?: string
 }
 export interface OverviewStats {
   total_sessions: number
@@ -247,6 +257,7 @@ function normalizeRecallResults(payload: unknown): RecallResult[] {
       pinned: typeof entry.pinned === 'boolean' ? entry.pinned : false,
       thumbs: typeof entry.thumbs === 'string' ? entry.thumbs : undefined,
       confidence_score: typeof entry.confidence_score === 'number' ? entry.confidence_score : undefined,
+      text: typeof entry.content === 'string' ? entry.content : typeof entry.text === 'string' ? entry.text : '',
     }
   })
 }
@@ -359,4 +370,43 @@ export const api = {
     req<{ status: string; session_id: string }>(`/api/forget/${id}`, {
       method: 'DELETE',
     }),
+}
+
+export interface GitHubIssue {
+  html_url: string
+  title: string
+  state?: string
+  repository?: string
+  labels: string[]
+}
+export interface ContributeOpportunity {
+  html_url: string
+  title: string
+  repository?: string
+  labels: string[]
+}
+export async function contributeSearch(bugId?: string, query?: string): Promise<{ data: { keyword: string; similar_bugs: GitHubIssue[]; opportunities: ContributeOpportunity[] } }> {
+  const issues = await api.getContributions().catch(() => [])
+  const mappedBugs: GitHubIssue[] = issues.map(i => ({
+    html_url: i.url,
+    title: i.title,
+    state: 'open',
+    repository: i.repo,
+    labels: [i.type || 'bug']
+  }))
+  return {
+    data: {
+      keyword: query || 'bug',
+      similar_bugs: mappedBugs,
+      opportunities: mappedBugs
+    }
+  }
+}
+export async function getGraph(): Promise<{ data: GraphData }> {
+  const g = await api.getGraph()
+  return { data: g }
+}
+export async function recallMemory(query: string): Promise<{ data: { results: RecallResult[] } }> {
+  const res = await api.recall(query)
+  return { data: { results: res } }
 }

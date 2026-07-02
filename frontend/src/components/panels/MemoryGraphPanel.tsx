@@ -81,16 +81,14 @@ export default function MemoryGraphPanel() {
     finally { setLoading(false); }
   }, []);
 
-  const { subscribe } = useWebSocket();
+  const { lastMessage } = useWebSocket();
 
   useEffect(() => {
-    const unsub = subscribe((msg) => {
-      if (msg.type === 'bug_ingested' || msg.type === 'session_resolved' || msg.type === 'session_forgotten') {
-        load();
-      }
-    });
-    return unsub;
-  }, [subscribe, load]);
+    if (!lastMessage) return;
+    if (lastMessage.type === 'bug_ingested' || lastMessage.type === 'session_resolved' || lastMessage.type === 'session_forgotten') {
+      load();
+    }
+  }, [lastMessage, load]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -171,7 +169,7 @@ export default function MemoryGraphPanel() {
             >
               <p className="tooltip-type">{tooltip.node.type}</p>
               <p className="tooltip-label">{tooltip.node.label}</p>
-              {Object.entries(tooltip.node.data).map(([k, v]) => (
+              {Object.entries(tooltip.node.data || {}).map(([k, v]) => (
                 v ? <p key={k} className="tooltip-meta">{k}: {String(v)}</p> : null
               ))}
             </div>
