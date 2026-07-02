@@ -54,6 +54,8 @@ export default function GraphClient() {
   const containerRef = useRef<HTMLDivElement>(null)
   const networkRef = useRef<any>(null)
   const nodesDatasetRef = useRef<any>(null)
+  const graphNodes = Array.isArray(graphData?.nodes) ? graphData.nodes : []
+  const graphEdges = Array.isArray(graphData?.edges) ? graphData.edges : []
 
   // Fetch memory statistics
   const fetchStats = async () => {
@@ -213,7 +215,7 @@ export default function GraphClient() {
   // Mount vis.js network when viewMode is 'graph' and data is ready
   useEffect(() => {
     if (viewMode !== 'graph' || !graphData || !containerRef.current) return
-    if (graphData.nodes.length === 0) return
+    if (graphNodes.length === 0) return
 
     const script = document.createElement('script')
     script.src = 'https://unpkg.com/vis-network/standalone/umd/vis-network.min.js'
@@ -226,7 +228,7 @@ export default function GraphClient() {
       const textFaint = rootStyle.getPropertyValue('--color-text-faint').trim() || '#6b6966'
 
       const nodes = new vis.DataSet(
-        graphData.nodes.map(n => ({
+        graphNodes.map(n => ({
           id:    n.id,
           label: n.label.length > 20 ? n.label.slice(0, 18) + '\u2026' : n.label,
           title: n.label,
@@ -242,7 +244,7 @@ export default function GraphClient() {
       )
 
       const edges = new vis.DataSet(
-        graphData.edges.map((e, i) => ({
+        graphEdges.map((e, i) => ({
           id:     i,
           from:   e.source,
           to:     e.target,
@@ -274,9 +276,9 @@ export default function GraphClient() {
 
       network.on('selectNode', (params: any) => {
         const selectedId = params.nodes[0]
-        const node = graphData.nodes.find(n => n.id === selectedId)
+        const node = graphNodes.find(n => n.id === selectedId)
         if (node) {
-          const connected = graphData.edges.filter(e => e.source === selectedId || e.target === selectedId)
+          const connected = graphEdges.filter(e => e.source === selectedId || e.target === selectedId)
           setSelectedNode(node)
           setConnectedEdges(connected)
         }
@@ -293,14 +295,12 @@ export default function GraphClient() {
       setSelectedNode(null)
       setConnectedEdges([])
     }
-  }, [viewMode, graphData])
+  }, [viewMode, graphData, graphEdges, graphNodes])
 
-  const nodeTypeCount = graphData
-    ? graphData.nodes.reduce((acc, n) => {
+  const nodeTypeCount = graphNodes.reduce((acc, n) => {
         acc[n.type] = (acc[n.type] ?? 0) + 1
         return acc
       }, {} as Record<string, number>)
-    : {}
 
   // Filter memories by category (Grid view)
   const filteredMemories = (Array.isArray(memories) ? memories : []).filter(m => {
@@ -397,7 +397,7 @@ export default function GraphClient() {
                 </div>
               ))}
               <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)', marginLeft: 'auto' }}>
-                {graphData.nodes.length} nodes · {graphData.edges.length} edges
+                {graphNodes.length} nodes · {graphEdges.length} edges
               </span>
             </div>
           )}
@@ -412,7 +412,7 @@ export default function GraphClient() {
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-error)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>
                 {graphError}
               </div>
-            ) : !graphData || graphData.nodes.length === 0 ? (
+            ) : !graphData || graphNodes.length === 0 ? (
               <div className="empty-state">
                 <div style={{ fontSize: '1.5rem', opacity: 0.3 }}>⬡</div>
                 <h3>No graph data</h3>

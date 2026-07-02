@@ -251,6 +251,57 @@ function normalizeRecallResults(payload: unknown): RecallResult[] {
   })
 }
 
+function normalizeGraphData(payload: unknown): GraphData {
+  const graphPayload = (payload ?? {}) as {
+    nodes?: unknown[]
+    edges?: unknown[]
+    data?: {
+      nodes?: unknown[]
+      edges?: unknown[]
+    }
+  }
+
+  const rawNodes = Array.isArray(graphPayload.nodes)
+    ? graphPayload.nodes
+    : Array.isArray(graphPayload.data?.nodes)
+      ? graphPayload.data.nodes
+      : []
+
+  const rawEdges = Array.isArray(graphPayload.edges)
+    ? graphPayload.edges
+    : Array.isArray(graphPayload.data?.edges)
+      ? graphPayload.data.edges
+      : []
+
+  return {
+    nodes: rawNodes.map((node, index) => {
+      const entry = (node ?? {}) as Partial<GraphNode> & Record<string, unknown>
+      const rawType = typeof entry.type === 'string' ? entry.type : 'project'
+      const type: GraphNode['type'] =
+        rawType === 'bug' || rawType === 'dependency' || rawType === 'fix' || rawType === 'github_issue'
+          ? rawType
+          : 'project'
+
+      return {
+        id: String(entry.id ?? index),
+        label: typeof entry.label === 'string' ? entry.label : String(entry.name ?? entry.id ?? `node-${index}`),
+        type,
+        color: typeof entry.color === 'string' ? entry.color : undefined,
+        size: typeof entry.size === 'number' ? entry.size : undefined,
+      }
+    }),
+    edges: rawEdges.map((edge) => {
+      const entry = (edge ?? {}) as Partial<GraphEdge> & Record<string, unknown>
+      return {
+        source: String(entry.source ?? entry.from ?? ''),
+        target: String(entry.target ?? entry.to ?? ''),
+        label: typeof entry.label === 'string' ? entry.label : undefined,
+        weight: typeof entry.weight === 'number' ? entry.weight : undefined,
+      }
+    }).filter(edge => edge.source && edge.target),
+  }
+}
+
 /* ---- API methods ---- */
 export const api = {
   // Overview
@@ -268,7 +319,7 @@ export const api = {
   suggestContribution: (id: number) => req<{ suggestion: string }>(`/api/contribute/${id}/suggest`),
   // Graph
   buildGraph: () => req<{ message: string; node_count: number }>('/api/graph/build', { method: 'POST' }),
-  getGraph: () => req<GraphData>('/api/graph'),
+  getGraph: async () => normalizeGraphData(await req<unknown>('/api/graph')),
   // Recall / Memory
   recall: async (query: string, limit = 10) =>
     normalizeRecallResults(await req<unknown>('/api/recall', { method: 'POST', body: JSON.stringify({ query, limit }) })),
