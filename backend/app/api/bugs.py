@@ -90,7 +90,7 @@ async def search_github_contributions(keyword: str) -> list:
 
 
 @router.get("")
-async def list_bugs(limit: int = 30):
+async def list_bugs(limit: int = 100, page: int = 1):
     """Return open issues from the configured GITHUB_REPO."""
     repo = settings.GITHUB_REPO or ""
     if not repo:
@@ -98,13 +98,13 @@ async def list_bugs(limit: int = 30):
         return []
 
     headers = get_github_headers(settings.GITHUB_TOKEN)
-    print(f"[bugs] fetching issues from {repo}")
+    print(f"[bugs] fetching issues from {repo} (page {page}, limit {limit})")
 
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get(
                 f"https://api.github.com/repos/{repo}/issues",
-                params={"state": "open", "per_page": limit, "sort": "created", "direction": "desc"},
+                params={"state": "open", "per_page": limit, "page": page, "sort": "created", "direction": "desc"},
                 headers=headers,
             )
 

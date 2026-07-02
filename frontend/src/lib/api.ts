@@ -216,7 +216,7 @@ export const api = {
   getDependenciesHealth: () => req<{ total_dependencies: number; outdated_count: number; vulnerable_count: number; packages: any[] }>('/api/dependencies/health'),
   getBugsTrend: () => req<{ labels: string[]; opened: number[]; closed: number[] }>('/api/overview/bug-trend'),
   // Bugs
-  getBugs: (limit = 20) => req<Bug[]>(`/api/bugs?limit=${limit}`),
+  getBugs: (limit = 100, page = 1) => req<Bug[]>(`/api/bugs?limit=${limit}&page=${page}`),
   recallBugContext: (bugId: number) => req<{ context: string }>(`/api/bugs/${bugId}/recall`),
   // Contribute
   getContributions: () => req<ContributeIssue[]>('/api/contribute'),
