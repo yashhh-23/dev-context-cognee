@@ -2,10 +2,11 @@
 
 > This document is automatically generated to track contributions to the project based on the Git commit history.
 
-## yashhh-23 (266 commits)
+## yashhh-23 (267 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `ac05baf` | 2026-07-02 | timeout error fixed |
 | `8fb3001` | 2026-07-02 | add missing env vars |
 | `b4e5c22` | 2026-07-02 | fix(readme): remove local file path leak and normalize MCP link |
 | `0ff1c4b` | 2026-07-01 | Resolve merge conflicts using ours |
@@ -560,10 +561,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (68 commits)
+## github-actions[bot] (69 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `dab415b` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `61cbc5f` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `1860c3b` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `07d51c1` | 2026-07-01 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
