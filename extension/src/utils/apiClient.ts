@@ -82,6 +82,13 @@ export class ApiClient {
     }
   }
 
+  async post<T>(path: string, body: any): Promise<T> {
+    return this.request<T>(path, {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
+  }
+
   async ingestContext(payload: {
     content: string;
     fileName: string;
