@@ -40,7 +40,7 @@ export default function IngestClient() {
     
     if (lastMessage.type?.startsWith('INGEST')) {
       const payload = lastMessage.payload as any
-      const message = payload?.message ?? payload?.label ?? lastMessage.type
+      const message = payload?.description ?? payload?.message ?? payload?.label ?? lastMessage.type
       
       const type = lastMessage.type === 'INGEST_ERROR' ? 'error' : lastMessage.type === 'INGEST_SUCCESS' ? 'success' : 'info'
       
