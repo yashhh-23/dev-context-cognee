@@ -94,12 +94,12 @@ const AnimatedLatencyIcon = () => (
 
 const fetchDashboardData = async () => {
   const [stats, sessions, trendData, depHealth] = await Promise.all([
-    api.getStats(),
-    api.getSessions(5),
-    api.getBugsTrend(),
-    api.getDependenciesHealth(),
+    api.getStats().catch(() => null),
+    api.getSessions(5).catch(() => []),
+    api.getBugsTrend().catch(() => null),
+    api.getDependenciesHealth().catch(() => null),
   ])
-  return { stats, sessions, trendData, depHealth }
+  return { stats, sessions: sessions ?? [], trendData, depHealth }
 }
 
 export default function OverviewClient() {
@@ -113,7 +113,8 @@ export default function OverviewClient() {
 
   const { data, isLoading, mutate } = useSWR('dashboard-overview', fetchDashboardData, {
     refreshInterval: 5000,
-    revalidateOnFocus: true,
+    revalidateOnFocus: false,   // prevent tab-switch refetch flicker
+    keepPreviousData: true,     // never clear stale data while refreshing
   })
 
   const stats = data?.stats ?? null
@@ -126,6 +127,8 @@ export default function OverviewClient() {
     localStorage.setItem(AUTO_CLEAN_KEY, String(v))
   }
 
+  // Only show the skeleton on the very first load when we have NO data at all.
+  // Never re-show it for background revalidations (polls or manual mutate).
   if (isLoading && !data) return <DashboardSkeleton />
 
   const healthScore = stats?.health_score ?? 85

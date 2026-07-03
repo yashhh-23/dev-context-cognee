@@ -87,7 +87,13 @@ from app.models.session import SessionRecord
 
 @router.get("/stats")
 async def get_stats(db: Session = Depends(get_db)):
-    sessions = db.query(SessionRecord).order_by(SessionRecord.timestamp.desc()).limit(50).all()
+    sessions = (
+        db.query(SessionRecord)
+        .filter(SessionRecord.status != "forgotten")
+        .order_by(SessionRecord.timestamp.desc())
+        .limit(50)
+        .all()
+    )
     total        = len(sessions)
     open_bugs    = await _get_open_bug_count()
 
