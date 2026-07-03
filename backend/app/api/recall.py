@@ -26,7 +26,7 @@ router = APIRouter()
 
 
 class MemifyRequest(BaseModel):
-    content: str
+    context: str
 
 
 def parse_item(item, idx: int, pinned_map: dict, feedback_map: dict) -> dict:
@@ -154,12 +154,12 @@ async def recall_post(body: RecallRequestModel, db: Session = Depends(get_db)):
 @router.post("/memify")
 async def memify(body: MemifyRequest):
     """Store arbitrary text into Cognee memory graph."""
-    verify_safe_input(body.content, "content")
-    if not body.content.strip():
-        raise HTTPException(status_code=400, detail="content cannot be empty")
+    verify_safe_input(body.context, "context")
+    if not body.context.strip():
+        raise HTTPException(status_code=400, detail="context cannot be empty")
     try:
-        await cognee.remember(body.content)
-        node_id = hashlib.sha256(body.content.encode()).hexdigest()[:24]
+        await cognee.remember(body.context)
+        node_id = hashlib.sha256(body.context.encode()).hexdigest()[:24]
         return {"node_id": node_id, "status": "stored"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cognee remember failed: {str(e)}")
@@ -172,7 +172,14 @@ async def forget_node(node_id: str, db: Session = Depends(get_db)):
     if pinned_record and pinned_record.pinned:
         raise HTTPException(status_code=400, detail="Cannot forget a pinned memory node. Unpin it first.")
     try:
-        await cognee.forget(node_id)
+        try:
+            await cognee.delete(node_id=node_id, dataset_name="main_dataset")
+        except (TypeError, AttributeError):
+            try:
+                import uuid
+                await cognee.delete(data_id=uuid.UUID(str(node_id)))
+            except Exception:
+                await cognee.forget(data_id=node_id)
         return {"success": True, "node_id": node_id}
     except Exception as e:
         print(f"[recall] forget error: {e}")
