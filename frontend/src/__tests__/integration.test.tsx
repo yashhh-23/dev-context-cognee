@@ -49,6 +49,12 @@ jest.mock('@/lib/api', () => ({
     autoCleanMemories: jest.fn().mockResolvedValue({
       status: 'success',
       cleaned_count: 3
+    }),
+    ingestGithub: jest.fn().mockResolvedValue({
+      message: 'success',
+      files_processed: 42,
+      nodes_created: 142,
+      time_taken: '9.8s'
     })
   }
 }))

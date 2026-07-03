@@ -1,0 +1,32 @@
+# Core framework
+fastapi>=0.109.2
+uvicorn[standard]
+python-dotenv
+pydantic
+pydantic-settings
+fastapi-users[sqlalchemy]
+# Database
+sqlalchemy
+alembic
+aiosqlite
+psycopg2-binary>=2.9.9
+# Async HTTP
+httpx
+aiohttp
+# GitHub integration
+PyGithub
+# File watching (background indexing)
+watchdog
+watchfiles
+# Utilities
+tenacity
+python-multipart
+numpy
+# Cross-platform process lock (guards Cognee/KuzuDB init)
+filelock
+# WebSocket support
+websockets
+cryptography>=42.0.5
+# MCP Server
+fastmcp
+python-dateutil

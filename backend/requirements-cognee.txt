@@ -1,0 +1,2 @@
+# Cognee — memory + graph + LLM orchestration
+cognee[fastembed]==1.2.1

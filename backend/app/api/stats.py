@@ -53,7 +53,7 @@ def _compute_health_score(
     if total > 0:
         resolved = sum(
             1 for s in sessions
-            if s.status in ("resolved", "completed")
+            if s.status in ("resolved", "completed", "improved_memory")
         )
         resolved_ratio = resolved / total
     else:
@@ -110,7 +110,7 @@ async def get_stats(db: Session = Depends(get_db)):
 
     # Test Coverage: ratio of completed/resolved sessions to total sessions, baseline 70
     if total > 0:
-        resolved = sum(1 for s in sessions if s.status in ("resolved", "completed"))
+        resolved = sum(1 for s in sessions if s.status in ("resolved", "completed", "improved_memory"))
         test_coverage = min(100, int(50 + 50 * (resolved / total)))
     else:
         test_coverage = 75  # default baseline
