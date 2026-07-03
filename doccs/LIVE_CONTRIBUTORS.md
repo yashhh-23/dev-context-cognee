@@ -2,10 +2,11 @@
 
 > This document is automatically generated to track contributions to the project based on the Git commit history.
 
-## yashhh-23 (271 commits)
+## yashhh-23 (272 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `4d0900e` | 2026-07-03 | fix(memory): make forget targeted and safe fix(ingest): remove hard cap and fake node metrics feat(recall): add hybrid graph-vector search fix(api): wire draft-issue to real bug service test: add backend coverage for memory lifecycle |
 | `dde843c` | 2026-07-03 | feat: implement comprehensive session management, lifecycle control, and memory feedback system integration |
 | `0a608c9` | 2026-07-02 | bug fixes |
 | `e15e950` | 2026-07-02 | graph bug fixes |
@@ -568,10 +569,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (77 commits)
+## github-actions[bot] (78 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `0c41719` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `909ef9e` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `2b0897b` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `141030b` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
