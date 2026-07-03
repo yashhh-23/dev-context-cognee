@@ -445,10 +445,13 @@
 | `8a38ffe` | 2026-06-22 | phase 4: full dashboard redesign + bugs/stats backend endpoints |
 | `095edbc` | 2026-06-21 | fix: use cognee v1.0 remember/recall API, fix ingest_service indentation, clean up router and search endpoint |
 
-## Sahil Rane (129 commits)
+## Sahil Rane (132 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `051879d` | 2026-07-04 | Cleanup test files |
+| `fb9a6b1` | 2026-07-04 | Add error logging to ingest service |
+| `5c57fa7` | 2026-07-04 | Fix ingest not generating knowledge graph due to missing dataset parameter |
 | `c7b0a02` | 2026-07-04 | Fix memory node deletion and memify payload mismatch |
 | `2ba142c` | 2026-07-04 | Remove 10s demo timeout from ingestion flow so it doesn't prematurely cut off logs |
 | `5d7d431` | 2026-07-04 | Fix log routing: LiveFeed shows detailed logs, IngestProgress shows generic status |
@@ -579,10 +582,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (85 commits)
+## github-actions[bot] (86 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `43dd950` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `83f2593` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `7d3e9e2` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `4529393` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
