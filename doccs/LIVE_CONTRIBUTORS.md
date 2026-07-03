@@ -445,10 +445,15 @@
 | `8a38ffe` | 2026-06-22 | phase 4: full dashboard redesign + bugs/stats backend endpoints |
 | `095edbc` | 2026-06-21 | fix: use cognee v1.0 remember/recall API, fix ingest_service indentation, clean up router and search endpoint |
 
-## Sahil Rane (124 commits)
+## Sahil Rane (129 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `c7b0a02` | 2026-07-04 | Fix memory node deletion and memify payload mismatch |
+| `2ba142c` | 2026-07-04 | Remove 10s demo timeout from ingestion flow so it doesn't prematurely cut off logs |
+| `5d7d431` | 2026-07-04 | Fix log routing: LiveFeed shows detailed logs, IngestProgress shows generic status |
+| `a099d9e` | 2026-07-04 | Revert component swap in Overview dashboard |
+| `d96d6db` | 2026-07-04 | Fix ingest console stream to read 'description' key from payload |
 | `3277220` | 2026-07-04 | Swap positions of LiveFeed and IngestProgress components |
 | `57b84ca` | 2026-07-04 | Fix dashboard flicker, ingest progress label, forgotten session stats |
 | `68accea` | 2026-07-04 | Fix bugs, implement SWR polling, upgrade LLMs, make Recall/Ask prod-ready |
@@ -574,10 +579,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (84 commits)
+## github-actions[bot] (85 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `83f2593` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `7d3e9e2` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `4529393` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `e6ccac8` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
