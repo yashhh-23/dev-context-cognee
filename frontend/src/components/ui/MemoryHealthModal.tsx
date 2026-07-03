@@ -103,7 +103,7 @@ export default function MemoryHealthModal({ open, onClose, autoCleanEnabled, onT
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             <span style={{ fontSize: '1.1rem' }}>📊</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 'var(--text-base)' }}>
-              memory health
+             Memory health
             </span>
             {data?.cognee_version && (
               <span className="badge badge-default" style={{ fontSize: '9px' }}>
@@ -151,10 +151,10 @@ export default function MemoryHealthModal({ open, onClose, autoCleanEnabled, onT
               </svg>
               {/* KPI pills */}
               <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
-                <KpiPill label="total nodes" value={data.total_nodes} color="var(--color-primary)" />
-                <KpiPill label="pinned" value={data.pinned_nodes} color="#eab308" />
-                <KpiPill label="decaying" value={data.decaying_nodes} color="#f87171" />
-                <KpiPill label="last clean removed" value={data.last_clean_removed} color="#4ade80" />
+                <KpiPill label="Total nodes" value={data.total_nodes} color="var(--color-primary)" />
+                <KpiPill label="Pinned" value={data.pinned_nodes} color="#eab308" />
+                <KpiPill label="Decaying" value={data.decaying_nodes} color="#f87171" />
+                <KpiPill label="Last clean removed" value={data.last_clean_removed} color="#4ade80" />
               </div>
             </div>
 
@@ -162,7 +162,7 @@ export default function MemoryHealthModal({ open, onClose, autoCleanEnabled, onT
             {data.topics && data.topics.length > 0 && (
               <div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: 'var(--space-2)' }}>
-                  memory by topic
+                  Memory by topic
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                   {data.topics.map(t => (
@@ -197,7 +197,7 @@ export default function MemoryHealthModal({ open, onClose, autoCleanEnabled, onT
             }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>
-                  auto-clean on dashboard load
+                  Auto-clean on dashboard load
                 </span>
                 <span style={{ fontSize: '10px', color: 'var(--color-text-faint)' }}>
                   never removes pinned memories

@@ -159,8 +159,8 @@ export default function OverviewClient() {
       {/* Page Header */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 className="page-title">overview</h1>
-          <p className="page-subtitle">repository health, memory usage, and recent debug sessions</p>
+          <h1 className="page-title">Overview</h1>
+          <p className="page-subtitle">Repository health, Memory usage, and Recent debug sessions</p>
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
           <button
@@ -168,14 +168,14 @@ export default function OverviewClient() {
             onClick={() => setHealthOpen(true)}
             style={{ fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}
           >
-            📊 memory health
+             Memory health
           </button>
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => { setLoading(true); loadData() }}
             style={{ fontFamily: 'var(--font-mono)' }}
           >
-            ⟳ refresh
+            ⟳ Refresh
           </button>
         </div>
       </div>

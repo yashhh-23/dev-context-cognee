@@ -252,15 +252,65 @@ async def search_memory(query: str) -> list[Any]:
     return deduped
 
 
+# ─── Hybrid recall wrapper ───────────────────────────────────────────────────
+
+async def hybrid_recall(query: str, limit: int = 5) -> dict:
+    similarity = []
+    graph = []
+    sim_type = getattr(SearchType, "SIMILARITY", getattr(SearchType, "CHUNKS", SearchType.GRAPH_COMPLETION))
+    graph_type = getattr(SearchType, "GRAPH_COMPLETION", SearchType.CHUNKS)
+
+    try:
+        try:
+            sim_results = await cognee.search(
+                query=query,
+                search_type=sim_type,
+                limit=limit,
+            )
+        except TypeError:
+            sim_results = await cognee.search(
+                query_text=query,
+                query_type=sim_type,
+                top_k=limit,
+            )
+        try:
+            graph_results = await cognee.search(
+                query=query,
+                search_type=graph_type,
+                limit=limit,
+            )
+        except TypeError:
+            graph_results = await cognee.search(
+                query_text=query,
+                query_type=graph_type,
+                top_k=limit,
+            )
+
+        similarity = sim_results if isinstance(sim_results, list) else [sim_results]
+        graph = graph_results if isinstance(graph_results, list) else [graph_results]
+    except Exception:
+        pass
+
+    return {"similarity": similarity, "graph": graph}
+
+
 # ─── Convenience wrapper ──────────────────────────────────────────────────────
 
 async def recall_text(query: str, limit: int = 5) -> list[str]:
     """Return a list of clean text strings from Cognee memory for a given query."""
     try:
-        raw = await search_memory(query)
+        hybrid_res = await hybrid_recall(query, limit=limit)
+        raw = hybrid_res.get("similarity", []) + hybrid_res.get("graph", [])
     except Exception as exc:
-        print(f"[recall] search_memory error: {exc}")
-        return []
+        print(f"[recall] hybrid_recall error: {exc}")
+        raw = []
+
+    if not raw:
+        try:
+            raw = await search_memory(query)
+        except Exception as exc:
+            print(f"[recall] search_memory error: {exc}")
+            raw = []
 
     if not raw:
         return []

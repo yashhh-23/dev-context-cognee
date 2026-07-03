@@ -200,8 +200,9 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
                     file_paths.append(os.path.join(root, file))
                     
         total_files = len(file_paths)
-        if total_files > 50:
-            file_paths = file_paths[:50] # Limit for demo speed
+        max_files = getattr(settings, "MAX_INGEST_FILES", None)
+        if max_files:
+            file_paths = file_paths[:max_files]
 
         await manager.broadcast({
             "type": "INGEST_PROGRESS",
@@ -224,9 +225,9 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
                         "payload": {"message": f"Analyzing AST: {rel_path}...", "progress": 40 + int(40 * (i/len(file_paths)))}
                     })
                     
-                await cognee.add(formatted_content, dataset_name="main_dataset")
+                result = await cognee.add(formatted_content, dataset_name="main_dataset")
                 files_processed += 1
-                nodes_created += 3
+                nodes_created += 1 if getattr(result, "id", None) else (1 if result else 0)
                 
             except Exception as e:
                 pass
