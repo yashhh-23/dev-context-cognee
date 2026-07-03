@@ -25,7 +25,7 @@ async def _debounced_cognify(delay: float = 15.0):
         async def _run():
             await asyncio.sleep(delay)
             try:
-                await cognify_with_fallback()
+                await cognify_with_fallback(datasets=["main_dataset"])
             except Exception as e:
                 print(f"[DEBUG] Debounced cognify failed: {e}")
         _cognify_task = asyncio.create_task(_run())
@@ -237,8 +237,7 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
             "type": "INGEST_PROGRESS",
             "payload": {"description": "Building Cognee knowledge graph nodes...", "progress": 85}
         })
-        
-        await cognify_with_fallback()
+        await cognify_with_fallback(datasets=["main_dataset"])
         
         record.status = "completed"
         db.commit()

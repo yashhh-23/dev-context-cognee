@@ -55,7 +55,7 @@ def _apply_groq_config() -> None:
     print("[cognee] Switched to Groq (llama-3.3-70b-versatile) — Gemini quota exhausted.")
 
 
-async def cognify_with_fallback() -> None:
+async def cognify_with_fallback(**kwargs) -> None:
     """Run cognee.cognify() with Gemini, auto-falling back to Groq on quota errors.
 
     Flow
@@ -66,13 +66,13 @@ async def cognify_with_fallback() -> None:
     4. If Groq also fails, re-raise the Groq error so the caller can handle it.
     """
     try:
-        await cognee.cognify()
+        await cognee.cognify(**kwargs)
     except Exception as primary_exc:
         if _is_quota_error(primary_exc):
             print(f"[cognee] Gemini quota exhausted — switching to Groq fallback. Error: {primary_exc}")
             _apply_groq_config()
             try:
-                await cognee.cognify()
+                await cognee.cognify(**kwargs)
                 print("[cognee] [OK] cognify() completed successfully via Groq fallback.")
             except Exception as fallback_exc:
                 print(f"[cognee] Groq fallback also failed: {fallback_exc}")
