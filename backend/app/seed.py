@@ -1,8 +1,5 @@
 import datetime
-from sqlalchemy.orm import Session
-from app.core.database import get_db
-from app.models.session import SessionRecord, PinnedNode
-from app.core.byok import encrypt_data
+from app.models.session import SessionRecord
 
 def seed_db():
     from app.core.database import SessionLocal
@@ -21,7 +18,7 @@ def seed_db():
                 context_size=3,
                 tags=["bug", "websocket"],
                 github_url="https://github.com/yashhh-23/dev-context-cognee/issues/101",
-                timestamp=datetime.datetime.utcnow() - datetime.timedelta(days=2)
+                timestamp=datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=2)
             )
             
             # Create session 2
@@ -33,7 +30,7 @@ def seed_db():
                 context_size=4,
                 tags=["bug", "database"],
                 github_url="https://github.com/yashhh-23/dev-context-cognee/issues/102",
-                timestamp=datetime.datetime.utcnow() - datetime.timedelta(days=1)
+                timestamp=datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
             )
             
             # Create session 3
@@ -45,7 +42,7 @@ def seed_db():
                 context_size=2,
                 tags=["bug", "database"],
                 github_url="https://github.com/yashhh-23/dev-context-cognee/issues/103",
-                timestamp=datetime.datetime.utcnow()
+                timestamp=datetime.datetime.now(datetime.timezone.utc)
             )
             
             db.add_all([s1, s2, s3])

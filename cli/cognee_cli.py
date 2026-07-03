@@ -7,6 +7,7 @@ import signal
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+import uuid
 
 import typer
 
@@ -74,16 +75,24 @@ def start(
     
     daemon_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "daemon.py")
     api_key = cfg.get("api_key") or "NONE"
+    session_id = str(uuid.uuid4())
+    
+    try:
+        requests.post(f"{cfg['api_url']}/session/start",
+                      json={"sessionId": session_id, "workspaceName": os.path.basename(os.path.abspath(dir))},
+                      headers=get_auth_headers(cfg), timeout=10)
+    except Exception:
+        pass
     
     if os.name == 'nt':
         CREATE_NO_WINDOW = 0x08000000
-        subprocess.Popen([sys.executable, daemon_script, cfg["api_url"], api_key, dir], 
+        subprocess.Popen([sys.executable, daemon_script, cfg["api_url"], api_key, dir, session_id], 
                          creationflags=CREATE_NO_WINDOW)
     else:
         pid = os.fork()
         if pid > 0:
             project = os.path.basename(os.path.abspath(dir))
-            typer.secho(f"[SUCCESS] Session started for '{project}' (PID {pid})", 
+            typer.secho(f"[SUCCESS] Session started for '{project}' (PID {pid}, ID: {session_id})", 
                         fg=typer.colors.GREEN)
             typer.echo("  Run 'dev-context end' to stop and distill learnings")
             return
@@ -95,10 +104,11 @@ def start(
         DAEMON_INFO_FILE.write_text(json.dumps({
             "pid": os.getpid(),
             "project_dir": os.path.abspath(dir),
-            "start_time": datetime.now().isoformat()
+            "start_time": datetime.now().isoformat(),
+            "session_id": session_id
         }))
         try:
-            asyncio.run(watch_and_collect(cfg["api_url"], api_key, dir))
+            asyncio.run(watch_and_collect(cfg["api_url"], api_key, dir, session_id))
         finally:
             if DAEMON_PID_FILE.exists():
                 DAEMON_PID_FILE.unlink()
@@ -107,7 +117,7 @@ def start(
         sys.exit(0)
     
     project = os.path.basename(os.path.abspath(dir))
-    typer.secho(f"[SUCCESS] Session started for '{project}'", fg=typer.colors.GREEN)
+    typer.secho(f"[SUCCESS] Session started for '{project}' (ID: {session_id})", fg=typer.colors.GREEN)
     typer.echo("  Run 'dev-context end' to stop and distill learnings")
 
 @app.command()
@@ -124,6 +134,7 @@ def status():
         typer.echo(f"  PID: {info.get('pid')}")
         typer.echo(f"  Project Dir: {info.get('project_dir')}")
         typer.echo(f"  Started: {info.get('start_time')}")
+        typer.echo(f"  Session ID: {info.get('session_id', 'N/A')}")
     except Exception:
         typer.secho("Session info file corrupted.", fg=typer.colors.RED)
 
@@ -146,19 +157,25 @@ def end(
     except Exception:
         pass
     
+    session_id = ""
+    if DAEMON_INFO_FILE.exists():
+        try:
+            info = json.loads(DAEMON_INFO_FILE.read_text())
+            session_id = info.get("session_id", "")
+        except Exception:
+            pass
+        DAEMON_INFO_FILE.unlink()
     if DAEMON_PID_FILE.exists():
         DAEMON_PID_FILE.unlink()
-    if DAEMON_INFO_FILE.exists():
-        DAEMON_INFO_FILE.unlink()
     
     if distill:
         cfg = load_config()
         with typer.progressbar(length=1, label="Distilling session learnings") as progress:
             try:
                 requests.post(f"{cfg['api_url']}/session/end", 
-                              json={"trigger_distillation": True},
+                              json={"sessionId": session_id, "triggerDistillation": True},
                               headers=get_auth_headers(cfg), timeout=30)
-            except Exception:
+            except Exception as e:
                 pass
             progress.update(1)
         typer.secho("[SUCCESS] Session distilled into permanent memory", fg=typer.colors.GREEN)
@@ -203,7 +220,7 @@ def ingest(
 
     cfg = load_config()
     try:
-        response = requests.post(f"{cfg['api_url']}/ingest/", json=payload, headers=get_auth_headers(cfg))
+        response = requests.post(f"{cfg['api_url']}/ingest", json=payload, headers=get_auth_headers(cfg))
         if response.status_code == 200:
             if not silent:
                 typer.secho(f"[SUCCESS] Successfully ingested to Cognee! Session ID: {response.json().get('session_id')}", fg=typer.colors.GREEN)

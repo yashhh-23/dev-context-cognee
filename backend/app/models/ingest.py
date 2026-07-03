@@ -18,16 +18,3 @@ class IngestRequest(BaseModel):
 class IngestResponse(BaseModel):
     session_id: str
     status: str
-
-class SessionResponse(BaseModel):
-    id: str
-    project: str
-    branch: Optional[str] = None
-    tags: Optional[List[str]] = None
-    github_url: Optional[str] = None
-    timestamp: datetime
-    status: str
-    error_message: Optional[str] = None
-
-    class Config:
-        from_attributes = True

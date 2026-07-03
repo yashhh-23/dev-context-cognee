@@ -32,7 +32,7 @@ def test_ingest_and_feedback_flow():
         "tags": ["cli"],
         "timestamp": "2026-06-30T00:00:00Z"
     }
-    res_ingest = client.post("/api/ingest/", json=ingest_payload)
+    res_ingest = client.post("/api/ingest", json=ingest_payload)
     assert res_ingest.status_code == 200, f"Ingest failed: {res_ingest.text}"
     session_id = res_ingest.json().get("session_id")
     assert session_id is not None

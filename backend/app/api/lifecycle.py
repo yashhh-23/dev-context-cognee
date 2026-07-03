@@ -3,17 +3,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
-import numpy as np
-from cognee.infrastructure.databases.vector.embeddings.get_embedding_engine import get_embedding_engine
 from app.core.database import get_db
 from app.services.recall_service import get_session
 from app.core.ws_manager import manager
 from app.core.config import settings
 from app.models.session import SessionRecord, PinnedNode
 import cognee
-import asyncio
 import difflib
-import httpx
 
 router = APIRouter()
 

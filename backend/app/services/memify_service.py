@@ -1,5 +1,4 @@
 import cognee
-from typing import Optional
 
 
 async def improve_context(

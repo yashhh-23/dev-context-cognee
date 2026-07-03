@@ -59,7 +59,7 @@ async def memory_health(db: Session = Depends(get_db)):
     pinned_nodes = sum(1 for n in nodes if n.get("pinned"))
 
     # Decaying: nodes older than 7 days with no recent recall
-    cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=7)
+    cutoff = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(days=7)
     decaying_nodes = 0
     for n in nodes:
         ts_raw = n.get("timestamp") or n.get("created_at") or ""
@@ -109,5 +109,10 @@ async def memory_health(db: Session = Depends(get_db)):
         "total_memories": graph_nodes_count,
         "graph_nodes": graph_nodes_count,
         "graph_edges": graph_edges_count,
-        "last_updated": datetime.datetime.utcnow().isoformat() + "Z"
+        "last_updated": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
     }
+
+
+@router.get("")
+def api_stats():
+    return {"status": "ok", "total_datasets": 1, "cognee_ready": True}

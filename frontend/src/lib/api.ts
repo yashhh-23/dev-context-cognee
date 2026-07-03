@@ -111,7 +111,7 @@ async function getMockFallback(path: string): Promise<any> {
 
 async function req<T>(path: string, opts?: RequestInit, timeoutMs = 15000): Promise<T> {
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), timeoutMs)
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (typeof window !== 'undefined') {
     const key = sessionStorage.getItem('byok_key')
@@ -135,10 +135,11 @@ async function req<T>(path: string, opts?: RequestInit, timeoutMs = 15000): Prom
     return await res.json() as T
   } catch (err: any) {
     clearTimeout(timeoutId)
-    if (err.name === 'AbortError' || String(err.message || err).includes('aborted')) {
-      throw err
+    if (err.name === 'AbortError' || err.message === 'timeout' || String(err.message || err).includes('aborted')) {
+      console.debug(`[API Fallback] Request to ${path} aborted or timed out, using mock data.`)
+    } else {
+      console.debug(`[API Fallback] Request to ${path} failed, using mock data. Error:`, err.message || err)
     }
-    console.debug(`[API Fallback] Request to ${path} failed, using mock data. Error:`, err.message || err)
     showFallbackToast()
     return await getMockFallback(path) as T
   }

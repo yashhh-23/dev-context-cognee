@@ -1,5 +1,4 @@
 from sqlalchemy import Column, String, DateTime, Text, JSON, Boolean, Integer
-from sqlalchemy.ext.hybrid import hybrid_property
 from app.core.database import Base
 from app.core.byok import decrypt_data, byok_key_var
 import datetime
@@ -17,7 +16,7 @@ class SessionRecord(Base):
     _terminal_output = Column("terminal_output", Text)
     tags = Column(JSON, nullable=True)
     github_url = Column(String, nullable=True)
-    timestamp = Column(DateTime, index=True, default=datetime.datetime.utcnow)
+    timestamp = Column(DateTime, index=True, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     # Semantics: updated by ingest (log lines), recall (similar nodes),
     # lifecycle (auto-clean), and bugs (similar bugs).
     # Do NOT use as a unique stable counter; treat as "last write wins".

@@ -7,34 +7,28 @@ from app.core.graph_builder import build_graph
 import asyncio
 import datetime
 import httpx
-import os
 import math
 
 from app.core.config import settings
 from app.utils.github_utils import get_github_headers
 
+from app.api.bugs import get_all_issues
+
 router = APIRouter()
 
 
 async def _get_open_bug_count() -> int:
-    """Fetch real open issue count from GitHub."""
+    """Fetch real open issue count from GitHub (excluding pull requests)."""
     repo = settings.GITHUB_REPO or ""
     if not repo:
         return 0
     headers = get_github_headers(settings.GITHUB_TOKEN)
     try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            resp = await client.get(
-                f"https://api.github.com/repos/{repo}",
-                headers=headers,
-            )
-        if resp.status_code == 200:
-            return resp.json().get("open_issues_count", 0)
-        else:
-            return -1
-    except Exception:
-        pass
-    return -1
+        issues = await get_all_issues(repo, headers)
+        return len(issues)
+    except Exception as e:
+        print(f"[stats] error fetching open issue count from {repo}: {e}")
+        return -1
 
 
 def _compute_health_score(
@@ -101,7 +95,7 @@ async def get_stats(db: Session = Depends(get_db)):
     memory_nodes = len(graph_data.get("nodes", []))
 
     # Count sessions completed today as a proxy for recalled_today
-    today = datetime.datetime.utcnow().date()
+    today = datetime.datetime.now(datetime.timezone.utc).date()
     recalled_today = sum(
         1 for s in sessions
         if s.timestamp and s.timestamp.date() == today and s.status == "completed"

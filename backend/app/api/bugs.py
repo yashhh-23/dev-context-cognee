@@ -11,11 +11,12 @@ import time
 import cognee
 
 from app.utils.github_utils import get_github_headers, parse_repo_from_url, search_github
+from app.services.bug_service import draft_github_issue
 
 router = APIRouter()
 
 _issues_cache = {}
-_CACHE_TTL = 300  # 5 minutes
+_CACHE_TTL = 60  # 1 minute for dynamic updates
 
 
 class AnalyzeRequest(BaseModel):
@@ -25,6 +26,7 @@ class DraftIssueRequest(BaseModel):
     fileName: str
     languageId: str
     codeSnippet: str
+    errorMessage: str | None = None
 
 class BugCognifyRequest(BaseModel):
     bug_id: int
@@ -62,10 +64,12 @@ async def cognify_bug(req: BugCognifyRequest):
 
 @router.post("/draft-issue")
 async def draft_issue(req: DraftIssueRequest):
-    return {
-        "title": f"Bug in {req.fileName}",
-        "body": f"Please review the code in {req.fileName} ({req.languageId})."
-    }
+    return await draft_github_issue(
+        snippet=req.codeSnippet,
+        error_message=req.errorMessage,
+        language=req.languageId,
+        file_path=req.fileName,
+    )
 
 def _map_severity(labels: list) -> str:
     names = [l["name"].lower() for l in labels]

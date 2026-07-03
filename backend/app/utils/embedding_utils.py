@@ -1,7 +1,5 @@
 import math
 import logging
-from functools import lru_cache
-import numpy as np
 from typing import Optional, List
 from cognee.infrastructure.databases.vector.embeddings.get_embedding_engine import get_embedding_engine
 

@@ -2,9 +2,7 @@
 import asyncio
 import difflib
 from fastapi import APIRouter, Query, HTTPException, Depends
-import numpy as np
 from typing import Optional
-from cognee.infrastructure.databases.vector.embeddings.get_embedding_engine import get_embedding_engine
 
 import hashlib
 from app.utils.embedding_utils import (
@@ -23,7 +21,6 @@ from app.services.recall_service import search_memory, extract_text
 from app.core.security import verify_safe_input
 import cognee
 from app.utils.embedding_utils import sanitize_dataset_name
-import httpx
 
 router = APIRouter()
 
@@ -154,16 +151,6 @@ async def recall_post(body: RecallRequestModel, db: Session = Depends(get_db)):
 
 
 
-@router.get("/search")
-async def search_memory_api(
-    q: str = Query("", description="Natural language query"),
-    limit: int = Query(50, ge=1, le=100),
-    db: Session = Depends(get_db),
-):
-    """Retrieve memory search results matching the query."""
-    return await recall(q, limit, db)
-
-
 @router.post("/memify")
 async def memify(body: MemifyRequest):
     """Store arbitrary text into Cognee memory graph."""
@@ -215,12 +202,25 @@ async def unpin_node(node_id: str, db: Session = Depends(get_db)):
     return {"success": True, "node_id": node_id, "pinned": False}
 
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 class FeedbackRequest(BaseModel):
     qa_id: str
     score: int = Field(..., ge=-1, le=1)
     comment: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_keys(cls, data: any) -> any:
+        if isinstance(data, dict):
+            if "qa_id" not in data:
+                if "qaId" in data:
+                    data["qa_id"] = data["qaId"]
+                elif "session_id" in data:
+                    data["qa_id"] = data["session_id"]
+                elif "sessionId" in data:
+                    data["qa_id"] = data["sessionId"]
+        return data
 
 @router.post("/feedback")
 async def submit_recall_feedback(payload: FeedbackRequest):

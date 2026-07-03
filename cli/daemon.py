@@ -11,7 +11,7 @@ from watchfiles import awatch
 DAEMON_PID_FILE = Path.home() / ".devcontext" / "daemon.pid"
 DAEMON_INFO_FILE = Path.home() / ".devcontext" / "daemon.json"
 
-async def flush_buffer(buffer: list, api_url: str, api_key: str, project_dir: str):
+async def flush_buffer(buffer: list, api_url: str, api_key: str, project_dir: str, session_id: str = None):
     import requests
     if not buffer:
         return
@@ -23,12 +23,14 @@ async def flush_buffer(buffer: list, api_url: str, api_key: str, project_dir: st
             "tags": ["cli-daemon-watch"],
             "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
         }
+        if session_id:
+            payload["session_id"] = session_id
         
         headers = {}
         if api_key and api_key != "NONE":
             headers["X-BYOK-Key"] = api_key
             
-        requests.post(f"{api_url}/ingest/", json=payload, headers=headers, timeout=10)
+        requests.post(f"{api_url}/ingest", json=payload, headers=headers, timeout=10)
     except Exception as e:
         # Silently fail in background daemon
         pass
@@ -61,7 +63,7 @@ def get_file_content(path: str, project_dir: str) -> str:
         pass
     return ""
 
-async def watch_and_collect(api_url: str, api_key: str, project_dir: str):
+async def watch_and_collect(api_url: str, api_key: str, project_dir: str, session_id: str = None):
     buffer = []
     last_flush = time.time()
     
@@ -82,12 +84,12 @@ async def watch_and_collect(api_url: str, api_key: str, project_dir: str):
                     pass
             
             if time.time() - last_flush > 30 or len(buffer) >= 20:
-                await flush_buffer(buffer, api_url, api_key, project_dir)
+                await flush_buffer(buffer, api_url, api_key, project_dir, session_id)
                 buffer.clear()
                 last_flush = time.time()
     except asyncio.CancelledError:
         if buffer:
-            await flush_buffer(buffer, api_url, api_key, project_dir)
+            await flush_buffer(buffer, api_url, api_key, project_dir, session_id)
         raise
     except Exception:
         pass
@@ -98,6 +100,7 @@ def main():
     api_url = sys.argv[1]
     api_key = sys.argv[2]
     project_dir = sys.argv[3]
+    session_id = sys.argv[4] if len(sys.argv) > 4 else None
     
     DAEMON_PID_FILE.parent.mkdir(exist_ok=True)
     DAEMON_PID_FILE.write_text(str(os.getpid()))
@@ -105,11 +108,12 @@ def main():
     DAEMON_INFO_FILE.write_text(json.dumps({
         "pid": os.getpid(),
         "project_dir": os.path.abspath(project_dir),
-        "start_time": datetime.datetime.now().isoformat()
+        "start_time": datetime.datetime.now().isoformat(),
+        "session_id": session_id
     }))
     
     try:
-        asyncio.run(watch_and_collect(api_url, api_key, project_dir))
+        asyncio.run(watch_and_collect(api_url, api_key, project_dir, session_id))
     finally:
         if DAEMON_PID_FILE.exists():
             try:

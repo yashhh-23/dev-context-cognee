@@ -5,14 +5,12 @@ import traceback
 import filelock
 import difflib
 import cognee
-import numpy as np
 from pathlib import Path
 from fastmcp import FastMCP
-from cognee.infrastructure.databases.vector.embeddings.get_embedding_engine import get_embedding_engine
 
 from app.utils.embedding_utils import (
-    _get_text_embedding,
-    _calculate_cosine_similarity,
+    get_text_embedding as _get_text_embedding,
+    cosine_similarity as _calculate_cosine_similarity,
     CONFLICT_MIN_THRESHOLD,
     CONFLICT_MAX_THRESHOLD,
     DIFFLIB_CONFLICT_MIN,
