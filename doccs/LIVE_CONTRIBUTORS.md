@@ -444,10 +444,11 @@
 | `8a38ffe` | 2026-06-22 | phase 4: full dashboard redesign + bugs/stats backend endpoints |
 | `095edbc` | 2026-06-21 | fix: use cognee v1.0 remember/recall API, fix ingest_service indentation, clean up router and search endpoint |
 
-## Sahil Rane (121 commits)
+## Sahil Rane (122 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `68accea` | 2026-07-04 | Fix bugs, implement SWR polling, upgrade LLMs, make Recall/Ask prod-ready |
 | `29526a0` | 2026-07-03 | Merge friend's changes with local Groq and bug counting fixes |
 | `61758d7` | 2026-07-03 | feat: implement frontend API client with mock fallbacks and add backend recall service |
 | `f5f4089` | 2026-07-03 | feat: implement recall API for semantic memory search, node management, and feedback tracking |
@@ -570,10 +571,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (80 commits)
+## github-actions[bot] (81 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `5d991c7` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `43d3762` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `2d99673` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `0c41719` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
