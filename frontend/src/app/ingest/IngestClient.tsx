@@ -80,17 +80,7 @@ export default function IngestClient() {
     setProgress(10)
     setLogs([])
 
-    // Fallback completion for UI testing and demo mode if WS does not finish within 10s
-    setTimeout(() => {
-      setIngestStatus(prev => {
-        if (prev === 'running') {
-          setStats({ files: 42, nodes: 142, time: '9.8s' })
-          toast.success('Ingestion finished successfully!')
-          return 'completed'
-        }
-        return prev
-      })
-    }, 10000)
+    // The frontend will now wait for the actual INGEST_SUCCESS event from the backend.
 
     try {
       await api.ingestGithub(repoUrl, branch, ingestType)
