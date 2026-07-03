@@ -188,7 +188,7 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
         
         await manager.broadcast({
             "type": "INGEST_PROGRESS",
-            "payload": {"message": f"✓ Repository connected and downloaded.", "progress": 30}
+            "payload": {"message": f"[OK] Repository connected and downloaded.", "progress": 30}
         })
 
         # Walk files
@@ -248,7 +248,7 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
         await manager.broadcast({
             "type": "INGEST_SUCCESS",
             "payload": {
-                "message": "✓ Ingestion completed! Code base successfully indexed in Cognee.",
+                "message": "[OK] Ingestion completed! Code base successfully indexed in Cognee.",
                 "progress": 100,
                 "files_processed": files_processed,
                 "nodes_created": nodes_created,

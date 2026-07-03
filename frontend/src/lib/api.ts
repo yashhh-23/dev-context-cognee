@@ -232,8 +232,8 @@ export interface OverviewStats {
 function normalizeRecallResults(payload: unknown): RecallResult[] {
   const rawItems =
     Array.isArray(payload) ? payload
-    : Array.isArray((payload as { bugs?: unknown[] })?.bugs) ? (payload as { bugs: unknown[] }).bugs
     : Array.isArray((payload as { results?: unknown[] })?.results) ? (payload as { results: unknown[] }).results
+    : Array.isArray((payload as { bugs?: unknown[] })?.bugs) ? (payload as { bugs: unknown[] }).bugs
     : Array.isArray((payload as { items?: unknown[] })?.items) ? (payload as { items: unknown[] }).items
     : []
 
@@ -334,7 +334,7 @@ export const api = {
   getGraph: async () => normalizeGraphData(await req<unknown>('/api/graph')),
   // Recall / Memory
   recall: async (query: string, limit = 10) =>
-    normalizeRecallResults(await req<unknown>('/api/recall', { method: 'POST', body: JSON.stringify({ query, limit }) })),
+    normalizeRecallResults(await req<unknown>('/api/recall', { method: 'POST', body: JSON.stringify({ query, limit }) }, 30000)),
   searchMemory: async (query: string, limit = 10) =>
     normalizeRecallResults(await req<unknown>('/api/recall', { method: 'POST', body: JSON.stringify({ query, limit }) })),
   forget: (nodeId: string) => req<{ success: boolean }>(`/api/recall/${nodeId}`, { method: 'DELETE' }),

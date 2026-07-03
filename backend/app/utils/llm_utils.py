@@ -19,13 +19,20 @@ Do NOT answer YES if both could be true at the same time, or if they describe di
 Answer with exactly one word: YES or NO."""
 
 async def ask_gemini(prompt: str, api_key: str) -> str | None:
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+    """Call Gemini 2.0 Flash Lite — fast, free-tier friendly, 60s timeout."""
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent"
     try:
-        async with httpx.AsyncClient(timeout=15) as client:
+        async with httpx.AsyncClient(timeout=60) as client:
             r = await client.post(
                 url,
                 params={"key": api_key},
-                json={"contents": [{"parts": [{"text": prompt}]}]},
+                json={
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {
+                        "maxOutputTokens": 2048,
+                        "temperature": 0.2,
+                    },
+                },
             )
             r.raise_for_status()
             return r.json()["candidates"][0]["content"]["parts"][0]["text"]
@@ -34,17 +41,18 @@ async def ask_gemini(prompt: str, api_key: str) -> str | None:
         return None
 
 async def ask_groq(prompt: str, api_key: str) -> str | None:
+    """Call Groq with llama-3.3-70b-versatile — high quality, 60s timeout."""
     url = "https://api.groq.com/openai/v1/chat/completions"
     try:
-        async with httpx.AsyncClient(timeout=15) as client:
+        async with httpx.AsyncClient(timeout=60) as client:
             r = await client.post(
                 url,
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={
-                    "model": "llama-3.1-8b-instant",
+                    "model": "llama-3.3-70b-versatile",
                     "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 1000,
-                    "temperature": 0.3,
+                    "max_tokens": 2048,
+                    "temperature": 0.2,
                 },
             )
             r.raise_for_status()
@@ -52,3 +60,4 @@ async def ask_groq(prompt: str, api_key: str) -> str | None:
     except Exception as e:
         logger.error(f"[llm_utils] Groq failed: {e}")
         return None
+

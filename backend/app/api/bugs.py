@@ -168,17 +168,7 @@ async def get_all_issues(repo: str, headers: dict) -> list:
     _issues_cache[repo] = (now, issues)
     return issues
 
-async def auto_cognify_bugs(items: list):
-    for item in items[:10]:
-        doc = f"BUG #{item['id']}: {item['title']} | Severity: {item['severity']} | Labels: {', '.join(item['labels'])}"
-        try:
-            await cognee.add(doc, dataset_name="bugs")
-        except Exception:
-            pass
-    try:
-        await cognee.cognify()
-    except Exception as e:
-        print(f"[auto_cognify] {e}")
+
 
 @router.get("")
 async def list_bugs(limit: int = 100, page: int = 1, background_tasks: BackgroundTasks = None):
@@ -217,8 +207,7 @@ async def list_bugs(limit: int = 100, page: int = 1, background_tasks: Backgroun
         end = start + limit
         paginated = all_bugs[start:end]
 
-        if background_tasks:
-            background_tasks.add_task(auto_cognify_bugs, paginated)
+
 
         return {
             "bugs": paginated,

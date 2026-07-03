@@ -8,6 +8,7 @@ import asyncio
 import datetime
 import httpx
 import math
+import time
 
 from app.core.config import settings
 from app.utils.github_utils import get_github_headers
@@ -143,12 +144,21 @@ async def get_stats(db: Session = Depends(get_db)):
 
 
 
+_trend_cache = {}
+_TREND_CACHE_TTL = 60
+
 @router.get("/bug-trend")
 async def bug_trend():
-    """Return last 7 days opened/closed issue counts via 2 batched GitHub Search queries."""
+    """Return last 7 days opened/closed issue counts efficiently via cached repository API."""
+    now = time.time()
     repo = settings.GITHUB_REPO or ""
     if not repo:
         return {"labels": [], "opened": [], "closed": []}
+
+    if repo in _trend_cache:
+        cached_time, cached_data = _trend_cache[repo]
+        if now - cached_time < _TREND_CACHE_TTL:
+            return cached_data
 
     headers = get_github_headers(settings.GITHUB_TOKEN)
 
@@ -157,46 +167,51 @@ async def bug_trend():
     day_strs   = [d.strftime("%Y-%m-%d") for d in days]
     day_names  = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     start_date = day_strs[0]
-    end_date   = day_strs[-1]
+    start_time_iso = f"{start_date}T00:00:00Z"
 
     opened_map: dict[str, int] = {d: 0 for d in day_strs}
     closed_map: dict[str, int] = {d: 0 for d in day_strs}
 
-    async with httpx.AsyncClient(timeout=20) as client:
-        req_opened = client.get(
-            "https://api.github.com/search/issues",
-            params={
-                "q": f"repo:{repo} is:issue created:{start_date}..{end_date}",
-                "per_page": 100,
-                "sort": "created",
-                "order": "asc",
-            },
-            headers=headers,
-        )
-        req_closed = client.get(
-            "https://api.github.com/search/issues",
-            params={
-                "q": f"repo:{repo} is:issue closed:{start_date}..{end_date}",
-                "per_page": 100,
-                "sort": "updated",
-                "order": "asc",
-            },
-            headers=headers,
-        )
-        r_opened, r_closed = await asyncio.gather(req_opened, req_closed)
-        if r_opened.status_code == 200:
-            for item in r_opened.json().get("items", []):
-                created_date = item["created_at"][:10]
-                if created_date in opened_map:
-                    opened_map[created_date] += 1
-        if r_closed.status_code == 200:
-            for item in r_closed.json().get("items", []):
-                closed_date = (item.get("closed_at") or "")[:10]
-                if closed_date in closed_map:
-                    closed_map[closed_date] += 1
+    issues = []
+    async with httpx.AsyncClient(timeout=10) as client:
+        page = 1
+        while page <= 5:  # up to 500 issues in a week
+            resp = await client.get(
+                f"https://api.github.com/repos/{repo}/issues",
+                params={
+                    "state": "all",
+                    "since": start_time_iso,
+                    "per_page": 100,
+                    "page": page
+                },
+                headers=headers,
+            )
+            if resp.status_code == 200:
+                raw_items = resp.json()
+                page_items = [item for item in raw_items if "pull_request" not in item]
+                issues.extend(page_items)
+                if len(raw_items) < 100:
+                    break
+            else:
+                print(f"[stats] bug-trend API error: {resp.status_code} - {resp.text}")
+                break
+            page += 1
+
+    for item in issues:
+        created_date = item.get("created_at", "")[:10]
+        if created_date in opened_map:
+            opened_map[created_date] += 1
+        
+        closed_at = item.get("closed_at")
+        if closed_at:
+            closed_date = closed_at[:10]
+            if closed_date in closed_map:
+                closed_map[closed_date] += 1
 
     labels        = [day_names[d.weekday()] for d in days]
     opened_counts = [opened_map[d] for d in day_strs]
     closed_counts = [closed_map[d] for d in day_strs]
 
-    return {"labels": labels, "opened": opened_counts, "closed": closed_counts}
+    result = {"labels": labels, "opened": opened_counts, "closed": closed_counts}
+    _trend_cache[repo] = (now, result)
+    return result
