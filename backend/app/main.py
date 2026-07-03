@@ -13,11 +13,24 @@ sqlite3.register_adapter(uuid.UUID, lambda u: u.hex)
 sqlite3.register_converter('UUID', lambda b: uuid.UUID(b.decode('utf-8')))
 
 # Load env very early so Cognee gets the API keys
+# Priority: Gemini (primary) → Groq (auto-fallback on quota exhaustion)
 load_dotenv()
-if os.getenv("GEMINI_API_KEY"):
-    os.environ["LLM_API_KEY"] = os.getenv("GEMINI_API_KEY").strip()
+_gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
+_groq_key   = os.getenv("GROQ_API_KEY", "").strip()
+
+if _gemini_key:
+    # Gemini as primary LLM
+    os.environ["LLM_API_KEY"]  = _gemini_key
     os.environ["LLM_PROVIDER"] = "gemini"
-    os.environ["LLM_MODEL"] = "gemini/gemini-2.5-flash"
+    os.environ["LLM_MODEL"]    = "gemini/gemini-2.5-flash"
+elif _groq_key:
+    # Groq when Gemini key is absent
+    os.environ["LLM_API_KEY"]  = _groq_key
+    os.environ["LLM_PROVIDER"] = "openai"
+    os.environ["LLM_MODEL"]    = "openai/llama-3.1-8b-instant"
+    os.environ["LLM_ENDPOINT"] = "https://api.groq.com/openai/v1"
+    os.environ["OPENAI_API_KEY"]  = _groq_key
+    os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
 
 
 from app.core.database import init_db

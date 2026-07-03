@@ -9,6 +9,7 @@ from app.models.session import SessionRecord
 from app.core.database import SessionLocal
 from app.core.config import settings
 from app.core.ws_manager import manager
+from app.core.cognee_client import cognify_with_fallback
 import cognee
 
 from typing import Optional
@@ -24,7 +25,7 @@ async def _debounced_cognify(delay: float = 15.0):
         async def _run():
             await asyncio.sleep(delay)
             try:
-                await cognee.cognify()
+                await cognify_with_fallback()
             except Exception as e:
                 print(f"[DEBUG] Debounced cognify failed: {e}")
         _cognify_task = asyncio.create_task(_run())
@@ -237,7 +238,7 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
             "payload": {"message": "Building Cognee knowledge graph nodes...", "progress": 85}
         })
         
-        await _debounced_cognify()
+        await cognify_with_fallback()
         
         record.status = "completed"
         db.commit()

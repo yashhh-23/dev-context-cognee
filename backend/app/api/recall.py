@@ -340,9 +340,14 @@ async def chat_memory(body: ChatRequest, db: Session = Depends(get_db)):
             })
             
     prompt = f"""You are a Principal Software Engineer and software architect pair-programming with the user.
-Answer the developer's question using the retrieved codebase memory context below.
+Answer the developer's question strictly using ONLY the retrieved codebase memory context below.
 Always try to explicitly cite the source files or memory nodes (using markdown links [basename](file://...) or just naming them).
 Keep your answer professional, direct, and technically sound.
+
+CRITICAL INSTRUCTIONS:
+- If the recalled context does NOT contain information about the user's question, you MUST say so directly (e.g. "I cannot find any information about X in the codebase context.").
+- DO NOT hallucinate, guess, or invent file paths, code snippets, or generic tutorials.
+- ONLY provide code or architectures that actually exist in the provided context.
 
 Recalled Context:
 {context_str}
