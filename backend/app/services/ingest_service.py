@@ -231,6 +231,7 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
                 nodes_created += 1 if getattr(result, "id", None) else (1 if result else 0)
                 
             except Exception as e:
+                print(f"[ERROR] Failed to ingest {path}: {e}")
                 pass
 
         await manager.broadcast({
