@@ -169,8 +169,8 @@ export default function OverviewClient() {
         </div>
       </div>
 
-      {/* Ingestion progress — auto-hides when idle */}
-      <IngestProgress />
+      {/* Live Feed at the top */}
+      <LiveFeed />
 
       {/* KPI Stats Grid */}
       <div className="stats-grid">
@@ -283,7 +283,12 @@ export default function OverviewClient() {
             </div>
           )}
         </div>
-        <LiveFeed />
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <div className="card-header">
+            <span className="card-title">ingestion in progress</span>
+          </div>
+          <IngestProgress />
+        </div>
       </div>
 
       {/* Dependency & System Health panel */}
