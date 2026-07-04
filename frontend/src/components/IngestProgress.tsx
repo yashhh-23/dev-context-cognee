@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useIngestProgress } from '@/hooks/useIngestProgress'
 
@@ -216,7 +216,7 @@ export default function IngestProgress() {
                   textOverflow: 'ellipsis',
                 }}
               >
-                {statusLabel || 'Initialising…'}
+                {progress === 100 ? 'Ingestion completed' : 'Ingestion processing...'}
               </div>
             </div>
 

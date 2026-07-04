@@ -25,7 +25,7 @@ async def _debounced_cognify(delay: float = 15.0):
         async def _run():
             await asyncio.sleep(delay)
             try:
-                await cognify_with_fallback()
+                await cognify_with_fallback(datasets=["main_dataset"])
             except Exception as e:
                 print(f"[DEBUG] Debounced cognify failed: {e}")
         _cognify_task = asyncio.create_task(_run())
@@ -176,7 +176,7 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
         
         await manager.broadcast({
             "type": "INGEST_PROGRESS",
-            "payload": {"message": f"Cloning repository {repo_url} (branch: {branch})...", "progress": 10}
+            "payload": {"description": f"Cloning repository {repo_url} (branch: {branch})...", "progress": 10}
         })
         
         await asyncio.to_thread(
@@ -188,7 +188,7 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
         
         await manager.broadcast({
             "type": "INGEST_PROGRESS",
-            "payload": {"message": f"✓ Repository connected and downloaded.", "progress": 30}
+            "payload": {"description": f"[OK] Repository connected and downloaded.", "progress": 30}
         })
 
         # Walk files
@@ -207,7 +207,7 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
 
         await manager.broadcast({
             "type": "INGEST_PROGRESS",
-            "payload": {"message": f"Scanning file structure... found {total_files} files.", "progress": 40}
+            "payload": {"description": f"Scanning file structure... found {total_files} files.", "progress": 40}
         })
 
         for i, path in enumerate(file_paths):
@@ -223,7 +223,7 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
                 if i % 10 == 0:
                     await manager.broadcast({
                         "type": "INGEST_PROGRESS",
-                        "payload": {"message": f"Analyzing AST: {rel_path}...", "progress": 40 + int(40 * (i/len(file_paths)))}
+                        "payload": {"description": f"Analyzing AST: {rel_path}...", "progress": 40 + int(40 * (i/len(file_paths)))}
                     })
                     
                 result = await cognee.add(formatted_content, dataset_name="main_dataset")
@@ -231,14 +231,14 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
                 nodes_created += 1 if getattr(result, "id", None) else (1 if result else 0)
                 
             except Exception as e:
+                print(f"[ERROR] Failed to ingest {path}: {e}")
                 pass
 
         await manager.broadcast({
             "type": "INGEST_PROGRESS",
-            "payload": {"message": "Building Cognee knowledge graph nodes...", "progress": 85}
+            "payload": {"description": "Building Cognee knowledge graph nodes...", "progress": 85}
         })
-        
-        await cognify_with_fallback()
+        await cognify_with_fallback(datasets=["main_dataset"])
         
         record.status = "completed"
         db.commit()
@@ -248,7 +248,7 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
         await manager.broadcast({
             "type": "INGEST_SUCCESS",
             "payload": {
-                "message": "✓ Ingestion completed! Code base successfully indexed in Cognee.",
+                "message": "[OK] Ingestion completed! Code base successfully indexed in Cognee.",
                 "progress": 100,
                 "files_processed": files_processed,
                 "nodes_created": nodes_created,

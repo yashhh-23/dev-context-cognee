@@ -16,6 +16,6 @@ export const config = {
      * 4. /_next (Next.js internals)
      * 5. Static files (images, fonts, favicon, docs)
      */
-    '/((?!$|auth/signin|api/auth|_next/static|_next/image|favicon.ico|.*\\\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf)$).*)',
+    '/((?!$|auth/signin|api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf)$).*)',
   ],
 }

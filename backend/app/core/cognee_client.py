@@ -30,7 +30,7 @@ def _apply_groq_config() -> None:
 
     os.environ["LLM_API_KEY"]    = groq_key
     os.environ["LLM_PROVIDER"]   = "openai"
-    os.environ["LLM_MODEL"]      = "openai/llama-3.1-8b-instant"
+    os.environ["LLM_MODEL"]      = "openai/llama-3.3-70b-versatile"
     os.environ["LLM_ENDPOINT"]   = "https://api.groq.com/openai/v1"
     os.environ["OPENAI_API_KEY"]  = groq_key
     os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
@@ -38,7 +38,7 @@ def _apply_groq_config() -> None:
     try:
         cognee.config.set_llm_config({
             "llm_provider": "openai",
-            "llm_model":    "openai/llama-3.1-8b-instant",
+            "llm_model":    "openai/llama-3.3-70b-versatile",
             "llm_api_key":  groq_key,
             "llm_endpoint": "https://api.groq.com/openai/v1",
         })
@@ -46,16 +46,16 @@ def _apply_groq_config() -> None:
         # Older cognee versions use direct attribute assignment
         try:
             cognee.config.llm_provider = "openai"
-            cognee.config.llm_model    = "openai/llama-3.1-8b-instant"
+            cognee.config.llm_model    = "openai/llama-3.3-70b-versatile"
             cognee.config.llm_api_key  = groq_key
             cognee.config.llm_endpoint = "https://api.groq.com/openai/v1"
         except Exception as e:
             print(f"[cognee] Groq config fallback (legacy) warning: {e}")
 
-    print("[cognee] Switched to Groq (llama-3.1-8b-instant) — Gemini quota exhausted.")
+    print("[cognee] Switched to Groq (llama-3.3-70b-versatile) — Gemini quota exhausted.")
 
 
-async def cognify_with_fallback() -> None:
+async def cognify_with_fallback(**kwargs) -> None:
     """Run cognee.cognify() with Gemini, auto-falling back to Groq on quota errors.
 
     Flow
@@ -66,14 +66,14 @@ async def cognify_with_fallback() -> None:
     4. If Groq also fails, re-raise the Groq error so the caller can handle it.
     """
     try:
-        await cognee.cognify()
+        await cognee.cognify(**kwargs)
     except Exception as primary_exc:
         if _is_quota_error(primary_exc):
             print(f"[cognee] Gemini quota exhausted — switching to Groq fallback. Error: {primary_exc}")
             _apply_groq_config()
             try:
-                await cognee.cognify()
-                print("[cognee] ✓ cognify() completed successfully via Groq fallback.")
+                await cognee.cognify(**kwargs)
+                print("[cognee] [OK] cognify() completed successfully via Groq fallback.")
             except Exception as fallback_exc:
                 print(f"[cognee] Groq fallback also failed: {fallback_exc}")
                 raise fallback_exc
@@ -147,7 +147,7 @@ async def init_cognee():
         except Exception:
             pass  # optional — cognee falls back to its own default if unavailable
 
-        print("[cognee] initialised ✓")
+        print("[cognee] initialised [OK]")
 
     except AttributeError as e:
         print(f"[cognee] init warning (legacy config path): {e}")

@@ -2,10 +2,12 @@
 
 > This document is automatically generated to track contributions to the project based on the Git commit history.
 
-## yashhh-23 (272 commits)
+## yashhh-23 (274 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `18449f3` | 2026-07-04 | feat: implement repository ingestion client with real-time logging and integration testing |
+| `5aac5e9` | 2026-07-04 | docker fix and readme fix and depth application of lifestyle cognee |
 | `4d0900e` | 2026-07-03 | fix(memory): make forget targeted and safe fix(ingest): remove hard cap and fake node metrics feat(recall): add hybrid graph-vector search fix(api): wire draft-issue to real bug service test: add backend coverage for memory lifecycle |
 | `dde843c` | 2026-07-03 | feat: implement comprehensive session management, lifecycle control, and memory feedback system integration |
 | `0a608c9` | 2026-07-02 | bug fixes |
@@ -444,10 +446,21 @@
 | `8a38ffe` | 2026-06-22 | phase 4: full dashboard redesign + bugs/stats backend endpoints |
 | `095edbc` | 2026-06-21 | fix: use cognee v1.0 remember/recall API, fix ingest_service indentation, clean up router and search endpoint |
 
-## Sahil Rane (121 commits)
+## Sahil Rane (132 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `051879d` | 2026-07-04 | Cleanup test files |
+| `fb9a6b1` | 2026-07-04 | Add error logging to ingest service |
+| `5c57fa7` | 2026-07-04 | Fix ingest not generating knowledge graph due to missing dataset parameter |
+| `c7b0a02` | 2026-07-04 | Fix memory node deletion and memify payload mismatch |
+| `2ba142c` | 2026-07-04 | Remove 10s demo timeout from ingestion flow so it doesn't prematurely cut off logs |
+| `5d7d431` | 2026-07-04 | Fix log routing: LiveFeed shows detailed logs, IngestProgress shows generic status |
+| `a099d9e` | 2026-07-04 | Revert component swap in Overview dashboard |
+| `d96d6db` | 2026-07-04 | Fix ingest console stream to read 'description' key from payload |
+| `3277220` | 2026-07-04 | Swap positions of LiveFeed and IngestProgress components |
+| `57b84ca` | 2026-07-04 | Fix dashboard flicker, ingest progress label, forgotten session stats |
+| `68accea` | 2026-07-04 | Fix bugs, implement SWR polling, upgrade LLMs, make Recall/Ask prod-ready |
 | `29526a0` | 2026-07-03 | Merge friend's changes with local Groq and bug counting fixes |
 | `61758d7` | 2026-07-03 | feat: implement frontend API client with mock fallbacks and add backend recall service |
 | `f5f4089` | 2026-07-03 | feat: implement recall API for semantic memory search, node management, and feedback tracking |
@@ -570,10 +583,18 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (79 commits)
+## github-actions[bot] (87 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `cdc6e72` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `43dd950` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `83f2593` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `7d3e9e2` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `4529393` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `e6ccac8` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `5d991c7` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `43d3762` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `2d99673` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `0c41719` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `909ef9e` | 2026-07-02 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
@@ -654,10 +675,12 @@
 | `9119e9a` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `2c3ef53` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 
-## frag2win (41 commits)
+## frag2win (43 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `2035b1e` | 2026-07-03 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
+| `41c2499` | 2026-07-03 | build: package extension into vsix distribution file |
 | `6cab02e` | 2026-07-02 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
 | `a265881` | 2026-07-02 | feat: Integrate Cognee Cloud and Bug Cognification |
 | `ceb662a` | 2026-07-01 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |

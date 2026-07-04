@@ -65,6 +65,9 @@ async function getMockFallback(path: string): Promise<any> {
   if (cleanPath.startsWith('/recall') || cleanPath.startsWith('/api/recall') || cleanPath.startsWith('/api/memory')) {
     return (await import('./mocks/memory_search.json')).default
   }
+  if (cleanPath.startsWith('/api/ingest/github')) {
+    return { message: 'Ingestion completed successfully (cached demo data)', files_processed: 42, nodes_created: 142, time_taken: '9.8s' }
+  }
   if (cleanPath.startsWith('/api/graph/build')) {
     return { message: 'Graph built successfully (cached demo data)', node_count: 142 }
   }
@@ -232,8 +235,8 @@ export interface OverviewStats {
 function normalizeRecallResults(payload: unknown): RecallResult[] {
   const rawItems =
     Array.isArray(payload) ? payload
-    : Array.isArray((payload as { bugs?: unknown[] })?.bugs) ? (payload as { bugs: unknown[] }).bugs
     : Array.isArray((payload as { results?: unknown[] })?.results) ? (payload as { results: unknown[] }).results
+    : Array.isArray((payload as { bugs?: unknown[] })?.bugs) ? (payload as { bugs: unknown[] }).bugs
     : Array.isArray((payload as { items?: unknown[] })?.items) ? (payload as { items: unknown[] }).items
     : []
 
@@ -332,9 +335,15 @@ export const api = {
   // Graph
   buildGraph: () => req<{ message: string; node_count: number }>('/api/graph/build', { method: 'POST' }),
   getGraph: async () => normalizeGraphData(await req<unknown>('/api/graph')),
+  // Ingest
+  ingestGithub: (repo_url: string, branch: string, ingestType: string) =>
+    req<{ message: string; files_processed?: number; nodes_created?: number; time_taken?: string }>('/api/ingest/github', {
+      method: 'POST',
+      body: JSON.stringify({ repo_url, branch, ingestType }),
+    }),
   // Recall / Memory
   recall: async (query: string, limit = 10) =>
-    normalizeRecallResults(await req<unknown>('/api/recall', { method: 'POST', body: JSON.stringify({ query, limit }) })),
+    normalizeRecallResults(await req<unknown>('/api/recall', { method: 'POST', body: JSON.stringify({ query, limit }) }, 30000)),
   searchMemory: async (query: string, limit = 10) =>
     normalizeRecallResults(await req<unknown>('/api/recall', { method: 'POST', body: JSON.stringify({ query, limit }) })),
   forget: (nodeId: string) => req<{ success: boolean }>(`/api/recall/${nodeId}`, { method: 'DELETE' }),

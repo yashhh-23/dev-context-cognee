@@ -1,9 +1,8 @@
 'use client'
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-import { useEffect, useState, useCallback } from 'react'
+import { useState } from 'react'
 import dynamic from 'next/dynamic'
+import useSWR from 'swr'
 import { api, type OverviewStats, type Session } from '@/lib/api'
 import LiveFeed from '@/components/ui/LiveFeed'
 import { DashboardSkeleton } from '@/components/skeletons/Skeletons'
@@ -93,14 +92,18 @@ const AnimatedLatencyIcon = () => (
   </svg>
 )
 
+const fetchDashboardData = async () => {
+  const [stats, sessions, trendData, depHealth] = await Promise.all([
+    api.getStats().catch(() => null),
+    api.getSessions(5).catch(() => []),
+    api.getBugsTrend().catch(() => null),
+    api.getDependenciesHealth().catch(() => null),
+  ])
+  return { stats, sessions: sessions ?? [], trendData, depHealth }
+}
+
 export default function OverviewClient() {
   const { isHealthy } = useHealth()
-  const [stats, setStats] = useState<OverviewStats | null>(null)
-  const [sessions, setSessions] = useState<Session[]>([])
-  const [trendData, setTrendData] = useState<{ labels: string[]; opened: number[]; closed: number[] } | null>(null)
-  const [depHealth, setDepHealth] = useState<{ total_dependencies: number; outdated_count: number; vulnerable_count: number; packages: any[] } | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [healthOpen, setHealthOpen] = useState(false)
   const [autoCleanEnabled, setAutoCleanEnabled] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true
@@ -108,39 +111,25 @@ export default function OverviewClient() {
     return stored === null ? true : stored === 'true'
   })
 
+  const { data, isLoading, mutate } = useSWR('dashboard-overview', fetchDashboardData, {
+    refreshInterval: 5000,
+    revalidateOnFocus: false,   // prevent tab-switch refetch flicker
+    keepPreviousData: true,     // never clear stale data while refreshing
+  })
+
+  const stats = data?.stats ?? null
+  const sessions = data?.sessions ?? []
+  const trendData = data?.trendData ?? null
+  const depHealth = data?.depHealth ?? null
+
   const handleToggleAutoClean = (v: boolean) => {
     setAutoCleanEnabled(v)
     localStorage.setItem(AUTO_CLEAN_KEY, String(v))
   }
 
-  const loadData = useCallback(async () => {
-    setError(null)
-    try {
-      const [s, sess, trend, dep] = await Promise.all([
-        api.getStats(),
-        api.getSessions(5),
-        api.getBugsTrend(),
-        api.getDependenciesHealth(),
-      ])
-      setStats(s)
-      setSessions(sess)
-      setTrendData(trend)
-      setDepHealth(dep)
-    } catch (err: any) {
-      console.error('[Overview] Failed to load dashboard data:', err)
-      setError(err.message || 'Failed to load')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  if (loading) return <DashboardSkeleton />
+  // Only show the skeleton on the very first load when we have NO data at all.
+  // Never re-show it for background revalidations (polls or manual mutate).
+  if (isLoading && !data) return <DashboardSkeleton />
 
   const healthScore = stats?.health_score ?? 85
   const hasBugStats = typeof stats?.open_bugs === 'number' && stats.open_bugs >= 0
@@ -172,7 +161,7 @@ export default function OverviewClient() {
           </button>
           <button
             className="btn btn-ghost btn-sm"
-            onClick={() => { setLoading(true); loadData() }}
+            onClick={() => mutate()}
             style={{ fontFamily: 'var(--font-mono)' }}
           >
             ⟳ Refresh

@@ -35,7 +35,7 @@ export default function LiveFeed() {
     if (!lastMessage) return
 
     const payload = lastMessage.payload as Record<string, string> | null
-    const label = payload?.label ?? payload?.message ?? lastMessage.type
+    const label = payload?.label ?? payload?.message ?? payload?.description ?? lastMessage.type
     
     const newEvent: FeedEvent = {
       id: crypto.randomUUID(),

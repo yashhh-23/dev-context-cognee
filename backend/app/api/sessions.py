@@ -16,6 +16,7 @@ def _decrypt_session(s, byok_key: Optional[str]) -> dict:
     except Exception as e:
         raise HTTPException(status_code=500, detail="Decryption failed — check BYOK key")
 
+    status_val = getattr(s, "status", None)
     return {
         "id":              s.id,
         "repo":            s.project,
@@ -23,7 +24,13 @@ def _decrypt_session(s, byok_key: Optional[str]) -> dict:
         "started_at":      s.timestamp.isoformat() if s.timestamp else "",
         "context_size":    s.context_size or 0,
         "terminal_output": terminal_output,
-        "status":          getattr(s, "status", None),
+        "status":          status_val,
+        "tags":            getattr(s, "tags", None) or [],
+        "lifecycle_stage": (
+            "improved" if status_val in ("improved_memory", "resolved") else
+            "forgotten" if status_val == "forgotten" else
+            "remembered"
+        ),
     }
 
 
