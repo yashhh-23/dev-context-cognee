@@ -267,6 +267,19 @@ Manage   →  cognee.delete()     forget a specific memory node
 
 ---
 
+## Development & Planning Notes
+
+<details>
+<summary>Tooling & Assistive Technologies</summary>
+
+To accelerate research and construction during the hackathon, we leveraged advanced developer tooling:
+- **Perplexity:** Utilized for planning, search, library analysis, and architectural research.
+- **Google Gemini:** Leveraged for backend pipeline development, SQLite integration, and chunking logic.
+- **Anthropic Claude:** Leveraged for frontend UI styling, component structures, and Next.js routing.
+</details>
+
+---
+
 ## Keybindings (VS Code Extension)
 
 | Action | Mac | Windows/Linux |
