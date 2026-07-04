@@ -8,6 +8,11 @@
 
 dev·context is a full-stack developer context engine that captures your coding sessions, ingests them into Cognee's knowledge graph, and surfaces relevant memory exactly when you need it — across debugging, bug triage, and open-source contribution.
 
+
+<p align="center">
+  <a href="./assets/graph.gif">Watch the demo video</a>
+</p>
+
 ## 🚀 One-Click Quick Start (Local Demo)
 
 To boot the entire persistent-memory developer context engine with seeded mock data, run these two commands in your terminal:
@@ -35,38 +40,45 @@ docker compose up --build
 
 ---
 
-## Architecture
+## Architecture & Data Flow
 
-```text
-┌──────────────────────────────────────────────────┐
-│  Input Layer                                     │
-│  VS Code Extension (sidebar + keybindings)       │
-│  CLI  →  python cli/cognee_cli.py                │
-└─────────────────────┬────────────────────────────┘
-                      │  HTTP / WebSocket
-┌─────────────────────┴────────────────────────────┐
-│  FastAPI Backend  (backend/)                     │
-│                                                  │
-│  POST /api/ingest         → cognee.add/cognify   │
-│  POST /api/recall         → cognee.search()      │
-│  POST /api/bugs/draft-issue → bug_service.py     │
-│  GET  /api/graph/query    → cognee.get_graph()   │
-│  GET  /api/overview       → stats + KPIs         │
-│  POST /api/memory/forget  → cognee.delete()      │
-│  WS   /ws                 → live event stream    │
-│                                                  │
-│  services/  ingest_service  recall_service       │
-│             bug_service (Cognee + LLM draft)     │
-└─────────────────────┬────────────────────────────┘
-                      │
-          ┌───────────┴───────────┐
-          │                       │
-┌─────────┴─────────┐  ┌─────────┴──────────┐
-│  Cognee Core      │  │  Next.js Dashboard  │
-│  Knowledge Graph  │  │  /overview  KPIs    │
-│  Vector Store     │  │  /bugs      Recall  │
-│  LLM layer        │  │  /graph     Vis.js  │
-└───────────────────┘  └────────────────────┘
+```mermaid
+sequenceDiagram
+    participant Dev as Developer (VS Code / CLI / Dashboard)
+    participant VSCode as VS Code Extension
+    participant Dash as Next.js Dashboard
+    participant Backend as FastAPI Server
+    participant Cognee as Cognee Engine (Graph/Vector)
+    participant LLM as Gemini / Groq LLM
+
+    %% Scenario 1: Save Context
+    Note over Dev, Cognee: Scenario 1: Capturing Developer Context
+    Dev->>VSCode: Save File / Cmd+Shift+M
+    VSCode->>Backend: POST /api/ingest (code, symbols)
+    Backend->>Cognee: cognee.add(context)
+    Backend->>Cognee: cognee.cognify() (async graph building)
+    Backend-->>VSCode: Return ingestion queued
+    Backend-->>Dash: Stream progress via WS (WebSocket)
+
+    %% Scenario 2: Recall Memory
+    Note over Dev, Cognee: Scenario 2: Querying Context & Bug Recall
+    Dev->>Dash: Enter query: "Why is auth failing?"
+    Dash->>Backend: POST /api/recall
+    Backend->>Cognee: cognee.search(query, SIMILARITY)
+    Cognee-->>Backend: Return nodes & relationships
+    Backend-->>Dash: Return formatted matches & graph data
+    Dash-->>Dev: Render visual graph + related sessions
+
+    %% Scenario 3: GitHub Issue Drafting
+    Note over Dev, Cognee: Scenario 3: Drafting GitHub Issues
+    Dev->>VSCode: Draft Issue (Cmd+Shift+I)
+    VSCode->>Backend: POST /api/bugs/draft-issue (snippet)
+    Backend->>Cognee: cognee.search(snippet)
+    Cognee-->>Backend: Return matching debug logs/past fixes
+    Backend->>LLM: cognee.llm_query(context + past logs)
+    LLM-->>Backend: Return drafted markdown issue
+    Backend-->>VSCode: Return draft body
+    VSCode-->>Dev: Display issue draft in Sidebar WebView
 ```
 
 ---
@@ -213,35 +225,29 @@ For detailed configurations, see the `./mcp/README.md` guide.
 
 ## Environment Variables
 
-Copy `backend/.env.example` to `backend/.env` and fill in the values below.
+Copy `.env.example` to `.env` in the root (or `backend/.env.example` to `backend/.env` for manual setups) and fill in the values below:
 
 ```env
-# ── LLM Provider (required) ────────────────────────────────────────────────
-GEMINI_API_KEY=your_gemini_key_here  # Primary LLM provider
-GROQ_API_KEY=your_groq_key_here      # Fallback provider
+# ── Required LLM / Cognee ───────────────────────────────────────────────
+GEMINI_API_KEY=your_gemini_key_here          # Primary LLM provider
+GROQ_API_KEY=your_groq_key_here              # Fallback provider
 
-# ── Cognee config (required) ───────────────────────────────────────────────
-# LLM configuration is handled automatically in the backend. 
-# It uses gemini-2.5-flash by default and falls back to llama-3.1-8b-instant.
-COGNEE_VECTOR_DB_PROVIDER=lancedb # lancedb (zero-config local) | qdrant | weaviate
-COGNEE_DB_PATH=./cognee_db        # local path for LanceDB + SQLite storage
+# ── GitHub Integration ──────────────────────────────────────────────────
+GITHUB_TOKEN=your_github_pat_here            # Personal access token with repo scope
+GITHUB_REPO=owner/repo-name                  # Target repo (e.g. yashhh-23/dev-context-cognee)
 
-# ── GitHub integration (required for /api/bugs and /api/contribute) ────────
-GITHUB_TOKEN=ghp_...              # Personal access token, repo scope
-GITHUB_REPO=owner/repo            # e.g. yashhh-23/dev-context-cognee
+# ── App Auth & Dashboard ────────────────────────────────────────────────
+NEXTAUTH_SECRET=replace-with-a-long-random-secret # Required for frontend auth cookie
+DASHBOARD_PASSWORD=change-me-in-production         # Password for logging into the dashboard
 
-# ── App settings ───────────────────────────────────────────────────────────
-PROJECT_NAME=dev-context-cognee
-DATABASE_URL=sqlite:///./dev_context.db   # SQLite default; swap for postgres in prod
-SECRET_KEY=change-me-in-production        # used for any signed tokens
-
-# ── Frontend URLs (used by Next.js dashboard) ──────────────────────────────
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
+# ── Storage & App Settings ──────────────────────────────────────────────
+DATABASE_URL=sqlite:///./dev_context.db      # Database URL for dashboard sessions
+ENABLE_BACKEND_ACCESS_CONTROL=false          # Enable backend authorization checks
+CACHING=false                                # Enable caching for API requests
 ```
 
-> **Minimum to get running:** `GEMINI_API_KEY`, `COGNEE_VECTOR_DB_PROVIDER`.
-> GitHub vars are only needed for bug-recall and contribute routes.
+> [!NOTE]
+> When running with **Docker Compose**, these values are loaded from the root `.env` and automatically mapped to both `frontend` and `backend` services. Make sure `NEXTAUTH_SECRET` and `DASHBOARD_PASSWORD` are set before booting!
 
 ---
 
