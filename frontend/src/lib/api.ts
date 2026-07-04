@@ -334,7 +334,7 @@ export const api = {
   suggestContribution: (id: number) => req<{ suggestion: string }>(`/api/contribute/${id}/suggest`),
   // Graph
   buildGraph: () => req<{ message: string; node_count: number }>('/api/graph/build', { method: 'POST' }),
-  getGraph: async () => normalizeGraphData(await req<unknown>('/api/graph')),
+  getGraph: async (graphType: string = 'both') => normalizeGraphData(await req<unknown>(`/api/graph?graph_type=${graphType}`)),
   // Ingest
   ingestGithub: (repo_url: string, branch: string, ingestType: string) =>
     req<{ message: string; files_processed?: number; nodes_created?: number; time_taken?: string }>('/api/ingest/github', {
@@ -412,8 +412,8 @@ export async function contributeSearch(bugId?: string, query?: string): Promise<
     }
   }
 }
-export async function getGraph(): Promise<{ data: GraphData }> {
-  const g = await api.getGraph()
+export async function getGraph(graphType: string = 'both'): Promise<{ data: GraphData }> {
+  const g = await api.getGraph(graphType)
   return { data: g }
 }
 export async function recallMemory(query: string): Promise<{ data: { results: RecallResult[] } }> {

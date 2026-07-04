@@ -1,4 +1,6 @@
 import os
+os.environ["COGNEE_SYSTEM_PATH"] = os.path.expanduser("~/.cognee_system")
+
 import sys
 import tempfile
 import traceback
@@ -21,8 +23,6 @@ from app.utils.embedding_utils import (
 backend_dir = Path(__file__).resolve().parent.parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
-
-os.environ["COGNEE_SYSTEM_PATH"] = os.path.expanduser("~/.cognee_system")
 
 from app.core.cognee_client import init_cognee
 from app.services.recall_service import extract_text

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type GraphData, type RecallResult } from '@/lib/api'
 import { toast } from 'sonner'
 import { useWebSocketContext } from '@/context/WebSocketContext'
+import { Pin, PinOff, FileCode, Bug, Database, LayoutGrid, Trash2, Pencil, ChevronDown, ChevronUp } from 'lucide-react'
 
 // Must match graph_builder.py NODE_COLORS keys exactly
 const NODE_COLORS: Record<string, string> = {
@@ -41,9 +42,10 @@ export default function GraphClient() {
   const [graphLoading, setGraphLoading] = useState(true)
   const [building, setBuilding] = useState(false)
   const [graphError, setGraphError] = useState<string | null>(null)
+  const [graphSource, setGraphSource] = useState<'both' | 'sessions' | 'knowledge'>('both')
   
   // Memory Stats States
-  const [stats, setStats] = useState<{ total_memories: number; graph_nodes: number; graph_edges: number; last_updated: string } | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<string>('')
   
   // Grid View States
   const [memories, setMemories] = useState<RecallResult[]>([])
@@ -57,14 +59,9 @@ export default function GraphClient() {
   const graphNodes = Array.isArray(graphData?.nodes) ? graphData.nodes : []
   const graphEdges = Array.isArray(graphData?.edges) ? graphData.edges : []
 
-  // Fetch memory statistics
+  // Fetch memory statistics (just updates timestamp now since stats are derived)
   const fetchStats = async () => {
-    try {
-      const s = await api.getMemoryStats()
-      setStats(s)
-    } catch {
-      // ignore
-    }
+    setLastUpdated(new Date().toLocaleString())
   }
 
   // Load Graph Data
@@ -72,14 +69,15 @@ export default function GraphClient() {
     setGraphLoading(true)
     setGraphError(null)
     try {
-      const data = await api.getGraph()
+      const data = await api.getGraph(graphSource)
       setGraphData(data)
+      setLastUpdated(new Date().toLocaleString())
     } catch (e: any) {
       setGraphError(e.message || 'Failed to load graph')
     } finally {
       setGraphLoading(false)
     }
-  }, [])
+  }, [graphSource])
 
   // Load Memories for Grid View
   const loadMemories = useCallback(async (query = '') => {
@@ -87,6 +85,7 @@ export default function GraphClient() {
     try {
       const res = await api.recall(query, 50)
       setMemories(res)
+      setLastUpdated(new Date().toLocaleString())
     } catch {
       toast.error('Failed to load memories')
     } finally {
@@ -357,6 +356,39 @@ export default function GraphClient() {
               <span>Grid View</span>
             </button>
           </div>
+
+          {/* Graph Source Toggle */}
+          {viewMode === 'graph' && (
+            <div style={{
+              display: 'flex',
+              background: 'var(--color-surface-offset)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-md)',
+              padding: '2px',
+            }}>
+              <button
+                className={`btn btn-sm ${graphSource === 'both' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setGraphSource('both')}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', borderRadius: 'var(--radius-sm)' }}
+              >
+                All Data
+              </button>
+              <button
+                className={`btn btn-sm ${graphSource === 'knowledge' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setGraphSource('knowledge')}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', borderRadius: 'var(--radius-sm)' }}
+              >
+                Knowledge
+              </button>
+              <button
+                className={`btn btn-sm ${graphSource === 'sessions' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setGraphSource('sessions')}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', borderRadius: 'var(--radius-sm)' }}
+              >
+                Sessions
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -364,20 +396,20 @@ export default function GraphClient() {
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-label">Total Memories</div>
-          <div className="stat-value">{stats?.total_memories ?? 0}</div>
+          <div className="stat-value">{viewMode === 'grid' ? memories.length : graphNodes.length}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Graph Nodes</div>
-          <div className="stat-value" style={{ color: 'var(--color-primary)' }}>{stats?.graph_nodes ?? 0}</div>
+          <div className="stat-value" style={{ color: 'var(--color-primary)' }}>{graphNodes.length}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Graph Edges</div>
-          <div className="stat-value" style={{ color: '#a78bfa' }}>{stats?.graph_edges ?? 0}</div>
+          <div className="stat-value" style={{ color: '#a78bfa' }}>{graphEdges.length}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Last Updated</div>
           <div className="stat-value" style={{ fontSize: 'var(--text-sm)', marginTop: '6px' }}>
-            {stats?.last_updated ? new Date(stats.last_updated).toLocaleString() : '—'}
+            {lastUpdated || '—'}
           </div>
         </div>
       </div>
@@ -392,7 +424,7 @@ export default function GraphClient() {
                 <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
                   <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', color: 'var(--color-text-faint)' }}>
-                    {type} ({nodeTypeCount[type] ?? 0})
+                    {type} ({nodeTypeCount[type.toLowerCase()] ?? 0})
                   </span>
                 </div>
               ))}
@@ -464,11 +496,11 @@ export default function GraphClient() {
             {/* Category Filter Chips */}
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
               {[
-                { id: 'all', label: 'All Memories' },
-                { id: 'pinned', label: '📌 Pinned' },
-                { id: 'file', label: '📄 Code Files' },
-                { id: 'bug', label: '🐞 Bugs' },
-                { id: 'session', label: '⌗ Sessions' },
+                { id: 'all', label: 'All Memories', icon: Database },
+                { id: 'pinned', label: 'Pinned', icon: Pin },
+                { id: 'file', label: 'Code Files', icon: FileCode },
+                { id: 'bug', label: 'Bugs', icon: Bug },
+                { id: 'session', label: 'Sessions', icon: LayoutGrid },
               ].map(cat => (
                 <button
                   key={cat.id}
@@ -483,8 +515,12 @@ export default function GraphClient() {
                     color: selectedCategory === cat.id ? 'var(--color-bg)' : 'var(--color-text-muted)',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
                   }}
                 >
+                  <cat.icon size={10} />
                   {cat.label}
                 </button>
               ))}
@@ -536,10 +572,12 @@ export default function GraphClient() {
                             fontSize: '9px',
                             color: m.pinned ? 'var(--color-primary)' : 'var(--color-text-faint)',
                             padding: '1px 4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
                           }}
                           title={m.pinned ? 'Unpin memory' : 'Pin memory'}
                         >
-                          {m.pinned ? '📌' : '📍'}
+                          {m.pinned ? <Pin size={12} fill="currentColor" /> : <PinOff size={12} />}
                         </button>
                         <button
                           className="btn btn-ghost btn-xs"
@@ -550,10 +588,12 @@ export default function GraphClient() {
                             color: m.pinned ? 'var(--color-text-faint)' : 'var(--color-error)',
                             padding: '1px 4px',
                             cursor: m.pinned ? 'not-allowed' : 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
                           }}
                           title={m.pinned ? 'Unpin to forget' : 'Forget memory'}
                         >
-                          🗑
+                          <Trash2 size={12} />
                         </button>
                       </div>
                     </div>
@@ -625,9 +665,16 @@ export default function GraphClient() {
                               fontFamily: 'var(--font-mono)',
                               cursor: 'pointer',
                               padding: 0,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px'
                             }}
                           >
-                            {isExpanded ? 'show less ▲' : 'show more ▼'}
+                            {isExpanded ? (
+                              <>show less <ChevronUp size={10} /></>
+                            ) : (
+                              <>show more <ChevronDown size={10} /></>
+                            )}
                           </button>
                           <button
                             onClick={() => {
@@ -642,9 +689,12 @@ export default function GraphClient() {
                               fontFamily: 'var(--font-mono)',
                               cursor: 'pointer',
                               padding: 0,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
                             }}
                           >
-                            ✎ improve
+                            <Pencil size={10} /> improve
                           </button>
                         </div>
                       </>

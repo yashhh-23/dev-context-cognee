@@ -69,11 +69,32 @@ async def recall(
 ):
     """Recall relevant memory nodes — returns a list with pinned status."""
     verify_safe_input(q, "query")
-    try:
-        raw = await search_memory(q)
-    except Exception as e:
-        print(f"[recall] search_memory error: {e}")
-        return []
+    raw = []
+    if not q:
+        from cognee.infrastructure.databases.graph import get_graph_engine
+        try:
+            graph_engine = await get_graph_engine()
+            data = await graph_engine.get_graph_data()
+            if data and len(data) >= 2 and data[0]:
+                cognee_nodes, _ = data
+                for node in cognee_nodes[:limit]:
+                    nid = str(node[0])
+                    props = node[1]
+                    text = props.get("text") or props.get("description") or props.get("name") or props.get("label") or nid
+                    raw.append({"id": nid, "text": text, "source": "graph", "score": 1.0})
+            else:
+                from app.services.recall_service import get_all_sessions
+                sessions = get_all_sessions(db, skip=0, limit=limit)
+                raw = [{"id": f"session:{s.id}", "text": s.terminal_output or s.summary or s.project, "source": "session", "score": 1.0} for s in sessions]
+        except Exception as e:
+            print(f"[recall] default list error: {e}")
+    else:
+        try:
+            raw = await search_memory(q)
+        except Exception as e:
+            print(f"[recall] search_memory error: {e}")
+            return []
+            
     if not raw:
         return []
     items = raw if isinstance(raw, list) else [raw]

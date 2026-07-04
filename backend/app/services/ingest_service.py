@@ -30,6 +30,118 @@ async def _debounced_cognify(delay: float = 15.0):
                 print(f"[DEBUG] Debounced cognify failed: {e}")
         _cognify_task = asyncio.create_task(_run())
 
+import fnmatch
+
+class GitIgnoreMatcher:
+    def __init__(self, base_dir: str):
+        self.base_dir = os.path.abspath(base_dir)
+        self.rules = []
+        
+        # Default ignored patterns to exclude standard build / environment directories and binary types
+        default_patterns = [
+            ".git/", ".github/", "node_modules/", "venv/", ".venv/", "env/", ".env",
+            "__pycache__/", "*.pyc", "*.pyo", "*.pyd", "dist/", "build/", ".next/",
+            ".nuxt/", "out/", "target/", ".idea/", ".vscode/", "tmp/", "temp/",
+            # compiled / binary types
+            "*.png", "*.jpg", "*.jpeg", "*.gif", "*.ico", "*.pdf", "*.zip", "*.tar", "*.gz", "*.rar", "*.7z",
+            "*.exe", "*.dll", "*.so", "*.dylib", "*.bin", "*.db", "*.sqlite", "*.sqlite3", "*.woff", "*.woff2",
+            "*.ttf", "*.eot", "*.mp4", "*.mp3", "*.wav", "*.avi", "*.mov", "*.flv", "*.wmv", "*.mkv",
+            "*.class", "*.o", "*.a", "*.lib", "*.obj", "*.pyc", "*.pyo", "*.pyd"
+        ]
+        for pat in default_patterns:
+            self._add_rule(pat)
+
+        # Try to read local .gitignore from cloned repo
+        gitignore_path = os.path.join(self.base_dir, ".gitignore")
+        if os.path.exists(gitignore_path):
+            try:
+                with open(gitignore_path, "r", encoding="utf-8", errors="ignore") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#"):
+                            self._add_rule(line)
+            except Exception as e:
+                print(f"[gitignore] warning: failed to read .gitignore: {e}")
+
+    def _add_rule(self, pattern: str):
+        is_dir_only = pattern.endswith("/")
+        clean_pat = pattern.rstrip("/")
+        is_root_relative = clean_pat.startswith("/")
+        if is_root_relative:
+            clean_pat = clean_pat[1:]
+            
+        self.rules.append({
+            "pattern": clean_pat,
+            "is_dir_only": is_dir_only,
+            "is_root_relative": is_root_relative
+        })
+
+    def is_ignored(self, path: str, is_dir: bool = False) -> bool:
+        abs_path = os.path.abspath(path)
+        rel_path = os.path.relpath(abs_path, self.base_dir).replace("\\", "/")
+        segments = rel_path.split("/")
+        
+        for rule in self.rules:
+            pat = rule["pattern"]
+            is_dir_only = rule["is_dir_only"]
+            is_root_relative = rule["is_root_relative"]
+            
+            if is_dir_only and not is_dir:
+                continue
+                
+            if is_root_relative:
+                if fnmatch.fnmatchcase(rel_path, pat) or fnmatch.fnmatchcase(segments[0], pat):
+                    return True
+                if "**" in pat:
+                    translated = pat.replace("**", "*")
+                    if fnmatch.fnmatchcase(rel_path, translated):
+                        return True
+            else:
+                for segment in segments:
+                    if fnmatch.fnmatchcase(segment, pat):
+                        return True
+                if "/" in pat:
+                    if fnmatch.fnmatchcase(rel_path, pat):
+                        return True
+                    if f"/{pat}/" in f"/{rel_path}/" or rel_path.startswith(pat + "/"):
+                        return True
+                            
+        return False
+
+
+def is_binary(file_path: str) -> bool:
+    try:
+        with open(file_path, "rb") as f:
+            chunk = f.read(1024)
+            if b"\x00" in chunk:
+                return True
+        return False
+    except Exception:
+        return True
+
+
+def chunk_code(content: str, rel_path: str, max_lines: int = 150, overlap_lines: int = 15) -> list[str]:
+    lines = content.splitlines()
+    if len(lines) <= max_lines:
+        return [f"File: {rel_path}\nContent:\n{content}"]
+        
+    chunks = []
+    i = 0
+    while i < len(lines):
+        chunk_lines = lines[i : i + max_lines]
+        chunks.append("\n".join(chunk_lines))
+        i += (max_lines - overlap_lines)
+        
+    total_chunks = len(chunks)
+    formatted_chunks = []
+    for idx, chunk_content in enumerate(chunks):
+        formatted_chunk = (
+            f"File: {rel_path} (Part {idx + 1}/{total_chunks})\n"
+            f"Content:\n{chunk_content}"
+        )
+        formatted_chunks.append(formatted_chunk)
+        
+    return formatted_chunks
 
 
 def clean_terminal_output(text: str) -> str:
@@ -190,15 +302,20 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
             "type": "INGEST_PROGRESS",
             "payload": {"description": f"[OK] Repository connected and downloaded.", "progress": 30}
         })
-
-        # Walk files
+        # Walk files with GitIgnoreMatcher and is_binary checks
+        matcher = GitIgnoreMatcher(tmp_dir)
         file_paths = []
         for root, dirs, files in os.walk(tmp_dir):
-            if ".git" in dirs:
-                dirs.remove(".git")
+            # Prune ignored directories in-place to speed up walking
+            dirs[:] = [d for d in dirs if not matcher.is_ignored(os.path.join(root, d), is_dir=True)]
+            
             for file in files:
-                if not file.startswith(".") and not file.endswith((".png", ".jpg", ".pdf", ".zip")):
-                    file_paths.append(os.path.join(root, file))
+                full_path = os.path.join(root, file)
+                if matcher.is_ignored(full_path, is_dir=False):
+                    continue
+                if is_binary(full_path):
+                    continue
+                file_paths.append(full_path)
                     
         total_files = len(file_paths)
         max_files = getattr(settings, "MAX_INGEST_FILES", None)
@@ -218,7 +335,6 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
                     content = f.read()
                 
                 rel_path = os.path.relpath(path, tmp_dir)
-                formatted_content = f"File: {rel_path}\nSource: github\nContent:\n{content}"
                 
                 if i % 10 == 0:
                     await manager.broadcast({
@@ -226,9 +342,12 @@ async def process_github_ingest(session_id: str, payload: dict, byok_key: str = 
                         "payload": {"description": f"Analyzing AST: {rel_path}...", "progress": 40 + int(40 * (i/len(file_paths)))}
                     })
                     
-                result = await cognee.add(formatted_content, dataset_name="main_dataset")
+                chunks = chunk_code(content, rel_path)
+                for chunk_content in chunks:
+                    result = await cognee.add(chunk_content, dataset_name="main_dataset")
+                    nodes_created += 1 if getattr(result, "id", None) else (1 if result else 0)
+                
                 files_processed += 1
-                nodes_created += 1 if getattr(result, "id", None) else (1 if result else 0)
                 
             except Exception as e:
                 print(f"[ERROR] Failed to ingest {path}: {e}")
