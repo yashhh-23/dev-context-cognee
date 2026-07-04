@@ -103,16 +103,16 @@ describe('Dashboard and Ingest Ingestion Integration Flow', () => {
     expect(repoInput).toHaveValue('github.com/yashhh-23/dev-context-cognee')
     expect(branchInput).toHaveValue('feat/frontend-prd')
 
-    // Click trigger ingestion
-    fireEvent.click(triggerBtn)
-
-    // Assert console transitions to running
-    expect(screen.getByText(/indexing codebase.../i)).toBeInTheDocument()
-
-    // Fast-forward through mock steps
+    // Click trigger ingestion and await state updates
+    // (ingestGithub mock resolves instantly with files_processed so the
+    //  component transitions idle → running → completed in one async flush)
     await act(async () => {
-      jest.advanceTimersByTime(10000)
+      fireEvent.click(triggerBtn)
     })
+
+    // Ingest API was called once
+    const { api: mockApi } = require('@/lib/api')
+    expect(mockApi.ingestGithub).toHaveBeenCalledTimes(1)
 
     // Ingestion should be completed, displaying summary cards
     expect(screen.getByText(/Ingestion Completed Successfully/i)).toBeInTheDocument()
