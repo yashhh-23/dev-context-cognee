@@ -16,7 +16,13 @@ interface WebSocketContextType {
 const WebSocketContext = createContext<WebSocketContextType | null>(null)
 
 const getWsUrl = () => {
-  if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL
+  if (process.env.NEXT_PUBLIC_WS_URL) {
+    let url = process.env.NEXT_PUBLIC_WS_URL.replace(/\/+$/, '')
+    if (!url.endsWith('/ws') && !url.endsWith('/ws/notifications')) {
+      url += '/ws/notifications'
+    }
+    return url
+  }
   if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     return `${protocol}//${window.location.host}/ws/notifications`

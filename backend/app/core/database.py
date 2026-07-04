@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -27,6 +27,23 @@ def init_db():
     try:
         # Self-correcting generation script to guarantee all tables exist
         Base.metadata.create_all(bind=engine)
+        
+        # Auto-migrate missing columns for existing tables (e.g. Postgres on Render)
+        try:
+            inspector = inspect(engine)
+            if "sessions" in inspector.get_table_names():
+                columns = [col["name"] for col in inspector.get_columns("sessions")]
+                with engine.begin() as conn:
+                    if "is_encrypted" not in columns:
+                        logging.info("Migrating schema: adding column 'is_encrypted' to table 'sessions'...")
+                        if engine.dialect.name == "sqlite":
+                            conn.execute(text("ALTER TABLE sessions ADD COLUMN is_encrypted BOOLEAN DEFAULT 0"))
+                        else:
+                            conn.execute(text("ALTER TABLE sessions ADD COLUMN is_encrypted BOOLEAN DEFAULT FALSE"))
+                        logging.info("Column 'is_encrypted' added successfully.")
+        except Exception as mig_err:
+            logging.warning(f"Schema migration check encountered an issue (non-fatal): {mig_err}")
+
         logging.info("Database tables initialized successfully.")
     except Exception as e:
         logging.error(f"Failed to initialize database tables: {e}")
