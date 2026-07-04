@@ -585,10 +585,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (89 commits)
+## github-actions[bot] (90 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `80ff794` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `effc782` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `ff0d2d7` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `cdc6e72` | 2026-07-03 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
@@ -679,10 +680,12 @@
 | `9119e9a` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `2c3ef53` | 2026-06-30 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 
-## frag2win (45 commits)
+## frag2win (47 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `490803f` | 2026-07-04 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
+| `bd424dc` | 2026-07-04 | docs: add CONTRIBUTING.md with project architecture, setup guide, and contribution workflow |
 | `7429418` | 2026-07-04 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
 | `397e611` | 2026-07-04 | feat: initialize extension manifest with commands, keybindings, and configuration for Dev-Context Assistant |
 | `2035b1e` | 2026-07-03 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
