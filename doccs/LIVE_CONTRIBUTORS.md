@@ -2,10 +2,11 @@
 
 > This document is automatically generated to track contributions to the project based on the Git commit history.
 
-## yashhh-23 (280 commits)
+## yashhh-23 (281 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `def42d1` | 2026-07-04 | fix(db): auto-migrate missing is_encrypted column on startup |
 | `7d20385` | 2026-07-04 | allowedorigin |
 | `cf7192d` | 2026-07-04 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
 | `17fd443` | 2026-07-04 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
@@ -590,10 +591,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (94 commits)
+## github-actions[bot] (95 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `8d0f098` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `e8a5487` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `3bbb4bf` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `1480239` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
