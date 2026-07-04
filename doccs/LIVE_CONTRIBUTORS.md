@@ -2,10 +2,11 @@
 
 > This document is automatically generated to track contributions to the project based on the Git commit history.
 
-## yashhh-23 (283 commits)
+## yashhh-23 (284 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `6fc8288` | 2026-07-05 | updated readme |
 | `ac80afa` | 2026-07-05 | updated insgestion |
 | `4f6913f` | 2026-07-05 | updated database |
 | `def42d1` | 2026-07-04 | fix(db): auto-migrate missing is_encrypted column on startup |
@@ -594,10 +595,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (98 commits)
+## github-actions[bot] (99 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `c6a7ce2` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `a2a8075` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `0988c49` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `6894291` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
