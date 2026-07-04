@@ -1,5 +1,12 @@
 import os
-os.environ["COGNEE_SYSTEM_PATH"] = os.path.expanduser("~/.cognee_system")
+import tempfile
+
+# Force Cognee system paths to use a writable ephemeral scratch space (/tmp/cognee_system on Render/Linux)
+_storage_dir = os.environ.get("COGNEE_STORAGE_DIR", os.path.join(tempfile.gettempdir(), "cognee_system"))
+_db_dir = os.path.join(_storage_dir, "databases")
+os.makedirs(_db_dir, exist_ok=True)
+os.makedirs(os.path.join(_storage_dir, "data"), exist_ok=True)
+os.environ["COGNEE_SYSTEM_PATH"] = _storage_dir
 
 import cognee
 from app.core.config import settings
@@ -95,9 +102,13 @@ async def init_cognee():
                 api_key=settings.COGNEE_API_KEY
             )
         else:
-            print("[cognee] Using local filesystem memory...")
-            cognee.config.system_root_directory(os.path.expanduser("~/.cognee_system"))
-            cognee.config.data_root_directory(os.path.expanduser("~/.cognee_system/data"))
+            print(f"[cognee] Using local filesystem memory at {_storage_dir}...")
+            cognee.config.system_root_directory(_storage_dir)
+            cognee.config.data_root_directory(os.path.join(_storage_dir, "data"))
+            try:
+                cognee.config.set_relational_db_config({"db_path": _db_dir, "db_name": "cognee_db", "db_provider": "sqlite"})
+            except Exception as cfg_err:
+                print(f"[cognee] Relational db config override warning: {cfg_err}")
 
         # ── Fix LanceDB Windows spill bug ──────────────────────────────────────
         os.environ.setdefault("LANCE_IO_THREADS", "2")
