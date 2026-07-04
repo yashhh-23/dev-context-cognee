@@ -3,7 +3,7 @@
   "displayName": "Dev-Context Assistant",
   "description": "Cognee-powered developer context assistant with persistent memory across sessions. API keys are stored securely via VS Code SecretStorage.",
   "version": "0.1.0",
-  "publisher": "yashhh-23",
+  "publisher": "SHUBHAMSUNILPAWAR",
   "categories": [
     "Other",
     "Programming Languages",
