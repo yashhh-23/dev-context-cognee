@@ -53,7 +53,7 @@ app = FastAPI(title="dev-context-cognee", lifespan=lifespan)
 
 allow_origins = [
     "http://localhost:3000",
-    "https://localhost:3000",
+    "https://dev-context-cognee.vercel.app/",
 ]
 vercel_url = os.getenv("VERCEL_FRONTEND_URL", "")
 if vercel_url:
