@@ -1,6 +1,15 @@
 # dev·context — AI Memory for Developer Workflows
 
-> Built for the **WeMakeDevs × Cognee Hackathon**. Cognee powers every memory operation: ingest, recall, forget, and draft.
+> A full-stack developer context engine that captures your coding sessions, builds semantic knowledge graphs, and resolves related debugging memory. Built for the [The Hangover Part AI Hackathon](https://www.wemakedevs.org/hackathons/cognee) | Track 1: Best Use of Cognee Open Source
+
+---
+
+## 🔗 Live Demo Links
+
+* **Deployed Frontend (Vercel):** https://dev-context-cognee.vercel.app/
+* **Deployed Backend (Render):** https://dev-context-cognee.onrender.com
+
+---
 
 [![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Cognee%20%2B%20VS%20Code-teal)](#)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#)
