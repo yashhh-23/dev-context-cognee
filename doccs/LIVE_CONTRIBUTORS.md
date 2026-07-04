@@ -2,10 +2,13 @@
 
 > This document is automatically generated to track contributions to the project based on the Git commit history.
 
-## yashhh-23 (276 commits)
+## yashhh-23 (279 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `cf7192d` | 2026-07-04 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
+| `17fd443` | 2026-07-04 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
+| `ba85c05` | 2026-07-04 | chore: remove CONTRIBUTING.md file |
 | `574e396` | 2026-07-04 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
 | `323ad91` | 2026-07-04 | updated readme |
 | `18449f3` | 2026-07-04 | feat: implement repository ingestion client with real-time logging and integration testing |
@@ -585,10 +588,11 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (91 commits)
+## github-actions[bot] (92 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `1480239` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `31467b0` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `80ff794` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `effc782` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
