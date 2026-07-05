@@ -2,10 +2,15 @@
 
 > This document is automatically generated to track contributions to the project based on the Git commit history.
 
-## yashhh-23 (279 commits)
+## yashhh-23 (284 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `6fc8288` | 2026-07-05 | updated readme |
+| `ac80afa` | 2026-07-05 | updated insgestion |
+| `4f6913f` | 2026-07-05 | updated database |
+| `def42d1` | 2026-07-04 | fix(db): auto-migrate missing is_encrypted column on startup |
+| `7d20385` | 2026-07-04 | allowedorigin |
 | `cf7192d` | 2026-07-04 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
 | `17fd443` | 2026-07-04 | Merge branch 'main' of https://github.com/yashhh-23/dev-context-cognee |
 | `ba85c05` | 2026-07-04 | chore: remove CONTRIBUTING.md file |
@@ -451,10 +456,11 @@
 | `8a38ffe` | 2026-06-22 | phase 4: full dashboard redesign + bugs/stats backend endpoints |
 | `095edbc` | 2026-06-21 | fix: use cognee v1.0 remember/recall API, fix ingest_service indentation, clean up router and search endpoint |
 
-## Sahil Rane (133 commits)
+## Sahil Rane (134 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `86513b7` | 2026-07-05 | docs: add development tooling details in collapsed details element |
 | `de259a7` | 2026-07-04 | fix: overhaul repository ingestion pipeline, fix dashboard statistics/legend, and migrate to Next.js 16 proxy convention |
 | `051879d` | 2026-07-04 | Cleanup test files |
 | `fb9a6b1` | 2026-07-04 | Add error logging to ingest service |
@@ -589,10 +595,16 @@
 | `f07cab2` | 2026-06-25 | feat: implement MCP server with file system watcher and automate source code indexing in Cognee |
 | `2b52bcf` | 2026-06-24 | fix: clean up unused props, hook deps, eslint/ts config exclusions, .venv gitignore |
 
-## github-actions[bot] (93 commits)
+## github-actions[bot] (99 commits)
 
 | Commit | Date | Message |
 |---|---|---|
+| `c6a7ce2` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `a2a8075` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `0988c49` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `6894291` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `8d0f098` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
+| `e8a5487` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `3bbb4bf` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `1480239` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |
 | `31467b0` | 2026-07-04 | docs: auto-update LIVE_CONTRIBUTORS.md [skip ci] |

@@ -16,8 +16,8 @@ export default function IngestClient() {
   const { status, lastMessage } = useWebSocket()
   
   // Form State
-  const [repoUrl, setRepoUrl] = useState('github.com/yashhh-23/dev-context-cognee')
-  const [branch, setBranch] = useState('feat/frontend-prd')
+  const [repoUrl, setRepoUrl] = useState('')
+  const [branch, setBranch] = useState('')
   const [ingestType, setIngestType] = useState('full')
   
   // Ingest Flow State
